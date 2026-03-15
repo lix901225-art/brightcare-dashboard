@@ -17,8 +17,10 @@ type Thread = {
   roomName?: string | null;
   lastMessageAt?: string | null;
   lastMessagePreview?: string | null;
+  lastMessage?: { id: string; body: string; createdAt: string } | null;
   participants?: Array<{ id?: string; displayName?: string | null; role?: string | null }>;
   unreadCount?: number;
+  createdAt?: string | null;
 };
 
 type Child = {
@@ -355,7 +357,7 @@ export default function MessagesPage() {
                       </div>
 
                       <div className="mt-1.5 text-sm text-slate-600 line-clamp-1">
-                        {thread.lastMessagePreview || "No messages yet."}
+                        {thread.lastMessage?.body || thread.lastMessagePreview || "No messages yet."}
                       </div>
 
                       {(thread.participants || []).length > 0 ? (
@@ -378,7 +380,9 @@ export default function MessagesPage() {
                     </div>
 
                     <div className="shrink-0 text-right">
-                      <div className="text-xs text-slate-400">{relativeTime(thread.lastMessageAt)}</div>
+                      <div className="text-xs text-slate-400">
+                        {relativeTime(thread.lastMessage?.createdAt || thread.lastMessageAt)}
+                      </div>
                     </div>
                   </div>
                 </div>
