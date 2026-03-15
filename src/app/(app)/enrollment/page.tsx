@@ -106,6 +106,11 @@ export default function EnrollmentPage() {
   // Enrollment readiness modal
   const [enrollTarget, setEnrollTarget] = useState<Child | null>(null);
 
+  // Registration fee on enrollment
+  const [regFeeEnabled, setRegFeeEnabled] = useState(true);
+  const [regFeeAmount, setRegFeeAmount] = useState("150.00");
+  const [regFeeLabel, setRegFeeLabel] = useState("Registration Fee");
+
   async function loadAll() {
     setLoading(true);
     setError("");
@@ -291,7 +296,33 @@ export default function EnrollmentPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
 
-      setOk(`${name} enrolled successfully.`);
+      // Auto-create registration fee invoice if enabled
+      let invoiceMsg = "";
+      if (regFeeEnabled && parseFloat(regFeeAmount) > 0) {
+        try {
+          const feeCents = Math.round(parseFloat(regFeeAmount) * 100);
+          const today = new Date().toISOString().split("T")[0];
+          const due = new Date(Date.now() + 14 * 86400000).toISOString().split("T")[0];
+          const invoiceRes = await apiFetch("/billing/invoices", {
+            method: "POST",
+            body: JSON.stringify({
+              childId,
+              issueDate: today,
+              dueDate: due,
+              items: [
+                { description: regFeeLabel || "Registration Fee", amountCents: feeCents },
+              ],
+            }),
+          });
+          if (invoiceRes.ok) {
+            invoiceMsg = ` Registration fee invoice ($${regFeeAmount}) created.`;
+          }
+        } catch {
+          // Non-blocking — enrollment succeeded even if invoice fails
+        }
+      }
+
+      setOk(`${name} enrolled successfully.${invoiceMsg}`);
       await loadAll();
     } catch (e: any) {
       setError(e?.message || "Unable to enroll.");
@@ -405,6 +436,43 @@ export default function EnrollmentPage() {
                     </div>
                   </div>
                 ) : null}
+
+                {/* Registration fee option */}
+                <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={regFeeEnabled}
+                      onChange={(e) => setRegFeeEnabled(e.target.checked)}
+                      className="h-4 w-4 rounded border-slate-300"
+                    />
+                    <span className="text-sm font-medium text-slate-700">Generate registration fee invoice</span>
+                  </label>
+                  {regFeeEnabled && (
+                    <div className="mt-3 flex flex-wrap items-end gap-3">
+                      <div>
+                        <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Description</div>
+                        <input
+                          value={regFeeLabel}
+                          onChange={(e) => setRegFeeLabel(e.target.value)}
+                          className="h-9 w-48 rounded-lg border border-slate-200 bg-white px-2.5 text-sm outline-none"
+                        />
+                      </div>
+                      <div>
+                        <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Amount ($)</div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={regFeeAmount}
+                          onChange={(e) => setRegFeeAmount(e.target.value)}
+                          className="h-9 w-28 rounded-lg border border-slate-200 bg-white px-2.5 text-sm outline-none"
+                        />
+                      </div>
+                      <div className="text-xs text-slate-400">Due in 14 days</div>
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-3">
                   <button
