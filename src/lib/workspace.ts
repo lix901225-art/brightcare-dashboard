@@ -34,7 +34,9 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/daily-reports", label: "Daily Reports" },
     { href: "/incidents", label: "Incidents" },
     { href: "/messages", label: "Messages" },
+    { href: "/announcements", label: "Announcements" },
     { href: "/billing", label: "Billing" },
+    { href: "/reports", label: "Reports" },
     { href: "/rooms", label: "Rooms" },
     { href: "/policies", label: "Policies" },
     { href: "/staff-management", label: "Staff & Users" },
@@ -47,6 +49,7 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/incidents", label: "Incidents" },
     { href: "/children", label: "Children" },
     { href: "/messages", label: "Messages" },
+    { href: "/announcements", label: "Announcements" },
     { href: "/billing", label: "Billing" },
   ],
   PARENT: [
@@ -56,6 +59,7 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/daily-reports", label: "Daily Reports" },
     { href: "/parent/incidents", label: "Incidents" },
     { href: "/messages", label: "Messages" },
+    { href: "/parent/announcements", label: "Announcements" },
     { href: "/policies", label: "Policies" },
   ],
 };
