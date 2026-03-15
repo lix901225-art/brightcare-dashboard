@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, X, Pencil, Trash2, Users } from "lucide-react";
+import { Plus, Search, X, Pencil, Trash2, Users, Shield, AlertTriangle } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,8 +174,8 @@ export default function RoomsPage() {
       <div>
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
-            title="Rooms & Classrooms"
-            description="Manage classrooms, set capacities, and track child assignments."
+            title="Rooms & Licensed Capacity"
+            description="Manage classrooms, licensed capacity per BC Community Care licensing, and room assignments."
           />
           <button
             onClick={openCreate}
@@ -223,15 +223,18 @@ export default function RoomsPage() {
                   />
                 </div>
                 <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Capacity (optional)</div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Licensed capacity</div>
                   <input
                     type="number"
                     min={0}
                     value={formCapacity}
                     onChange={(e) => setFormCapacity(e.target.value)}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                    placeholder="Max children"
+                    placeholder="Per BC licensing"
                   />
+                  <p className="mt-1 text-xs text-slate-400">
+                    Set to your BC Community Care licensed max for this room
+                  </p>
                 </div>
               </div>
 
@@ -254,24 +257,92 @@ export default function RoomsPage() {
           </Card>
         ) : null}
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="mb-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader><CardTitle>Total rooms</CardTitle></CardHeader>
-            <CardContent><div className="text-4xl font-semibold">{rooms.length}</div></CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total rooms</CardTitle></CardHeader>
+            <CardContent><div className="text-3xl font-semibold">{rooms.length}</div></CardContent>
           </Card>
           <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader><CardTitle>Assigned children</CardTitle></CardHeader>
-            <CardContent><div className="text-4xl font-semibold">{children.length - unassignedCount}</div></CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader><CardTitle>Unassigned</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Enrolled / Licensed capacity</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-4xl font-semibold">{unassignedCount}</div>
+              <div className="text-3xl font-semibold">
+                {children.length - unassignedCount}
+                <span className="text-lg text-slate-400"> / {rooms.reduce((s, r) => s + (r.capacity || 0), 0)}</span>
+              </div>
+              {(() => {
+                const totalCap = rooms.reduce((s, r) => s + (r.capacity || 0), 0);
+                const assigned = children.length - unassignedCount;
+                const pct = totalCap > 0 ? Math.round((assigned / totalCap) * 100) : 0;
+                const isOver = assigned > totalCap && totalCap > 0;
+                return (
+                  <>
+                    <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${isOver ? "bg-rose-500" : pct >= 90 ? "bg-amber-500" : "bg-emerald-500"}`}
+                        style={{ width: `${Math.min(100, pct)}%` }}
+                      />
+                    </div>
+                    <div className={`mt-1 text-xs ${isOver ? "font-medium text-rose-600" : "text-slate-400"}`}>
+                      {isOver ? "Over licensed capacity" : `${pct}% utilization`}
+                    </div>
+                  </>
+                );
+              })()}
+            </CardContent>
+          </Card>
+          <Card className="rounded-2xl border-0 shadow-sm">
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Unassigned</CardTitle></CardHeader>
+            <CardContent>
+              <div className="text-3xl font-semibold">{unassignedCount}</div>
               {unassignedCount > 0 ? (
-                <div className="mt-1 text-xs text-amber-600">Children not in any room</div>
+                <div className="mt-1 text-xs text-amber-600">Not assigned to any room</div>
               ) : (
                 <div className="mt-1 text-xs text-emerald-600">All children assigned</div>
               )}
+            </CardContent>
+          </Card>
+          <Card className={`rounded-2xl border-0 shadow-sm ${rooms.some((r) => r.capacity == null) ? "ring-1 ring-amber-200" : ""}`}>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Licensing compliance</CardTitle></CardHeader>
+            <CardContent>
+              {(() => {
+                const missing = rooms.filter((r) => r.capacity == null);
+                const overCap = rooms.filter((r) => r.capacity != null && (childCountByRoom[r.id] || 0) > r.capacity);
+                if (missing.length > 0) {
+                  return (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                      <div>
+                        <div className="text-sm font-medium text-amber-700">Needs attention</div>
+                        <div className="mt-0.5 text-xs text-amber-600">
+                          {missing.length} room{missing.length > 1 ? "s" : ""} missing licensed capacity
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                if (overCap.length > 0) {
+                  return (
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-500" />
+                      <div>
+                        <div className="text-sm font-medium text-rose-700">Over capacity</div>
+                        <div className="mt-0.5 text-xs text-rose-600">
+                          {overCap.length} room{overCap.length > 1 ? "s" : ""} exceeding licensed limit
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <div className="flex items-start gap-2">
+                    <Shield className="mt-0.5 h-5 w-5 shrink-0 text-emerald-500" />
+                    <div>
+                      <div className="text-sm font-medium text-emerald-700">Inspection ready</div>
+                      <div className="mt-0.5 text-xs text-emerald-600">All rooms within licensed capacity</div>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </div>
@@ -333,11 +404,14 @@ export default function RoomsPage() {
                           "text-xs",
                           overCapacity ? "text-rose-600 font-medium" : atCapacity ? "text-amber-600" : "text-slate-500",
                         ].join(" ")}>
-                          / {room.capacity} capacity
-                          {overCapacity ? " (over)" : atCapacity ? " (full)" : ""}
+                          / {room.capacity} licensed
+                          {overCapacity ? " — over limit" : atCapacity ? " — at capacity" : ""}
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-400">No limit set</span>
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-500">
+                          <AlertTriangle className="h-3 w-3" />
+                          No licensed capacity set
+                        </span>
                       )}
                     </div>
 

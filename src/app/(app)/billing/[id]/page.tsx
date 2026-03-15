@@ -338,9 +338,16 @@ export default function BillingDetailPage() {
 
             {invoice.notes ? (
               <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <span className="font-medium text-slate-500">Notes:</span> {invoice.notes}
+                <span className="font-medium text-slate-500">Notes & fee reduction info:</span> {invoice.notes}
               </div>
             ) : null}
+
+            {invoice.items.some((i) => i.description.toLowerCase().includes("accb") || i.amount < 0) && (
+              <div className="mb-6 flex items-start gap-2 rounded-xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs text-blue-700">
+                <span className="font-semibold">BC Fee Reduction:</span>
+                This invoice includes an Affordable Child Care Benefit (ACCB) offset. Actual parent fees may vary based on family eligibility and income level. CCFRI provider funding is applied at the centre level.
+              </div>
+            )}
 
             {/* Actions */}
             {!isVoid ? (
@@ -481,14 +488,26 @@ export default function BillingDetailPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoice.items.map((item) => (
-                        <tr key={item.id} className="border-t border-slate-200">
-                          <td className="px-4 py-3">{item.description}</td>
-                          <td className="px-4 py-3">{item.quantity}</td>
-                          <td className="px-4 py-3">${item.unitPrice.toFixed(2)}</td>
-                          <td className="px-4 py-3 font-medium">${item.amount.toFixed(2)}</td>
-                        </tr>
-                      ))}
+                      {invoice.items.map((item) => {
+                        const isAccbOffset = item.description.toLowerCase().includes("accb") || item.amount < 0;
+                        return (
+                          <tr key={item.id} className={`border-t border-slate-200 ${isAccbOffset ? "bg-blue-50/50" : ""}`}>
+                            <td className="px-4 py-3">
+                              {item.description}
+                              {isAccbOffset && (
+                                <span className="ml-2 inline-flex rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                                  ACCB
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3">{item.quantity}</td>
+                            <td className="px-4 py-3">${item.unitPrice.toFixed(2)}</td>
+                            <td className={`px-4 py-3 font-medium ${isAccbOffset ? "text-blue-700" : ""}`}>
+                              {item.amount < 0 ? `–$${Math.abs(item.amount).toFixed(2)}` : `$${item.amount.toFixed(2)}`}
+                            </td>
+                          </tr>
+                        );
+                      })}
                       <tr className="border-t-2 border-slate-300 bg-slate-50">
                         <td colSpan={3} className="px-4 py-3 font-semibold text-slate-900">Total</td>
                         <td className="px-4 py-3 font-semibold text-slate-900">${invoice.totalAmount.toFixed(2)}</td>

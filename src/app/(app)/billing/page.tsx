@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, Plus, Search, Send, Users, X } from "lucide-react";
+import { AlertTriangle, FileText, Info, Plus, Search, Send, Users, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -89,7 +89,7 @@ export default function BillingPage() {
   const [currency, setCurrency] = useState("CAD");
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<DraftItem[]>([
-    { description: "Tuition", quantity: "1", unitPrice: "" },
+    { description: "Child care fees", quantity: "1", unitPrice: "" },
   ]);
 
   async function loadAll() {
@@ -221,26 +221,29 @@ export default function BillingPage() {
 
   const TUITION_TEMPLATES: { label: string; items: DraftItem[]; dueDays: number }[] = [
     {
-      label: "Monthly tuition",
-      items: [{ description: "Monthly tuition", quantity: "1", unitPrice: "1200" }],
+      label: "Monthly parent fees",
+      items: [{ description: "Monthly child care fees (before ACCB)", quantity: "1", unitPrice: "1100" }],
       dueDays: 30,
     },
     {
-      label: "Weekly tuition",
-      items: [{ description: "Weekly tuition", quantity: "4", unitPrice: "300" }],
-      dueDays: 7,
-    },
-    {
-      label: "Tuition + meals",
+      label: "Fees after ACCB",
       items: [
-        { description: "Monthly tuition", quantity: "1", unitPrice: "1200" },
-        { description: "Meal plan", quantity: "1", unitPrice: "200" },
+        { description: "Monthly child care fees", quantity: "1", unitPrice: "1100" },
+        { description: "Affordable Child Care Benefit (ACCB) offset", quantity: "1", unitPrice: "-350" },
       ],
       dueDays: 30,
     },
     {
-      label: "Registration fee",
-      items: [{ description: "Registration fee", quantity: "1", unitPrice: "250" }],
+      label: "Fees + meals",
+      items: [
+        { description: "Monthly child care fees (before ACCB)", quantity: "1", unitPrice: "1100" },
+        { description: "Meal & snack program", quantity: "1", unitPrice: "180" },
+      ],
+      dueDays: 30,
+    },
+    {
+      label: "Registration / waitlist",
+      items: [{ description: "Non-refundable registration & waitlist deposit", quantity: "1", unitPrice: "200" }],
       dueDays: 14,
     },
   ];
@@ -306,10 +309,10 @@ export default function BillingPage() {
   }, [children]);
 
   const BULK_TEMPLATES: Record<string, { label: string; items: { description: string; quantity: number; unitPrice: number }[]; dueDays: number }> = {
-    monthly: { label: "Monthly tuition", items: [{ description: "Monthly tuition", quantity: 1, unitPrice: 1200 }], dueDays: 30 },
-    weekly: { label: "Weekly tuition", items: [{ description: "Weekly tuition", quantity: 4, unitPrice: 300 }], dueDays: 7 },
-    tuition_meals: { label: "Tuition + meals", items: [{ description: "Monthly tuition", quantity: 1, unitPrice: 1200 }, { description: "Meal plan", quantity: 1, unitPrice: 200 }], dueDays: 30 },
-    registration: { label: "Registration fee", items: [{ description: "Registration fee", quantity: 1, unitPrice: 250 }], dueDays: 14 },
+    monthly: { label: "Monthly parent fees", items: [{ description: "Monthly child care fees (before ACCB)", quantity: 1, unitPrice: 1100 }], dueDays: 30 },
+    accb_offset: { label: "Fees after ACCB", items: [{ description: "Monthly child care fees", quantity: 1, unitPrice: 1100 }, { description: "Affordable Child Care Benefit (ACCB) offset", quantity: 1, unitPrice: -350 }], dueDays: 30 },
+    fees_meals: { label: "Fees + meals", items: [{ description: "Monthly child care fees (before ACCB)", quantity: 1, unitPrice: 1100 }, { description: "Meal & snack program", quantity: 1, unitPrice: 180 }], dueDays: 30 },
+    registration: { label: "Registration / waitlist", items: [{ description: "Non-refundable registration & waitlist deposit", quantity: 1, unitPrice: 200 }], dueDays: 14 },
   };
 
   async function bulkGenerate() {
@@ -382,7 +385,7 @@ export default function BillingPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Billing"
-            description="Invoice and balance overview for enrolled children."
+            description="Invoices, balances, and fee reduction tracking for enrolled families."
           />
           <div className="flex gap-2">
             <button
@@ -413,6 +416,20 @@ export default function BillingPage() {
             {error}
           </div>
         ) : null}
+
+        {/* BC Affordable Child Care Benefit (ACCB) Info */}
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+          <Info className="mt-0.5 h-5 w-5 shrink-0 text-blue-500" />
+          <div className="text-sm text-blue-800">
+            <span className="font-semibold">BC Affordable Child Care Benefit (ACCB)</span>
+            <span className="mx-1.5 text-blue-300">|</span>
+            Eligible families may receive fee reductions directly applied to invoices. Use the
+            {" "}<span className="font-medium">&ldquo;Fees after ACCB&rdquo;</span> template to auto-include the ACCB offset line item.
+            Fee reduction amounts vary by family income and child age.
+            <span className="mx-1.5 text-blue-300">|</span>
+            <span className="text-xs text-blue-600">Provider funding via CCFRI is applied at the centre level, not per-invoice.</span>
+          </div>
+        </div>
 
         {showCreate ? (
           <Card className="mb-6 rounded-2xl border-0 shadow-sm">
@@ -468,12 +485,16 @@ export default function BillingPage() {
               </div>
 
               <div className="mt-4">
-                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Notes</div>
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Notes & fee reduction info</div>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="min-h-[90px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+                  placeholder="e.g. Family receives ACCB at $350/mo. CCFRI fee reduction applied. Contact CCRR for subsidy questions."
+                  className="min-h-[90px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none placeholder:text-slate-400"
                 />
+                <p className="mt-1 text-xs text-slate-400">
+                  Record any BC fee reduction details — ACCB amount, CCFRI status, or subsidy notes for this family.
+                </p>
               </div>
 
               <div className="mt-5">

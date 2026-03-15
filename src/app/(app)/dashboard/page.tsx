@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { TrendingUp } from "lucide-react";
+import { Shield, TrendingUp, AlertTriangle } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ type BillingSummary = { childId: string; childName: string; total: number; paid:
 type IncidentRow = { id: string; childId: string; severity: string; type: string; occurredAt: string; description: string; lockedAt?: string | null };
 type InvoiceRow = { id: string; status: string; dueDate?: string | null; totalAmount: number; paidAmount: number; balanceAmount: number; childName: string };
 type DailyReportRow = { id: string; childId?: string | null; date?: string | null };
+type RoomRow = { id: string; name: string; capacity?: number | null };
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -33,13 +34,14 @@ export default function DashboardPage() {
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [dailyReports, setDailyReports] = useState<DailyReportRow[]>([]);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
 
   async function loadAll() {
     setLoading(true);
     setError("");
 
     try {
-      const [childrenRes, attendanceRes, threadsRes, billingRes, incidentsRes, invoicesRes, reportsRes] = await Promise.all([
+      const [childrenRes, attendanceRes, threadsRes, billingRes, incidentsRes, invoicesRes, reportsRes, roomsRes] = await Promise.all([
         apiFetch("/children"),
         apiFetch("/attendance"),
         apiFetch("/messages/threads"),
@@ -47,6 +49,7 @@ export default function DashboardPage() {
         apiFetch("/incidents"),
         apiFetch("/billing/invoices"),
         apiFetch("/daily-reports"),
+        apiFetch("/rooms"),
       ]);
 
       const childrenData = await childrenRes.json();
@@ -89,6 +92,9 @@ export default function DashboardPage() {
 
       const reportsData = reportsRes.ok ? await reportsRes.json() : [];
       setDailyReports(Array.isArray(reportsData) ? reportsData : []);
+
+      const roomsData = roomsRes.ok ? await roomsRes.json() : [];
+      setRooms(Array.isArray(roomsData) ? roomsData : []);
     } catch (e: any) {
       setError(e?.message || "Unable to load dashboard.");
     } finally {
@@ -212,6 +218,28 @@ export default function DashboardPage() {
     const covered = children.filter((c) => todayReportChildIds.has(c.id)).length;
     return { covered, total: children.length, pct: children.length > 0 ? Math.round((covered / children.length) * 100) : 0 };
   }, [dailyReports, children, todayStr]);
+
+  const licensingCompliance = useMemo(() => {
+    const totalLicensedCapacity = rooms.reduce((sum, r) => sum + (r.capacity || 0), 0);
+    const roomsMissingCapacity = rooms.filter((r) => !r.capacity || r.capacity <= 0);
+    const activeChildren = children.filter((c) => (c.status || "").toUpperCase() === "ACTIVE").length;
+    const overCapacity = totalLicensedCapacity > 0 && activeChildren > totalLicensedCapacity;
+    const utilizationPct = totalLicensedCapacity > 0 ? Math.round((activeChildren / totalLicensedCapacity) * 100) : 0;
+
+    let status: "ready" | "attention" | "over" = "ready";
+    if (overCapacity) status = "over";
+    else if (roomsMissingCapacity.length > 0) status = "attention";
+
+    return {
+      totalLicensedCapacity,
+      activeChildren,
+      roomsMissingCapacity: roomsMissingCapacity.length,
+      totalRooms: rooms.length,
+      overCapacity,
+      utilizationPct,
+      status,
+    };
+  }, [rooms, children]);
 
   const operationalHealth = useMemo(() => {
     // Composite score: attendance rate (30%), collection rate (25%), report coverage (25%), guardian coverage (20%)
@@ -541,6 +569,86 @@ export default function DashboardPage() {
                 </CardContent>
               </Card>
             </div>
+
+            {rooms.length > 0 && (
+              <div className="mt-6">
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="flex items-center gap-2">
+                        <Shield className="h-4 w-4" />
+                        Licensing compliance
+                      </CardTitle>
+                      <span className={[
+                        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                        licensingCompliance.status === "ready" ? "border-emerald-200 bg-emerald-50 text-emerald-700" :
+                        licensingCompliance.status === "attention" ? "border-amber-200 bg-amber-50 text-amber-700" :
+                        "border-rose-200 bg-rose-50 text-rose-700",
+                      ].join(" ")}>
+                        {licensingCompliance.status === "ready" ? <Shield className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                        {licensingCompliance.status === "ready" ? "Inspection ready" :
+                         licensingCompliance.status === "attention" ? "Needs attention" : "Over capacity"}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Licensed capacity</div>
+                        <div className="mt-1 text-xl font-bold text-slate-900">{licensingCompliance.totalLicensedCapacity}</div>
+                        <div className="text-xs text-slate-500">across {licensingCompliance.totalRooms} rooms</div>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Active enrolled</div>
+                        <div className="mt-1 text-xl font-bold text-slate-900">{licensingCompliance.activeChildren}</div>
+                        <div className="text-xs text-slate-500">{licensingCompliance.utilizationPct}% of capacity</div>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Utilization</div>
+                        <div className="mt-1">
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                            <div
+                              className={[
+                                "h-full rounded-full transition-all",
+                                licensingCompliance.utilizationPct > 100 ? "bg-rose-500" :
+                                licensingCompliance.utilizationPct >= 90 ? "bg-amber-400" : "bg-emerald-500",
+                              ].join(" ")}
+                              style={{ width: `${Math.min(licensingCompliance.utilizationPct, 100)}%` }}
+                            />
+                          </div>
+                          <div className="mt-1 text-xs text-slate-500">
+                            {licensingCompliance.utilizationPct}% utilized
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-xl bg-slate-50 p-3">
+                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Missing data</div>
+                        <div className={`mt-1 text-xl font-bold ${licensingCompliance.roomsMissingCapacity > 0 ? "text-amber-600" : "text-emerald-600"}`}>
+                          {licensingCompliance.roomsMissingCapacity}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {licensingCompliance.roomsMissingCapacity > 0 ? "rooms need licensed capacity" : "all rooms set"}
+                        </div>
+                      </div>
+                    </div>
+                    {(licensingCompliance.status === "attention" || licensingCompliance.status === "over") && (
+                      <div className={[
+                        "mt-3 flex items-center gap-2 rounded-xl border p-3 text-sm",
+                        licensingCompliance.status === "over" ? "border-rose-200 bg-rose-50 text-rose-700" : "border-amber-200 bg-amber-50 text-amber-700",
+                      ].join(" ")}>
+                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                        {licensingCompliance.status === "over"
+                          ? `Active enrollment (${licensingCompliance.activeChildren}) exceeds licensed capacity (${licensingCompliance.totalLicensedCapacity}). Review before next inspection.`
+                          : `${licensingCompliance.roomsMissingCapacity} room(s) missing licensed capacity data. Update in Rooms to ensure inspection readiness.`}
+                      </div>
+                    )}
+                    <Link href="/rooms" className="mt-3 block text-sm font-medium text-slate-600 hover:text-slate-900">
+                      Manage rooms &amp; licensed capacity &rarr;
+                    </Link>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             <div className="mt-6 grid gap-4 lg:grid-cols-3">
               <Card className="rounded-2xl border-0 shadow-sm lg:col-span-2">

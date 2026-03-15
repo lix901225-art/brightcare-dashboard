@@ -24,6 +24,7 @@ type Child = {
   allergies?: string | null;
   medicalNotes?: string | null;
   emergencyNotes?: string | null;
+  specialConsiderations?: string | null;
 };
 
 type Room = {
@@ -98,6 +99,7 @@ export default function EnrollmentPage() {
   const [formGender, setFormGender] = useState("");
   const [formStartDate, setFormStartDate] = useState("");
   const [formRoom, setFormRoom] = useState("");
+  const [formSource, setFormSource] = useState("");
   const [formNotes, setFormNotes] = useState("");
 
   // Inline transition
@@ -231,6 +233,7 @@ export default function EnrollmentPage() {
     setFormGender("");
     setFormStartDate("");
     setFormRoom("");
+    setFormSource("");
     setFormNotes("");
   }
 
@@ -249,7 +252,11 @@ export default function EnrollmentPage() {
       if (formGender.trim()) body.gender = formGender.trim();
       if (formStartDate) body.startDate = formStartDate;
       if (formRoom) body.roomId = formRoom;
-      if (formNotes.trim()) body.specialConsiderations = formNotes.trim();
+      // Combine inquiry source and notes into specialConsiderations
+      const parts: string[] = [];
+      if (formSource) parts.push(`[Source: ${formSource}]`);
+      if (formNotes.trim()) parts.push(formNotes.trim());
+      if (parts.length > 0) body.specialConsiderations = parts.join(" ");
 
       const res = await apiFetch("/children", {
         method: "POST",
@@ -366,7 +373,7 @@ export default function EnrollmentPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Enrollment"
-            description="Manage your enrollment pipeline — waitlist, active enrollment, and withdrawals."
+            description="Manage your centre&rsquo;s enrollment pipeline — waitlist, admissions, and licensed capacity."
           />
           <button
             onClick={() => { resetForm(); setShowAdd(true); }}
@@ -576,12 +583,31 @@ export default function EnrollmentPage() {
                   </select>
                 </div>
                 <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Inquiry source</div>
+                  <select
+                    value={formSource}
+                    onChange={(e) => setFormSource(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                  >
+                    <option value="">Select source</option>
+                    <option value="CCRR Referral">CCRR Referral</option>
+                    <option value="Community Referral">Community Referral</option>
+                    <option value="BC Child Care Finder">BC Child Care Finder</option>
+                    <option value="Website">Centre Website</option>
+                    <option value="Phone Inquiry">Phone Inquiry</option>
+                    <option value="Walk-in">Walk-in / Tour</option>
+                    <option value="Current Family Referral">Current Family Referral</option>
+                    <option value="Social Media">Social Media</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
                   <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Notes</div>
                   <input
                     value={formNotes}
                     onChange={(e) => setFormNotes(e.target.value)}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                    placeholder="Siblings, allergies, special needs..."
+                    placeholder="Siblings at centre, allergies, special needs, subsidy info…"
                   />
                 </div>
               </div>
@@ -702,7 +728,7 @@ export default function EnrollmentPage() {
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full min-w-[800px] text-sm">
+                <table className="w-full min-w-[900px] text-sm">
                   <thead className="bg-slate-50 text-left text-slate-500">
                     <tr>
                       <th className="px-4 py-3 font-medium">Child</th>
@@ -711,6 +737,7 @@ export default function EnrollmentPage() {
                       <th className="px-4 py-3 font-medium">Readiness</th>
                       <th className="px-4 py-3 font-medium">Start / Wait</th>
                       <th className="px-4 py-3 font-medium">Room</th>
+                      <th className="px-4 py-3 font-medium">Source</th>
                       <th className="px-4 py-3 font-medium">Actions</th>
                     </tr>
                   </thead>
@@ -785,6 +812,19 @@ export default function EnrollmentPage() {
                           </td>
                           <td className="px-4 py-3 text-slate-600">
                             {child.roomId ? roomNameById[child.roomId] || "—" : "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            {(() => {
+                              const sc = child.specialConsiderations || "";
+                              const match = sc.match(/\[Source:\s*(.+?)\]/);
+                              return match ? (
+                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
+                                  {match[1]}
+                                </span>
+                              ) : (
+                                <span className="text-xs text-slate-400">—</span>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
