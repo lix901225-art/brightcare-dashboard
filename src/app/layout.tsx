@@ -3,8 +3,20 @@ import "./globals.css";
 import Auth0ProviderClient from "@/lib/auth0-provider";
 
 export const metadata: Metadata = {
-  title: "BrightCare OS",
-  description: "All-in-one childcare management platform for daycare centers and preschools.",
+  title: {
+    default: "BrightCare OS",
+    template: "%s | BrightCare OS",
+  },
+  description:
+    "All-in-one childcare management platform for daycare centers and preschools. Enrollment, attendance, billing, messaging, and more.",
+  keywords: [
+    "childcare management",
+    "daycare software",
+    "preschool admin",
+    "attendance tracking",
+    "childcare billing",
+  ],
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({
