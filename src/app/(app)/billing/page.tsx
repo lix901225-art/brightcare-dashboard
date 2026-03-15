@@ -7,6 +7,9 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { invoiceStatusBadge as statusBadge } from "@/lib/badge-styles";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type SummaryRow = {
   childId: string;
@@ -41,27 +44,6 @@ type DraftItem = {
   quantity: string;
   unitPrice: string;
 };
-
-function statusBadge(status: string) {
-  switch (status.toUpperCase()) {
-    case "PAID":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "PARTIALLY_PAID":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "OVERDUE":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    case "DRAFT":
-      return "border-slate-200 bg-slate-50 text-slate-600";
-    case "SENT":
-    case "ISSUED":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case "VOID":
-    case "CANCELLED":
-      return "border-slate-300 bg-slate-100 text-slate-500";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
 
 export default function BillingPage() {
   const [summary, setSummary] = useState<SummaryRow[]>([]);
@@ -735,7 +717,7 @@ export default function BillingPage() {
           <CardHeader><CardTitle>Child balances</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-sm text-slate-500">Loading summary...</div>
+              <TableSkeleton rows={4} cols={3} />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-sm">
@@ -859,9 +841,12 @@ export default function BillingPage() {
           <CardHeader><CardTitle>Invoices</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-sm text-slate-500">Loading invoices...</div>
+              <TableSkeleton rows={5} cols={6} />
             ) : filteredInvoices.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">No invoices match your filters.</div>
+              <FilteredEmptyState
+                totalCount={invoices.length}
+                filterLabel="search or status filter"
+              />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full text-sm">

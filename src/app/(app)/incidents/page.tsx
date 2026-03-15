@@ -6,6 +6,10 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/api-helpers";
+import { severityBadge } from "@/lib/badge-styles";
+import { CardListSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -40,32 +44,6 @@ const TYPE_OPTIONS = [
   "Property Damage",
   "Other",
 ];
-
-function severityBadge(severity: string) {
-  switch (severity.toLowerCase()) {
-    case "critical":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    case "high":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "medium":
-      return "border-yellow-200 bg-yellow-50 text-yellow-700";
-    case "low":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
-
-function formatDateTime(value: string) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function IncidentsPage() {
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -533,13 +511,12 @@ export default function IncidentsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading incidents...
-              </div>
+              <CardListSkeleton count={4} />
             ) : filteredIncidents.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                No incidents recorded.
-              </div>
+              <FilteredEmptyState
+                totalCount={incidents.length}
+                filterLabel="search or filter"
+              />
             ) : (
               <div className="space-y-3">
                 {filteredIncidents.map((inc) => (

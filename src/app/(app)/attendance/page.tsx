@@ -7,6 +7,10 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { formatTime } from "@/lib/api-helpers";
+import { attendanceBadge as badgeClass } from "@/lib/badge-styles";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -32,25 +36,7 @@ type AttendanceRow = {
 };
 
 function fmt(value?: string | null) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-}
-
-function badgeClass(status?: string | null) {
-  switch ((status || "").toUpperCase()) {
-    case "PRESENT":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "ABSENT":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    case "CHECKED_IN":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case "CHECKED_OUT":
-      return "border-violet-200 bg-violet-50 text-violet-700";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
+  return formatTime(value) || "—";
 }
 
 export default function AttendancePage() {
@@ -427,13 +413,12 @@ export default function AttendancePage() {
           <CardHeader><CardTitle>Daily roster</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading attendance...
-              </div>
+              <TableSkeleton rows={6} cols={5} />
             ) : filteredRows.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                No attendance records found.
-              </div>
+              <FilteredEmptyState
+                totalCount={children.length}
+                filterLabel="search or filter"
+              />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full min-w-[700px] text-sm">

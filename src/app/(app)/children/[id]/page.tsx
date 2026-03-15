@@ -8,6 +8,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { toDateInput } from "@/lib/api-helpers";
 
 type Child = {
   id: string;
@@ -81,10 +82,6 @@ function Flag({ on, label }: { on?: boolean; label: string }) {
       {label}
     </span>
   );
-}
-
-function toDateInput(value?: string | null) {
-  return value ? String(value).split("T")[0] : "";
 }
 
 function makeForm(child: Child): ProfileForm {

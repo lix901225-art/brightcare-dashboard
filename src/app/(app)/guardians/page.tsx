@@ -7,6 +7,9 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { guardianChipClass as chipClass } from "@/lib/badge-styles";
+import { CardListSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -41,21 +44,6 @@ type GuardianLink = {
   hasPortalAccess?: boolean;
   notes?: string | null;
 };
-
-function chipClass(kind: "primary" | "emergency" | "pickup" | "portal" | "missing") {
-  switch (kind) {
-    case "primary":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case "emergency":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "pickup":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "portal":
-      return "border-violet-200 bg-violet-50 text-violet-700";
-    case "missing":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-  }
-}
 
 export default function GuardiansPage() {
   const searchParams = useSearchParams();
@@ -613,13 +601,12 @@ export default function GuardiansPage() {
 
         <div className="space-y-4">
           {loading ? (
-            <Card className="rounded-2xl border-0 shadow-sm">
-              <CardContent className="p-8 text-sm text-slate-500">Loading guardians...</CardContent>
-            </Card>
+            <CardListSkeleton count={4} />
           ) : filteredRows.length === 0 ? (
-            <Card className="rounded-2xl border-0 shadow-sm">
-              <CardContent className="p-8 text-sm text-slate-500">No guardian records found.</CardContent>
-            </Card>
+            <FilteredEmptyState
+              totalCount={children.length}
+              filterLabel="search or filter"
+            />
           ) : (
             filteredRows.map((row) => (
               <Card key={row.id} className="rounded-2xl border-0 shadow-sm">

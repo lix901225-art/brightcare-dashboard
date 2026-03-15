@@ -8,6 +8,9 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { readSession } from "@/lib/session";
+import { moodBadge as moodColor } from "@/lib/badge-styles";
+import { CardListSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -28,22 +31,6 @@ type DailyReport = {
 };
 
 const MOOD_OPTIONS = ["Happy", "Content", "Tired", "Fussy", "Upset"];
-
-function moodColor(mood?: string | null) {
-  switch ((mood || "").toLowerCase()) {
-    case "happy":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "content":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case "tired":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "fussy":
-    case "upset":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
 
 function formatDate(value: string) {
   const d = new Date(value);
@@ -416,13 +403,12 @@ export default function DailyReportsPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading daily reports...
-              </div>
+              <CardListSkeleton count={4} />
             ) : filteredReports.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                No daily reports found. Create one to get started.
-              </div>
+              <FilteredEmptyState
+                totalCount={reports.length}
+                filterLabel="search or date filter"
+              />
             ) : (
               <div className="space-y-3">
                 {filteredReports.map((report) => (

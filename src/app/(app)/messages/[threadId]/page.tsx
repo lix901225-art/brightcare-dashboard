@@ -8,6 +8,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { formatDateTime } from "@/lib/api-helpers";
 
 type Thread = {
   id: string;
@@ -32,10 +33,7 @@ type MessageRow = {
 };
 
 function fmt(value?: string | null) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
+  return formatDateTime(value);
 }
 
 export default function MessageThreadPage() {

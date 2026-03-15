@@ -7,6 +7,8 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { formatDate as fmtDate } from "@/lib/api-helpers";
+import { invoiceStatusBadge as statusBadge } from "@/lib/badge-styles";
 
 type BillingSummary = {
   childId: string;
@@ -57,26 +59,8 @@ type InvoiceDetail = {
   }>;
 };
 
-function fmtDate(value?: string | null) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
-}
-
 function fmtCurrency(amount: number, currency?: string | null) {
   return `$${amount.toFixed(2)}`;
-}
-
-function statusBadge(status: string) {
-  switch (status.toUpperCase()) {
-    case "PAID": return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "OVERDUE": return "border-rose-200 bg-rose-50 text-rose-700";
-    case "ISSUED": return "border-amber-200 bg-amber-50 text-amber-700";
-    case "DRAFT": return "border-slate-200 bg-slate-100 text-slate-600";
-    case "VOID": return "border-rose-200 bg-rose-50 text-rose-700";
-    default: return "border-slate-200 bg-slate-50 text-slate-600";
-  }
 }
 
 function isOverdue(inv: InvoiceRow): boolean {

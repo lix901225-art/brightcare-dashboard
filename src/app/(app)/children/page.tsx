@@ -7,6 +7,10 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { calcAge } from "@/lib/api-helpers";
+import { childStatusBadge as statusBadge } from "@/lib/badge-styles";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -37,31 +41,6 @@ type GuardianLink = {
   isPickupAuthorized?: boolean;
   hasPortalAccess?: boolean;
 };
-
-function calcAge(dob?: string | null) {
-  if (!dob) return null;
-  const birthDate = new Date(dob);
-  if (Number.isNaN(birthDate.getTime())) return null;
-  const today = new Date();
-  const months = (today.getFullYear() - birthDate.getFullYear()) * 12 + (today.getMonth() - birthDate.getMonth());
-  if (months < 24) return `${months}mo`;
-  return `${Math.floor(months / 12)}y`;
-}
-
-function statusBadge(status?: string | null) {
-  switch ((status || "").toUpperCase()) {
-    case "ACTIVE":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "WAITLIST":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "WITHDRAWN":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    case "INACTIVE":
-      return "border-slate-200 bg-slate-100 text-slate-600";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
 
 export default function ChildrenPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -501,13 +480,13 @@ export default function ChildrenPage() {
           <CardHeader><CardTitle>Child roster</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading children...
-              </div>
+              <TableSkeleton rows={6} cols={5} />
             ) : filteredRows.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                No children found.
-              </div>
+              <FilteredEmptyState
+                totalCount={children.length}
+                filterLabel="search or filter"
+                onClear={() => { setQuery(""); setStatusFilter(""); setRoomFilter(""); }}
+              />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full min-w-[700px] text-sm">

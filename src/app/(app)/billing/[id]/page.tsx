@@ -8,6 +8,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { invoiceStatusBadgeOverdue as statusBadgeClass } from "@/lib/badge-styles";
 
 type InvoiceDetail = {
   id: string;
@@ -37,22 +38,6 @@ type InvoiceDetail = {
     notes?: string | null;
   }>;
 };
-
-function statusBadgeClass(status: string, isOverdue: boolean) {
-  if (isOverdue) return "border-rose-200 bg-rose-50 text-rose-700";
-  switch (status.toUpperCase()) {
-    case "PAID":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "ISSUED":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case "DRAFT":
-      return "border-slate-200 bg-slate-50 text-slate-600";
-    case "VOID":
-      return "border-slate-300 bg-slate-100 text-slate-500 line-through";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
 
 function statusLabel(status: string, isOverdue: boolean) {
   if (isOverdue) return "OVERDUE";

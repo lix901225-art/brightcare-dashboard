@@ -7,6 +7,7 @@ import { ArrowLeft, Utensils, Moon, Smile, Activity, Calendar, User, Home } from
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { moodBadge as moodColor } from "@/lib/badge-styles";
 
 type ReportDetail = {
   id: string;
@@ -20,22 +21,6 @@ type ReportDetail = {
   activities?: string | null;
   photosCount?: number;
 };
-
-function moodColor(mood?: string | null) {
-  switch ((mood || "").toLowerCase()) {
-    case "happy":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "content":
-      return "border-sky-200 bg-sky-50 text-sky-700";
-    case "tired":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "fussy":
-    case "upset":
-      return "border-rose-200 bg-rose-50 text-rose-700";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
 
 function moodEmoji(mood?: string | null) {
   switch ((mood || "").toLowerCase()) {
