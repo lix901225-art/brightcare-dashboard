@@ -422,13 +422,17 @@ export default function AttendancePage() {
               />
             ) : (
               <>
-                {/* Mobile card view */}
+                {/* Mobile card view — touch-optimized with large tap targets */}
                 <div className="space-y-3 md:hidden">
                   {filteredRows.map(({ child, roomName, attendance }) => {
                     const status = (attendance?.status || "UNKNOWN").toUpperCase();
                     const busy = savingId === child.id;
+                    const btnBase = "inline-flex h-11 flex-1 items-center justify-center rounded-xl text-sm font-medium transition-all active:scale-[0.97] disabled:opacity-50";
                     return (
-                      <div key={child.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div key={child.id} className={[
+                        "rounded-xl border bg-white p-4",
+                        busy ? "border-sky-200 bg-sky-50/30" : "border-slate-200",
+                      ].join(" ")}>
                         <div className="flex items-start justify-between">
                           <div>
                             <div className="font-medium text-slate-900">{child.fullName || child.id}</div>
@@ -444,24 +448,24 @@ export default function AttendancePage() {
                             {attendance?.checkoutAt && <span>Out: {fmt(attendance.checkoutAt)}</span>}
                           </div>
                         )}
-                        <div className="mt-3 flex flex-wrap gap-2">
+                        <div className="mt-3 flex gap-2">
                           {(status === "UNKNOWN" || status === "ABSENT") && (
                             <>
-                              <button disabled={busy} onClick={() => checkIn(child.id)} className="inline-flex h-8 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 disabled:opacity-50">Check in</button>
-                              <button disabled={busy} onClick={() => mark(child.id, "PRESENT")} className="inline-flex h-8 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 disabled:opacity-50">Present</button>
-                              {status !== "ABSENT" && <button disabled={busy} onClick={() => mark(child.id, "ABSENT")} className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-700 disabled:opacity-50">Absent</button>}
+                              <button disabled={busy} onClick={() => checkIn(child.id)} className={`${btnBase} border border-sky-200 bg-sky-50 text-sky-700`}>Check in</button>
+                              <button disabled={busy} onClick={() => mark(child.id, "PRESENT")} className={`${btnBase} border border-emerald-200 bg-emerald-50 text-emerald-700`}>Present</button>
+                              {status !== "ABSENT" && <button disabled={busy} onClick={() => mark(child.id, "ABSENT")} className={`${btnBase} border border-rose-200 bg-rose-50 text-rose-700`}>Absent</button>}
                             </>
                           )}
                           {status === "PRESENT" && (
                             <>
-                              <button disabled={busy} onClick={() => checkIn(child.id)} className="inline-flex h-8 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 disabled:opacity-50">Check in</button>
-                              <button disabled={busy} onClick={() => mark(child.id, "ABSENT")} className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-700 disabled:opacity-50">Absent</button>
+                              <button disabled={busy} onClick={() => checkIn(child.id)} className={`${btnBase} border border-sky-200 bg-sky-50 text-sky-700`}>Check in</button>
+                              <button disabled={busy} onClick={() => mark(child.id, "ABSENT")} className={`${btnBase} border border-rose-200 bg-rose-50 text-rose-700`}>Absent</button>
                             </>
                           )}
                           {status === "CHECKED_IN" && (
-                            <button disabled={busy} onClick={() => checkOut(child.id)} className="inline-flex h-8 items-center rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-medium text-violet-700 disabled:opacity-50">Check out</button>
+                            <button disabled={busy} onClick={() => checkOut(child.id)} className={`${btnBase} border border-violet-200 bg-violet-50 text-violet-700`}>Check out</button>
                           )}
-                          {status === "CHECKED_OUT" && <span className="text-xs text-slate-400">Done for today</span>}
+                          {status === "CHECKED_OUT" && <span className="flex h-11 flex-1 items-center justify-center text-sm text-slate-400">Done for today ✓</span>}
                         </div>
                       </div>
                     );

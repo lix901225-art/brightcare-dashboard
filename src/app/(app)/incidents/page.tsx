@@ -368,17 +368,42 @@ export default function IncidentsPage() {
                   <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                     Severity
                   </div>
+                  {/* Desktop: dropdown. Mobile: color-coded severity chips */}
                   <select
                     value={severity}
                     onChange={(e) => setSeverity(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    className="hidden h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none md:block"
                   >
                     {SEVERITY_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
+                      <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
+                  <div className="flex flex-wrap gap-2 md:hidden">
+                    {SEVERITY_OPTIONS.map((s) => {
+                      const colors: Record<string, string> = {
+                        LOW: "border-slate-300 bg-slate-50 text-slate-700",
+                        MEDIUM: "border-amber-300 bg-amber-50 text-amber-800",
+                        HIGH: "border-orange-300 bg-orange-50 text-orange-800",
+                        CRITICAL: "border-rose-300 bg-rose-50 text-rose-800",
+                      };
+                      const selected = severity === s;
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setSeverity(s)}
+                          className={[
+                            "inline-flex h-10 items-center rounded-xl border px-4 text-sm font-medium transition-all active:scale-[0.97]",
+                            selected
+                              ? "ring-2 ring-slate-900 ring-offset-1 " + (colors[s] || "")
+                              : colors[s] || "border-slate-200 bg-white text-slate-700",
+                          ].join(" ")}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 <div>

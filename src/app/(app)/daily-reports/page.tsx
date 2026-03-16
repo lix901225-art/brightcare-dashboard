@@ -271,10 +271,11 @@ export default function DailyReportsPage() {
                   <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                     Mood
                   </div>
+                  {/* Desktop: dropdown. Mobile: tap-to-select chips */}
                   <select
                     value={mood}
                     onChange={(e) => setMood(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    className="hidden h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none md:block"
                   >
                     <option value="">Select mood</option>
                     {MOOD_OPTIONS.map((m) => (
@@ -283,6 +284,23 @@ export default function DailyReportsPage() {
                       </option>
                     ))}
                   </select>
+                  <div className="flex flex-wrap gap-2 md:hidden">
+                    {MOOD_OPTIONS.map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setMood(mood === m ? "" : m)}
+                        className={[
+                          "inline-flex h-10 items-center rounded-xl border px-4 text-sm font-medium transition-all active:scale-[0.97]",
+                          mood === m
+                            ? "border-slate-900 bg-slate-900 text-white"
+                            : "border-slate-200 bg-white text-slate-700",
+                        ].join(" ")}
+                      >
+                        {m === "Happy" ? "😊" : m === "Content" ? "🙂" : m === "Tired" ? "😴" : m === "Fussy" ? "😣" : "😢"} {m}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 <div>
