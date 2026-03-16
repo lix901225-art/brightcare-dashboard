@@ -44,7 +44,28 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="theme-color" content="#0f172a" />
       </head>
-      <body>{children}</body>
+      <body>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "BrightCare OS",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web",
+              description:
+                "Childcare management software for licensed BC daycare centres. Enrollment, attendance, billing, parent messaging, and licensing compliance.",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "CAD",
+              },
+            }),
+          }}
+        />
+        {children}
+      </body>
     </html>
   );
 }
