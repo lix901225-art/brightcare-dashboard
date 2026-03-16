@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { clearSession } from "@/lib/session";
 
 export default function MockLogoutButton() {
   const router = useRouter();
@@ -8,8 +9,8 @@ export default function MockLogoutButton() {
   return (
     <button
       onClick={() => {
-        localStorage.removeItem("mock_logged_in");
-        router.push("/login");
+        clearSession();
+        router.replace("/login");
       }}
       className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
     >

@@ -16,7 +16,7 @@ type ShellSession = {
 };
 
 const FALLBACK_SESSION: ShellSession = {
-  role: "OWNER",
+  role: "STAFF",
   displayName: "User",
   tenantName: "Workspace",
   tenantId: "",
@@ -177,7 +177,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tenantTitle = mounted ? session.tenantName || "Workspace" : "Workspace";
   const tenantSub = mounted ? session.tenantId || "No tenant selected" : "Loading workspace...";
   const userTitle = mounted ? session.displayName : "User";
-  const userRole = mounted ? session.role : "OWNER";
+  const userRole = mounted ? session.role : "STAFF";
   const userInitials = mounted ? getInitials(session.displayName) : "U";
 
   return (
