@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Parent Messaging & Daily Reports — BrightCare OS",
+  title: "Parent Messaging & Daily Reports",
   description:
     "Threaded messaging, per-child daily reports, and a parent portal accessible via phone browser — no app download required.",
   openGraph: {
-    title: "Parent Messaging & Daily Reports — BrightCare OS",
+    title: "Parent Messaging & Daily Reports",
     description:
       "Keep parents connected with daily reports and real-time messaging.",
     type: "website",
@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Parent Messaging & Daily Reports — BrightCare OS",
+    title: "Parent Messaging & Daily Reports",
     description:
       "Keep parents connected with daily reports and real-time messaging.",
   },

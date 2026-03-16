@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "BC Childcare Software — Daycare Management | BrightCare OS",
+  title: "BC Childcare Software — Vancouver Daycare Management",
   description:
     "Management software for licensed BC daycare centres. ACCB fee reduction, CCFRI tracking, capacity compliance, and CCRR referral source tracking.",
   openGraph: {
-    title: "BC Childcare Software — Daycare Management | BrightCare OS",
+    title: "BC Childcare Software — Vancouver Daycare Management",
     description:
       "Built specifically for licensed BC daycare centres — ACCB, CCFRI, capacity compliance, and more.",
     type: "website",

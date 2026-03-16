@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Contact — BrightCare OS",
+  title: "Contact",
   description:
     "Get in touch with BrightCare OS. Request a demo, ask about our free pilot program, or learn how BrightCare can help your licensed BC childcare centre.",
   openGraph: {
-    title: "Contact — BrightCare OS",
+    title: "Contact",
     description: "Get in touch with BrightCare OS for your licensed BC childcare centre.",
     type: "website",
     url: "/contact",
   },
   twitter: {
     card: "summary",
-    title: "Contact — BrightCare OS",
+    title: "Contact",
     description: "Get in touch with BrightCare OS for your licensed BC childcare centre.",
   },
   robots: { index: true, follow: true },

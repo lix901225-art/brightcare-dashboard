@@ -2,18 +2,18 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — BrightCare OS",
+  title: "Privacy Policy",
   description:
     "BrightCare OS privacy policy. Learn how we handle child data, parent information, and centre records. Data stays in Canada — no third-party sharing, no ads.",
   openGraph: {
-    title: "Privacy Policy — BrightCare OS",
+    title: "Privacy Policy",
     description: "How BrightCare OS protects your data. Canadian data residency, no third-party sharing.",
     type: "website",
     url: "/privacy",
   },
   twitter: {
     card: "summary",
-    title: "Privacy Policy — BrightCare OS",
+    title: "Privacy Policy",
     description: "How BrightCare OS protects your data. Canadian data residency, no third-party sharing.",
   },
   robots: { index: true, follow: true },

@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Daycare Billing & ACCB Fee Reduction — BrightCare OS",
+  title: "Daycare Billing & ACCB Fee Reduction",
   description:
     "Invoicing with ACCB offset line items, CCFRI tracking, overdue management, and parent-facing balance views for licensed BC childcare centres.",
   openGraph: {
-    title: "Daycare Billing & ACCB Fee Reduction — BrightCare OS",
+    title: "Daycare Billing & ACCB Fee Reduction",
     description:
       "Billing built for BC childcare — ACCB offsets, CCFRI tracking, and clear parent invoices.",
     type: "website",

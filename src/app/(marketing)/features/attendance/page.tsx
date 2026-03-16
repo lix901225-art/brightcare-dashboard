@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Childcare Attendance Tracking Software — BrightCare OS",
+  title: "Childcare Attendance Tracking Software",
   description:
     "Check-in/out tracking for licensed BC daycare centres. Room-based rosters, batch marking, capacity monitoring, and parent-visible history.",
   openGraph: {
-    title: "Childcare Attendance Tracking Software — BrightCare OS",
+    title: "Childcare Attendance Tracking Software",
     description:
       "Real-time attendance tracking built for licensed BC childcare centres.",
     type: "website",
