@@ -1,10 +1,9 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { bootstrapSessionFromBackend } from "@/lib/auth-bootstrap";
 import { readSession } from "@/lib/session";
-import { getRoleHome } from "@/lib/workspace";
 
 export function AppAuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -12,43 +11,59 @@ export function AppAuthGate({ children }: { children: ReactNode }) {
 
   const [ready, setReady] = useState(false);
   const [allowed, setAllowed] = useState(false);
+  const bootedRef = useRef(false);
+  const redirectingRef = useRef(false);
+
+  const redirectToLogin = useCallback(() => {
+    if (redirectingRef.current || pathname === "/login") return;
+    redirectingRef.current = true;
+    router.replace("/login");
+  }, [pathname, router]);
 
   useEffect(() => {
     let alive = true;
 
     const boot = async () => {
-      const bootstrapped = await bootstrapSessionFromBackend();
-      const session = bootstrapped || readSession();
+      try {
+        const bootstrapped = await bootstrapSessionFromBackend();
+        const session = bootstrapped || readSession();
 
-      if (!alive) return;
+        if (!alive) return;
 
-      if (!session?.userId || !session?.tenantId) {
+        if (!session?.userId || !session?.tenantId) {
+          setAllowed(false);
+          setReady(true);
+          redirectToLogin();
+          return;
+        }
+
+        setAllowed(true);
+        setReady(true);
+        bootedRef.current = true;
+      } catch {
+        if (!alive) return;
         setAllowed(false);
         setReady(true);
-        if (pathname !== "/login") {
-          router.replace("/login");
-        }
-        return;
+        redirectToLogin();
       }
-
-      setAllowed(true);
-      setReady(true);
     };
 
     void boot();
 
-    const sync = async () => {
+    const sync = () => {
+      // Don't process sync events until boot completes
+      if (!bootedRef.current) return;
+
       const session = readSession();
 
       if (!session?.userId || !session?.tenantId) {
         setAllowed(false);
-        if (pathname !== "/login") {
-          router.replace("/login");
-        }
+        redirectToLogin();
         return;
       }
 
       setAllowed(true);
+      redirectingRef.current = false;
     };
 
     window.addEventListener("storage", sync);
@@ -59,7 +74,7 @@ export function AppAuthGate({ children }: { children: ReactNode }) {
       window.removeEventListener("storage", sync);
       window.removeEventListener("focus", sync);
     };
-  }, [pathname, router]);
+  }, [pathname, router, redirectToLogin]);
 
   if (!ready) {
     return (

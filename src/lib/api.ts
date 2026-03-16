@@ -38,10 +38,12 @@ async function request(method: string, path: string, config: RequestConfig = {})
   }
 
   if (!res.ok) {
-    const message =
-      (typeof data === "object" && data && "message" in data && typeof (data as any).message === "string"
-        ? (data as any).message
-        : `Request failed: ${res.status}`) || `Request failed: ${res.status}`;
+    const body = data as Record<string, unknown> | null;
+    const msgFromBody =
+      typeof body === "object" && body !== null && "message" in body && typeof body.message === "string"
+        ? body.message
+        : null;
+    const message = msgFromBody || `Request failed: ${res.status}`;
     const err = new Error(message) as Error & { response?: { status: number; data: unknown } };
     err.response = { status: res.status, data };
     throw err;

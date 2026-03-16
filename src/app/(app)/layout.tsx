@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ReactNode, Suspense } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { AppAuthGate } from "@/components/auth/app-auth-gate";
+import { ErrorBoundary } from "@/components/ui/error-boundary";
 import Auth0ProviderClient from "@/lib/auth0-provider";
 import { Toaster } from "sonner";
 
@@ -14,7 +15,9 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
     <Auth0ProviderClient>
       <AppAuthGate>
         <AppShell>
-          <Suspense>{children}</Suspense>
+          <ErrorBoundary>
+            <Suspense>{children}</Suspense>
+          </ErrorBoundary>
         </AppShell>
         <Toaster
           position="top-right"

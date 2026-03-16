@@ -1,58 +1,89 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { writeSession } from "@/lib/session";
+
+const MAX_RETRIES = 2;
+const RETRY_DELAY_MS = 2000;
 
 export default function DemoPage() {
   const router = useRouter();
   const [status, setStatus] = useState<"loading" | "error">("loading");
   const [errorMsg, setErrorMsg] = useState("");
+  const retriesRef = useRef(0);
+  const cancelledRef = useRef(false);
+
+  const attemptLogin = useCallback(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+
+      const res = await fetch("/api/proxy/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: "demo", password: "demo" }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeout);
+      if (cancelledRef.current) return;
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.message || "Demo login failed.");
+      }
+
+      writeSession({
+        userId: data.userId || data.id,
+        tenantId: data.tenantId,
+        role: data.role,
+        displayName: data.name || data.displayName || "Demo User",
+        tenantName: data.tenantName || "Demo Centre",
+      });
+
+      router.replace("/dashboard");
+    } catch (err) {
+      if (cancelledRef.current) return;
+
+      if (retriesRef.current < MAX_RETRIES) {
+        retriesRef.current += 1;
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+        if (!cancelledRef.current) {
+          await attemptLogin();
+        }
+        return;
+      }
+
+      setStatus("error");
+      setErrorMsg(
+        err instanceof DOMException && err.name === "AbortError"
+          ? "Connection timed out. The demo server may be starting up."
+          : err instanceof Error
+            ? err.message
+            : "Unable to connect. Please try again in a moment.",
+      );
+    }
+  }, [router]);
 
   useEffect(() => {
-    let cancelled = false;
-
-    async function autoLogin() {
-      try {
-        const res = await fetch("/api/proxy/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ phone: "demo", password: "demo" }),
-        });
-
-        if (cancelled) return;
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setStatus("error");
-          setErrorMsg(data?.message || "Demo login failed. Please try again.");
-          return;
-        }
-
-        writeSession({
-          userId: data.userId || data.id,
-          tenantId: data.tenantId,
-          role: data.role,
-          displayName: data.name || data.displayName || "Demo User",
-          tenantName: data.tenantName || "Demo Centre",
-        });
-
-        router.replace("/dashboard");
-      } catch {
-        if (cancelled) return;
-        setStatus("error");
-        setErrorMsg("Unable to connect. Please try again in a moment.");
-      }
-    }
-
-    autoLogin();
+    cancelledRef.current = false;
+    retriesRef.current = 0;
+    void attemptLogin();
 
     return () => {
-      cancelled = true;
+      cancelledRef.current = true;
     };
-  }, [router]);
+  }, [attemptLogin]);
+
+  const handleRetry = () => {
+    retriesRef.current = 0;
+    setStatus("loading");
+    setErrorMsg("");
+    void attemptLogin();
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
@@ -76,6 +107,7 @@ export default function DemoPage() {
                 viewBox="0 0 24 24"
                 stroke="currentColor"
                 strokeWidth={1.5}
+                aria-hidden="true"
               >
                 <path
                   strokeLinecap="round"
@@ -90,11 +122,7 @@ export default function DemoPage() {
             <p className="mt-2 text-sm text-slate-500">{errorMsg}</p>
             <div className="mt-6 flex flex-col gap-3">
               <button
-                onClick={() => {
-                  setStatus("loading");
-                  setErrorMsg("");
-                  window.location.reload();
-                }}
+                onClick={handleRetry}
                 className="inline-flex h-11 items-center justify-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
               >
                 Try again

@@ -33,7 +33,9 @@ export function readSession(): AppSession | null {
         };
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn("[session] Failed to parse stored session:", err);
+  }
 
   const userId = localStorage.getItem("userId") || "";
   const tenantId = localStorage.getItem("tenantId") || "";
