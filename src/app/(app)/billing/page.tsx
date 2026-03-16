@@ -38,6 +38,7 @@ type InvoiceRow = {
 type Child = {
   id: string;
   fullName?: string | null;
+  status?: string | null;
 };
 
 type DraftItem = {
@@ -288,7 +289,7 @@ export default function BillingPage() {
   }
 
   const activeChildren = useMemo(() => {
-    return children.filter((c: any) => !c.status || (c.status || "").toUpperCase() === "ACTIVE");
+    return children.filter((c) => !c.status || (c.status || "").toUpperCase() === "ACTIVE");
   }, [children]);
 
   const BULK_TEMPLATES: Record<string, { label: string; items: { description: string; quantity: number; unitPrice: number }[]; dueDays: number }> = {

@@ -128,7 +128,7 @@ export default function ParentHomePage() {
       setPolicies(policiesRes.ok && Array.isArray(policiesData) ? policiesData : []);
 
       const totalBalance = (Array.isArray(billingData) ? billingData : [])
-        .reduce((sum: number, row: any) => sum + (Number(row.balance) || 0), 0);
+        .reduce((sum: number, row: { balance?: number }) => sum + (Number(row.balance) || 0), 0);
       setBillingBalance(totalBalance);
 
       const invoicesData = invoicesRes.ok ? await invoicesRes.json() : [];
