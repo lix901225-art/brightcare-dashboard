@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Calendar, Clock } from "lucide-react";
+import { AlertTriangle, Calendar, Check, Clock, MessageCircle } from "lucide-react";
 import { PullToRefresh } from "@/components/app/pull-to-refresh";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
@@ -17,6 +17,7 @@ type ThreadRow = {
   roomName?: string | null;
   latestMessage?: string | null;
   updatedAt?: string | null;
+  unreadCount?: number;
 };
 
 type AttendanceRow = {
@@ -480,48 +481,100 @@ export default function ParentHomePage() {
               </Card>
 
               <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader><CardTitle>Quick actions</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <Link href="/parent/attendance" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">View attendance</div>
-                    <div className="mt-1 text-sm text-slate-600">
-                      See check-in and check-out times and weekly history.
+                <CardHeader><CardTitle>Today</CardTitle></CardHeader>
+                <CardContent className="space-y-2">
+                  {/* Daily reports */}
+                  {todayReports.length > 0 ? (
+                    <Link href="/daily-reports" className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 hover:bg-emerald-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Daily reports ready</div>
+                        <div className="mt-0.5 text-xs text-emerald-700">{todayReports.length} report{todayReports.length !== 1 ? "s" : ""} filed today</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-3">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-200" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-500">Daily reports</div>
+                        <div className="mt-0.5 text-xs text-slate-400">No reports filed yet today — check back later</div>
+                      </div>
                     </div>
-                  </Link>
-                  <Link href="/parent/billing" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">View billing</div>
-                    <div className="mt-1 text-sm text-slate-600">
-                      See invoices, payments, and account balance.
-                    </div>
-                  </Link>
-                  <Link href="/messages" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">Send a message</div>
-                    <div className="mt-1 text-sm text-slate-600">
-                      Communicate with your child&apos;s educators and centre staff.
-                    </div>
-                  </Link>
-                  <Link href="/daily-reports" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">View daily reports</div>
-                    <div className="mt-1 text-sm text-slate-600">
-                      See meals, naps, mood, and activities for your child.
-                    </div>
-                  </Link>
-                  <Link href="/policies" className={[
-                    "block rounded-xl border p-4 hover:bg-slate-50",
-                    policies.length > 0 ? "border-amber-200 bg-amber-50/30" : "border-slate-200",
-                  ].join(" ")}>
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm font-medium text-slate-900">Review policies</div>
-                      {policies.length > 0 ? (
-                        <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
-                          {policies.length} policies
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="mt-1 text-sm text-slate-600">
-                      View and acknowledge centre policies.
-                    </div>
-                  </Link>
+                  )}
+
+                  {/* Unread messages */}
+                  {(() => {
+                    const unread = threads.reduce((s, t) => s + (Number(t.unreadCount) || 0), 0);
+                    if (unread > 0) {
+                      return (
+                        <Link href="/messages" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3 hover:bg-amber-50">
+                          <MessageCircle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+                          <div>
+                            <div className="text-sm font-medium text-slate-900">New messages</div>
+                            <div className="mt-0.5 text-xs text-amber-700">{unread} unread message{unread !== 1 ? "s" : ""}</div>
+                          </div>
+                        </Link>
+                      );
+                    }
+                    return (
+                      <Link href="/messages" className="flex items-start gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50">
+                        <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                          <Check className="h-3 w-3 text-emerald-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-400">Messages</div>
+                          <div className="mt-0.5 text-xs text-emerald-600">All caught up</div>
+                        </div>
+                      </Link>
+                    );
+                  })()}
+
+                  {/* Attendance */}
+                  {stats.present > 0 || stats.absent > 0 ? (
+                    <Link href="/parent/attendance" className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 hover:bg-emerald-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Attendance recorded</div>
+                        <div className="mt-0.5 text-xs text-emerald-700">
+                          {stats.present} present{stats.absent > 0 ? `, ${stats.absent} absent` : ""}
+                        </div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <Link href="/parent/attendance" className="flex items-start gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-slate-200" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-500">Attendance</div>
+                        <div className="mt-0.5 text-xs text-slate-400">Not recorded yet today</div>
+                      </div>
+                    </Link>
+                  )}
+
+                  {/* Policies needing review */}
+                  {policies.length > 0 ? (
+                    <Link href="/policies" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3 hover:bg-amber-50">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Review policies</div>
+                        <div className="mt-0.5 text-xs text-amber-700">{policies.length} centre {policies.length === 1 ? "policy" : "policies"} to acknowledge</div>
+                      </div>
+                    </Link>
+                  ) : null}
+
+                  {/* Overdue billing */}
+                  {billingBalance > 0 ? (
+                    <Link href="/parent/billing" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/50 p-3 hover:bg-rose-50">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Balance due</div>
+                        <div className="mt-0.5 text-xs text-rose-700">${billingBalance.toFixed(2)} outstanding</div>
+                      </div>
+                    </Link>
+                  ) : null}
                 </CardContent>
               </Card>
             </div>

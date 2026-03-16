@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Check, Eye } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,12 +41,30 @@ function severityColor(severity: string) {
   return severityBadge(severity);
 }
 
+const REVIEWED_KEY = "brightcare_reviewed_incidents";
+
+function getReviewedIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(REVIEWED_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch { return new Set(); }
+}
+
+function markReviewed(id: string) {
+  const ids = getReviewedIds();
+  ids.add(id);
+  localStorage.setItem(REVIEWED_KEY, JSON.stringify([...ids]));
+}
+
 export default function ParentIncidentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [children, setChildren] = useState<Child[]>([]);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [childFilter, setChildFilter] = useState("");
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => { setReviewedIds(getReviewedIds()); }, []);
 
   async function loadAll() {
     setLoading(true);
@@ -154,6 +172,36 @@ export default function ParentIncidentsPage() {
                   ) : null}
                 </CardContent>
               </Card>
+              {(() => {
+                const unreviewed = incidents.filter((i) => !reviewedIds.has(i.id)).length;
+                return (
+                  <Card className={`rounded-2xl border-0 shadow-sm md:col-span-3 ${unreviewed > 0 ? "ring-1 ring-amber-200" : ""}`}>
+                    <CardContent className="py-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm">
+                          {unreviewed > 0 ? (
+                            <>
+                              <Eye className="h-4 w-4 text-amber-500" />
+                              <span className="font-medium text-amber-800">{unreviewed} incident{unreviewed !== 1 ? "s" : ""} not yet reviewed</span>
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-4 w-4 text-emerald-500" />
+                              <span className="font-medium text-emerald-700">All incidents reviewed</span>
+                            </>
+                          )}
+                        </div>
+                        <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
+                          <div
+                            className={`h-full rounded-full transition-all ${unreviewed === 0 ? "bg-emerald-500" : "bg-amber-400"}`}
+                            style={{ width: `${incidents.length > 0 ? Math.round(((incidents.length - unreviewed) / incidents.length) * 100) : 100}%` }}
+                          />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
             </div>
 
             {/* Filter */}
@@ -184,49 +232,72 @@ export default function ParentIncidentsPage() {
                   />
                 ) : (
                   <div className="space-y-3">
-                    {filtered.map((inc) => (
-                      <div key={inc.id} className="rounded-xl border border-slate-200 p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3">
-                            <AlertTriangle className={[
-                              "mt-0.5 h-4 w-4 shrink-0",
-                              inc.severity.toLowerCase() === "critical" || inc.severity.toLowerCase() === "high"
-                                ? "text-rose-500"
-                                : "text-amber-500",
-                            ].join(" ")} />
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-slate-900">
-                                  {inc.type || "Incident"}
-                                </span>
-                                <span className={[
-                                  "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
-                                  severityColor(inc.severity),
-                                ].join(" ")}>
-                                  {inc.severity}
-                                </span>
-                              </div>
-                              <div className="mt-1 text-xs text-slate-500">
-                                {childNameById[inc.childId] || "Child"} · {fmtDate(inc.occurredAt)} at {fmtTime(inc.occurredAt)}
-                              </div>
-                              <div className="mt-2 text-sm text-slate-700">
-                                {inc.description}
-                              </div>
-                              {inc.actionsTaken ? (
-                                <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                                  <span className="font-medium">Actions taken:</span> {inc.actionsTaken}
+                    {filtered.map((inc) => {
+                      const isReviewed = reviewedIds.has(inc.id);
+                      return (
+                        <div key={inc.id} className={[
+                          "rounded-xl border p-4",
+                          isReviewed ? "border-slate-100 bg-slate-50/50" : "border-slate-200",
+                        ].join(" ")}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex items-start gap-3">
+                              <AlertTriangle className={[
+                                "mt-0.5 h-4 w-4 shrink-0",
+                                inc.severity.toLowerCase() === "critical" || inc.severity.toLowerCase() === "high"
+                                  ? "text-rose-500"
+                                  : "text-amber-500",
+                              ].join(" ")} />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-medium text-slate-900">
+                                    {inc.type || "Incident"}
+                                  </span>
+                                  <span className={[
+                                    "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
+                                    severityColor(inc.severity),
+                                  ].join(" ")}>
+                                    {inc.severity}
+                                  </span>
+                                  {isReviewed ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
+                                      <Check className="h-2.5 w-2.5" /> Reviewed
+                                    </span>
+                                  ) : null}
                                 </div>
-                              ) : null}
+                                <div className="mt-1 text-xs text-slate-500">
+                                  {childNameById[inc.childId] || "Child"} · {fmtDate(inc.occurredAt)} at {fmtTime(inc.occurredAt)}
+                                </div>
+                                <div className="mt-2 text-sm text-slate-700">
+                                  {inc.description}
+                                </div>
+                                {inc.actionsTaken ? (
+                                  <div className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                                    <span className="font-medium">Actions taken:</span> {inc.actionsTaken}
+                                  </div>
+                                ) : null}
+                                {!isReviewed ? (
+                                  <button
+                                    onClick={() => {
+                                      markReviewed(inc.id);
+                                      setReviewedIds(getReviewedIds());
+                                    }}
+                                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                  >
+                                    <Eye className="h-3.5 w-3.5" />
+                                    Mark as reviewed
+                                  </button>
+                                ) : null}
+                              </div>
                             </div>
+                            {inc.lockedAt ? (
+                              <span className="inline-flex shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                Finalized
+                              </span>
+                            ) : null}
                           </div>
-                          {inc.lockedAt ? (
-                            <span className="inline-flex shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-500">
-                              Finalized
-                            </span>
-                          ) : null}
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </CardContent>

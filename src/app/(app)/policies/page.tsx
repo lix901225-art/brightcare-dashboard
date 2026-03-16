@@ -53,7 +53,23 @@ export default function PoliciesPage() {
       const data = await res.json();
 
       if (!res.ok) throw new Error(data?.message || `Policies failed: ${res.status}`);
-      setPolicies(Array.isArray(data) ? data : []);
+      const policyList = Array.isArray(data) ? data : [];
+      setPolicies(policyList);
+
+      // For parents, preload ack status for all policies so collapsed view shows ✓
+      if (isParent && policyList.length > 0) {
+        const ackResults = await Promise.allSettled(
+          policyList.map((p: Policy) => apiFetch(`/policies/${p.id}/acks`).then((r) => r.json()))
+        );
+        const newAcks: Record<string, PolicyAck[]> = {};
+        policyList.forEach((p: Policy, i: number) => {
+          const result = ackResults[i];
+          if (result.status === "fulfilled" && Array.isArray(result.value)) {
+            newAcks[p.id] = result.value;
+          }
+        });
+        setAcks((prev) => ({ ...prev, ...newAcks }));
+      }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load policies."));
     } finally {
@@ -266,6 +282,24 @@ export default function PoliciesPage() {
             <p className="text-sm text-sky-800">
               Please review the policies below and acknowledge each one. Tap a policy to read it and confirm.
             </p>
+            {policies.length > 0 ? (() => {
+              const acked = policies.filter((p) => (acks[p.id] || []).some((a) => a.userId === session?.userId)).length;
+              const total = policies.length;
+              return (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-medium text-sky-700">{acked} of {total} acknowledged</span>
+                    {acked === total ? <span className="font-semibold text-emerald-700">All done ✓</span> : null}
+                  </div>
+                  <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-sky-100">
+                    <div
+                      className={`h-full rounded-full transition-all ${acked === total ? "bg-emerald-500" : "bg-sky-500"}`}
+                      style={{ width: `${total > 0 ? Math.round((acked / total) * 100) : 0}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })() : null}
           </div>
         ) : (
           <div className="mb-6 grid gap-4 md:grid-cols-3">
@@ -317,16 +351,24 @@ export default function PoliciesPage() {
             {filteredPolicies.map((policy) => {
               const isExpanded = expandedId === policy.id;
               const policyAcks = acks[policy.id] || [];
+              const myAck = isParent ? policyAcks.find((a) => a.userId === session?.userId) : null;
 
               return (
-                <Card key={policy.id} className="rounded-2xl border-0 shadow-sm">
+                <Card key={policy.id} className={[
+                  "rounded-2xl border-0 shadow-sm",
+                  isParent && myAck ? "ring-1 ring-emerald-200" : "",
+                  isParent && !myAck && policyAcks.length > 0 ? "" : "",
+                ].join(" ")}>
                   <CardHeader>
                     <button
                       onClick={() => toggleExpand(policy.id)}
                       className="flex w-full items-start justify-between gap-3 text-left"
                     >
                       <div className="flex items-start gap-3">
-                        <FileCheck className="mt-0.5 h-5 w-5 text-slate-400" />
+                        <FileCheck className={[
+                          "mt-0.5 h-5 w-5",
+                          isParent && myAck ? "text-emerald-500" : "text-slate-400",
+                        ].join(" ")} />
                         <div>
                           <div className="font-semibold text-slate-900">{policy.title}</div>
                           <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
@@ -334,6 +376,15 @@ export default function PoliciesPage() {
                               {policy.version}
                             </span>
                             <span>{new Date(policy.createdAt).toLocaleDateString()}</span>
+                            {isParent && myAck ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 font-medium text-emerald-700">
+                                <Check className="h-3 w-3" /> Acknowledged
+                              </span>
+                            ) : isParent ? (
+                              <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-medium text-amber-700">
+                                Needs review
+                              </span>
+                            ) : null}
                           </div>
                         </div>
                       </div>
@@ -353,15 +404,17 @@ export default function PoliciesPage() {
                         </div>
                       ) : null}
 
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => acknowledgePolicy(policy.id)}
-                          className="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700"
-                        >
-                          <Check className="h-4 w-4" />
-                          Acknowledge
-                        </button>
-                      </div>
+                      {!(isParent && myAck) ? (
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => acknowledgePolicy(policy.id)}
+                            className="inline-flex h-9 items-center gap-2 rounded-lg bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700"
+                          >
+                            <Check className="h-4 w-4" />
+                            {isParent ? "I have read and acknowledge this policy" : "Acknowledge"}
+                          </button>
+                        </div>
+                      ) : null}
 
                       <div className="mt-4">
                         {isParent ? (
