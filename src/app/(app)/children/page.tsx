@@ -297,11 +297,11 @@ export default function ChildrenPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Full name</div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Full name <span className="text-rose-500">*</span></div>
                   <input
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    className={`h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none ${fullName.trim() ? "border-emerald-300" : "border-slate-200"}`}
                     placeholder="Child full name"
                   />
                 </div>
@@ -379,7 +379,7 @@ export default function ChildrenPage() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={createChild}
-                  disabled={saving}
+                  disabled={saving || !fullName.trim()}
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Create child"}

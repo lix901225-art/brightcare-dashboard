@@ -312,12 +312,12 @@ export default function IncidentsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                    Child
+                    Child <span className="text-rose-500">*</span>
                   </div>
                   <select
                     value={childId}
                     onChange={(e) => setChildId(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    className={`h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none ${!childId ? "border-slate-200" : "border-emerald-300"}`}
                   >
                     <option value="">Select child</option>
                     {children.map((child) => (
@@ -395,13 +395,13 @@ export default function IncidentsPage() {
 
               <div className="mt-4">
                 <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                  Description
+                  Description <span className="text-rose-500">*</span>
                 </div>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe what happened, including any injuries, witnesses, and circumstances..."
-                  className="min-h-[100px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+                  className={`min-h-[100px] w-full rounded-xl border bg-white p-3 text-sm outline-none ${description.trim() ? "border-emerald-300" : "border-slate-200"}`}
                 />
               </div>
 
@@ -420,7 +420,7 @@ export default function IncidentsPage() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={createIncident}
-                  disabled={saving}
+                  disabled={saving || !childId || !description.trim()}
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Submit report"}

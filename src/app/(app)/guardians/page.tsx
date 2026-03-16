@@ -388,11 +388,11 @@ export default function GuardiansPage() {
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Child</div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Child <span className="text-rose-500">*</span></div>
                   <select
                     value={childId}
                     onChange={(e) => setChildId(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    className={`h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none ${!childId ? "border-slate-200" : "border-emerald-300"}`}
                   >
                     <option value="">Select child</option>
                     {children.map((child) => (
@@ -404,11 +404,11 @@ export default function GuardiansPage() {
                 </div>
 
                 <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Guardian user</div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Guardian user <span className="text-rose-500">*</span></div>
                   <select
                     value={guardianUserId}
                     onChange={(e) => setGuardianUserId(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    className={`h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none ${!guardianUserId ? "border-slate-200" : "border-emerald-300"}`}
                   >
                     <option value="">Select user</option>
                     {candidateUsers.map((u) => (
@@ -462,7 +462,7 @@ export default function GuardiansPage() {
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={createGuardian}
-                  disabled={saving}
+                  disabled={saving || !childId || !guardianUserId}
                   className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                 >
                   {saving ? "Saving..." : "Link guardian"}
