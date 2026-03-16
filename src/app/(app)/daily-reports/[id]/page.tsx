@@ -172,8 +172,8 @@ export default function DailyReportDetailPage() {
                     {(report.naps ?? 0) === 0
                       ? "No naps today"
                       : (report.naps ?? 0) === 1
-                      ? "nap today"
-                      : "naps today"}
+                      ? "1 nap today"
+                      : `${report.naps} naps today`}
                   </div>
                 </CardContent>
               </Card>

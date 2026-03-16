@@ -445,6 +445,32 @@ export default function BillingDetailPage() {
                       />
                     </div>
                   </div>
+                  {/* Payment preview: what will remain after this payment */}
+                  {(() => {
+                    const amt = Number(payAmount || 0);
+                    const remaining = Math.max(0, invoice.balanceAmount - amt);
+                    if (amt <= 0) return null;
+                    return (
+                      <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-600">Current balance</span>
+                          <span className="font-medium text-slate-900">${invoice.balanceAmount.toFixed(2)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-sm mt-1">
+                          <span className="text-slate-600">This payment</span>
+                          <span className="font-medium text-emerald-700">&minus;${amt.toFixed(2)}</span>
+                        </div>
+                        <div className="mt-2 border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
+                          <span className="font-semibold text-slate-900">Remaining balance</span>
+                          <span className={["font-semibold", remaining > 0 ? "text-rose-600" : "text-emerald-700"].join(" ")}>
+                            ${remaining.toFixed(2)}
+                            {remaining === 0 ? " — Paid in full" : ""}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
                   <div className="mt-4 flex gap-3">
                     <button
                       onClick={recordPayment}

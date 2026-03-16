@@ -786,6 +786,115 @@ export default function EnrollmentPage() {
           ) : null}
         </div>
 
+        {/* Waitlist action panel — surfaces families needing follow-up */}
+        {stats.waitlist > 0 ? (() => {
+          const today = new Date();
+          const todayStr = today.toISOString().slice(0, 10);
+
+          // Families with desired start date in next 14 days or past
+          const approachingStart = waitlistOrdered.filter((c) => {
+            if (!c.startDate) return false;
+            const sd = c.startDate.slice(0, 10);
+            const diff = Math.floor((new Date(sd).getTime() - today.getTime()) / 86400000);
+            return diff <= 14;
+          });
+
+          // Families waiting 30+ days
+          const longWait = waitlistOrdered.filter((c) => {
+            const dw = daysWaiting(c.createdAt);
+            return dw !== null && dw >= 30;
+          });
+
+          // Families with incomplete readiness
+          const notReady = waitlistOrdered.filter((c) => {
+            const checks = readinessChecks(c);
+            return checks.some((ch) => !ch.ok);
+          });
+
+          // Families missing guardian/emergency contact
+          const missingGuardian = waitlistOrdered.filter((c) => {
+            const gs = guardiansByChild[c.id] || [];
+            return gs.length === 0 || !gs.some((g) => g.isEmergencyContact);
+          });
+
+          const hasActions = approachingStart.length > 0 || longWait.length > 0 || notReady.length > 0;
+          if (!hasActions) return null;
+
+          return (
+            <div className="mt-6 rounded-2xl border border-amber-100 bg-amber-50/30 p-4">
+              <div className="mb-3 text-sm font-semibold text-amber-900">Waitlist follow-up needed</div>
+              <div className="grid gap-3 md:grid-cols-3">
+                {approachingStart.length > 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-white p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-amber-700">Start date approaching</div>
+                    <div className="mt-1.5 space-y-1">
+                      {approachingStart.slice(0, 3).map((c) => {
+                        const sd = c.startDate!.slice(0, 10);
+                        const past = sd < todayStr;
+                        return (
+                          <Link key={c.id} href={`/children/${encodeURIComponent(c.id)}`} className="flex items-center justify-between text-sm hover:text-slate-600">
+                            <span className="font-medium text-slate-900 truncate">{c.fullName}</span>
+                            <span className={["text-xs shrink-0 ml-2", past ? "font-semibold text-rose-600" : "text-amber-600"].join(" ")}>
+                              {past ? "Overdue" : fmtDate(c.startDate)}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                      {approachingStart.length > 3 ? (
+                        <div className="text-xs text-amber-600">+{approachingStart.length - 3} more</div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {longWait.length > 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-white p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-amber-700">Waiting 30+ days</div>
+                    <div className="mt-1.5 space-y-1">
+                      {longWait.slice(0, 3).map((c) => {
+                        const dw = daysWaiting(c.createdAt) || 0;
+                        return (
+                          <Link key={c.id} href={`/children/${encodeURIComponent(c.id)}`} className="flex items-center justify-between text-sm hover:text-slate-600">
+                            <span className="font-medium text-slate-900 truncate">{c.fullName}</span>
+                            <span className={["text-xs shrink-0 ml-2 font-medium", dw > 60 ? "text-rose-600" : "text-amber-600"].join(" ")}>
+                              {dw}d
+                            </span>
+                          </Link>
+                        );
+                      })}
+                      {longWait.length > 3 ? (
+                        <div className="text-xs text-amber-600">+{longWait.length - 3} more</div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+                {missingGuardian.length > 0 ? (
+                  <div className="rounded-xl border border-amber-200 bg-white p-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-amber-700">Missing guardian/emergency</div>
+                    <div className="mt-1.5 space-y-1">
+                      {missingGuardian.slice(0, 3).map((c) => {
+                        const gs = guardiansByChild[c.id] || [];
+                        const hasGuardian = gs.length > 0;
+                        const hasEmergency = gs.some((g) => g.isEmergencyContact);
+                        return (
+                          <Link key={c.id} href={`/children/${encodeURIComponent(c.id)}`} className="flex items-center justify-between text-sm hover:text-slate-600">
+                            <span className="font-medium text-slate-900 truncate">{c.fullName}</span>
+                            <span className="text-xs text-rose-600 shrink-0 ml-2">
+                              {!hasGuardian ? "No guardian" : "No emergency"}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                      {missingGuardian.length > 3 ? (
+                        <div className="text-xs text-amber-600">+{missingGuardian.length - 3} more</div>
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          );
+        })() : null}
+
         {/* Search */}
         <div className="mt-6 mb-6 relative w-full md:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

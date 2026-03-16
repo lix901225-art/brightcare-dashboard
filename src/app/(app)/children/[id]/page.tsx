@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, ChevronLeft, Clock, FileText, Heart, Pencil, Save, Shield, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, Clock, FileText, Heart, Pencil, Save, Shield, X } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -377,6 +377,77 @@ export default function ChildDetailPage() {
         <Link href={`/messages?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Messages</Link>
         <Link href="/billing" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Billing</Link>
       </div>
+
+      {/* Enrollment readiness checklist — BC licensing inspection prep */}
+      {(() => {
+        const checks = [
+          { label: "Room assigned", ok: !!child.roomId, fix: "Assign a room in the profile editor", editField: true },
+          { label: "DOB on file", ok: !!child.dob, fix: "Add date of birth", editField: true },
+          { label: "Primary guardian", ok: guardians.some((g) => g.isPrimaryContact), fix: "Link a primary contact guardian", link: `/guardians?childId=${encodeURIComponent(id)}` },
+          { label: "Emergency contact", ok: guardians.some((g) => g.isEmergencyContact), fix: "Designate an emergency contact", link: `/guardians?childId=${encodeURIComponent(id)}` },
+          { label: "Pickup authorization", ok: guardians.some((g) => g.isPickupAuthorized), fix: "Authorize at least one pickup person", link: `/guardians?childId=${encodeURIComponent(id)}` },
+          { label: "Allergies documented", ok: !!child.allergies, fix: "Document allergies or mark 'None known'", editField: true },
+          { label: "Medical notes", ok: !!child.medicalNotes, fix: "Add medical info or mark 'None'", editField: true },
+        ];
+        const passed = checks.filter((c) => c.ok).length;
+        const total = checks.length;
+        const allGood = passed === total;
+        const pct = Math.round((passed / total) * 100);
+
+        return (
+          <Card className={`mt-6 rounded-2xl border-0 shadow-sm ${allGood ? "" : "ring-1 ring-amber-200"}`}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Shield className="h-4 w-4" />
+                  Enrolment readiness
+                </CardTitle>
+                <span className={[
+                  "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold",
+                  allGood ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700",
+                ].join(" ")}>
+                  {allGood ? <Check className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                  {passed}/{total}
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className={`h-full rounded-full transition-all ${allGood ? "bg-emerald-500" : pct >= 70 ? "bg-amber-400" : "bg-rose-400"}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {checks.map((c) => (
+                  <div key={c.label} className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm ${c.ok ? "text-emerald-700" : "text-slate-600"}`}>
+                    {c.ok ? (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                    ) : (
+                      <X className="h-3.5 w-3.5 shrink-0 text-amber-400" />
+                    )}
+                    <span className={c.ok ? "" : "font-medium"}>{c.label}</span>
+                    {!c.ok && c.link ? (
+                      <Link href={c.link} className="ml-auto text-xs font-medium text-amber-600 hover:text-amber-700">Fix →</Link>
+                    ) : !c.ok && c.editField ? (
+                      <button onClick={() => { setEditing(true); setOk(""); setError(""); }} className="ml-auto text-xs font-medium text-amber-600 hover:text-amber-700">Edit →</button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              {allGood ? (
+                <div className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                  This child&apos;s file is complete and inspection-ready per BC Community Care licensing requirements.
+                </div>
+              ) : (
+                <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  {total - passed} item{total - passed > 1 ? "s" : ""} missing — complete before next licensing inspection.
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card className="rounded-2xl border-0 shadow-sm">

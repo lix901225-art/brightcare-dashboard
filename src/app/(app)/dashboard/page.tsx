@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Shield, TrendingUp, AlertTriangle } from "lucide-react";
+import { Check, Shield, TrendingUp, AlertTriangle } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -376,24 +376,123 @@ export default function DashboardPage() {
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader><CardTitle>Quick actions</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <Link href="/attendance" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">Take attendance</div>
-                    <div className="mt-1 text-sm text-slate-600">Mark present and absent children for today.</div>
-                  </Link>
-                  <Link href="/daily-reports" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">Daily reports</div>
-                    <div className="mt-1 text-sm text-slate-600">Log meals, naps, mood, and activities for each child.</div>
-                  </Link>
-                  <Link href="/children" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">Child roster</div>
-                    <div className="mt-1 text-sm text-slate-600">View and update child profiles and enrollment.</div>
-                  </Link>
-                  <Link href="/incidents" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
-                    <div className="text-sm font-medium text-slate-900">Report incident</div>
-                    <div className="mt-1 text-sm text-slate-600">Document safety incidents for compliance records.</div>
-                  </Link>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Today&apos;s checklist</CardTitle>
+                    {(() => {
+                      const done = [
+                        metrics.unmarkedToday === 0 && metrics.totalChildren > 0,
+                        reportCoverage.covered >= reportCoverage.total && reportCoverage.total > 0,
+                        metrics.unreadMessages === 0,
+                        metrics.missingGuardianCoverage === 0,
+                      ].filter(Boolean).length;
+                      return (
+                        <span className={[
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold",
+                          done === 4 ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-amber-200 bg-amber-50 text-amber-700",
+                        ].join(" ")}>
+                          {done === 4 ? <Check className="h-3 w-3" /> : null}
+                          {done}/4
+                        </span>
+                      );
+                    })()}
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {/* Attendance */}
+                  {metrics.unmarkedToday > 0 ? (
+                    <Link href="/attendance" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3 hover:bg-amber-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-amber-300" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Take attendance</div>
+                        <div className="mt-0.5 text-xs text-amber-700">{metrics.unmarkedToday} children unmarked today</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-3">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-400 line-through">Take attendance</div>
+                        <div className="mt-0.5 text-xs text-emerald-600">All {metrics.totalChildren} children marked</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Daily reports */}
+                  {reportCoverage.total - reportCoverage.covered > 0 ? (
+                    <Link href="/daily-reports" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3 hover:bg-amber-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-amber-300" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">File daily reports</div>
+                        <div className="mt-0.5 text-xs text-amber-700">{reportCoverage.total - reportCoverage.covered} children missing reports</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-3">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-400 line-through">File daily reports</div>
+                        <div className="mt-0.5 text-xs text-emerald-600">All reports filed</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Messages */}
+                  {metrics.unreadMessages > 0 ? (
+                    <Link href="/messages" className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3 hover:bg-amber-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-amber-300" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Review messages</div>
+                        <div className="mt-0.5 text-xs text-amber-700">{metrics.unreadMessages} unread across {metrics.threadCount} threads</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-3">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-400 line-through">Review messages</div>
+                        <div className="mt-0.5 text-xs text-emerald-600">Inbox clear</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Guardian coverage */}
+                  {metrics.missingGuardianCoverage > 0 ? (
+                    <Link href="/guardians" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/50 p-3 hover:bg-rose-50">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-rose-300" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Fix guardian coverage</div>
+                        <div className="mt-0.5 text-xs text-rose-700">{metrics.missingGuardianCoverage} children missing primary/emergency/pickup</div>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div className="flex items-start gap-3 rounded-xl border border-slate-100 p-3">
+                      <div className="mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border-2 border-emerald-400 bg-emerald-50">
+                        <Check className="h-3 w-3 text-emerald-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-slate-400 line-through">Guardian coverage</div>
+                        <div className="mt-0.5 text-xs text-emerald-600">All children have full coverage</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contextual extras — only show when relevant */}
+                  {metrics.overdueCount > 0 ? (
+                    <Link href="/billing" className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50/50 p-3 hover:bg-rose-50">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">Overdue invoices</div>
+                        <div className="mt-0.5 text-xs text-rose-700">{metrics.overdueCount} invoices, ${metrics.overdueAmount.toFixed(0)} past due</div>
+                      </div>
+                    </Link>
+                  ) : null}
                 </CardContent>
               </Card>
 
