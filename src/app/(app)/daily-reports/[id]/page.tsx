@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { moodBadge as moodColor } from "@/lib/badge-styles";
 import { PageLoadingSkeleton } from "@/components/ui/skeleton";
+import { getErrorMessage } from "@/lib/error";
 
 type ReportDetail = {
   id: string;
@@ -65,8 +66,8 @@ export default function DailyReportDetailPage() {
         if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
         if (!data) throw new Error("Report not found.");
         setReport(data);
-      } catch (e: any) {
-        setError(e?.message || "Unable to load daily report.");
+      } catch (e: unknown) {
+        setError(getErrorMessage(e, "Unable to load daily report."));
       } finally {
         setLoading(false);
       }

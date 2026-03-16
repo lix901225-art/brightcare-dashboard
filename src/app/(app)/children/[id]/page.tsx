@@ -9,6 +9,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { toDateInput } from "@/lib/api-helpers";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -187,8 +188,8 @@ export default function ChildDetailPage() {
             .slice(0, 3);
           setRecentReports(childReports);
         }
-      } catch (e: any) {
-        if (alive) setError(e?.message || "Unable to load child details.");
+      } catch (e: unknown) {
+        if (alive) setError(getErrorMessage(e, "Unable to load child details."));
       } finally {
         if (alive) setLoading(false);
       }
@@ -263,8 +264,8 @@ export default function ChildDetailPage() {
       setForm(makeForm(data));
       setEditing(false);
       setOk("Child profile saved.");
-    } catch (e: any) {
-      setError(e?.message || "Unable to save child profile.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to save child profile."));
     } finally {
       setSaving(false);
     }
@@ -433,7 +434,7 @@ export default function ChildDetailPage() {
                     ))}
                   </select>
                 </label>
-                {[
+                {([
                   ["allergies", "Allergies"],
                   ["medicalNotes", "Medical notes"],
                   ["emergencyNotes", "Emergency notes"],
@@ -442,12 +443,12 @@ export default function ChildDetailPage() {
                   ["mealNotes", "Meal notes"],
                   ["languageNotes", "Language notes"],
                   ["specialConsiderations", "Special considerations"],
-                ].map(([key, label]) => (
+                ] as const).map(([key, label]) => (
                   <label key={key} className="grid gap-1">
                     <span className="text-xs uppercase tracking-wide text-slate-400">{label}</span>
                     <textarea
-                      value={(form as any)[key]}
-                      onChange={(e) => setForm({ ...(form as any), [key]: e.target.value })}
+                      value={form[key]}
+                      onChange={(e) => setForm({ ...form, [key]: e.target.value })}
                       className="min-h-24 rounded-xl border border-slate-200 px-3 py-2 outline-none"
                     />
                   </label>

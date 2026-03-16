@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type UserRow = {
   id: string;
@@ -58,8 +59,8 @@ export default function StaffManagementPage() {
       if (!res.ok) throw new Error(data?.message || `Users failed: ${res.status}`);
 
       setUsers(Array.isArray(data) ? data : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load users.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load users."));
     } finally {
       setLoading(false);
     }
@@ -131,8 +132,8 @@ export default function StaffManagementPage() {
       setShowCreate(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create user.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create user."));
     } finally {
       setSaving(false);
     }

@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/api-client";
 import { relativeTime } from "@/lib/api-helpers";
 import { CardListSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Thread = {
   id: string;
@@ -82,8 +83,8 @@ export default function MessagesPage() {
       } else if (!childId && childRows.length > 0) {
         setChildId(childRows[0].id);
       }
-    } catch (e: any) {
-      setError(e?.message || "Unable to load messages.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load messages."));
     } finally {
       setLoading(false);
     }
@@ -167,8 +168,8 @@ export default function MessagesPage() {
       setBody("");
       setShowCompose(false);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create conversation.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create conversation."));
     } finally {
       setCreating(false);
     }

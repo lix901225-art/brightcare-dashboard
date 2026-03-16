@@ -7,6 +7,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { getErrorMessage } from "@/lib/error";
 
 type ThreadRow = {
   id: string;
@@ -132,8 +133,8 @@ export default function ParentHomePage() {
 
       const invoicesData = invoicesRes.ok ? await invoicesRes.json() : [];
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load parent workspace.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load parent workspace."));
     } finally {
       setLoading(false);
     }

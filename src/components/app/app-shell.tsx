@@ -142,17 +142,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const sync = () => setSession(readSessionFromStorage());
-
     setMounted(true);
-    sync();
+    setSession(readSessionFromStorage());
 
-    window.addEventListener("storage", sync);
-    window.addEventListener("focus", sync);
+    let timer: ReturnType<typeof setTimeout>;
+    const debouncedSync = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => setSession(readSessionFromStorage()), 300);
+    };
+
+    window.addEventListener("storage", debouncedSync);
+    window.addEventListener("focus", debouncedSync);
 
     return () => {
-      window.removeEventListener("storage", sync);
-      window.removeEventListener("focus", sync);
+      clearTimeout(timer);
+      window.removeEventListener("storage", debouncedSync);
+      window.removeEventListener("focus", debouncedSync);
     };
   }, []);
 

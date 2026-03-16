@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { getErrorMessage } from "@/lib/error";
 
 type Policy = {
   id: string;
@@ -49,8 +50,8 @@ export default function PoliciesPage() {
 
       if (!res.ok) throw new Error(data?.message || `Policies failed: ${res.status}`);
       setPolicies(Array.isArray(data) ? data : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load policies.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load policies."));
     } finally {
       setLoading(false);
     }
@@ -104,8 +105,8 @@ export default function PoliciesPage() {
       setShowCreate(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create policy.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create policy."));
     } finally {
       setSaving(false);
     }
@@ -152,8 +153,8 @@ export default function PoliciesPage() {
       if (acksRes.ok && Array.isArray(acksData)) {
         setAcks((prev) => ({ ...prev, [policyId]: acksData }));
       }
-    } catch (e: any) {
-      setError(e?.message || "Unable to acknowledge policy.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to acknowledge policy."));
     }
   }
 

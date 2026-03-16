@@ -11,6 +11,7 @@ import { formatDate as fmtDate } from "@/lib/api-helpers";
 import { invoiceStatusBadge as statusBadge } from "@/lib/badge-styles";
 import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type BillingSummary = {
   childId: string;
@@ -102,8 +103,8 @@ export default function ParentBillingPage() {
 
       setSummary(Array.isArray(summaryData) ? summaryData : []);
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load billing.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load billing."));
     } finally {
       setLoading(false);
     }

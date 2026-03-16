@@ -7,6 +7,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { CardListSkeleton } from "@/components/ui/skeleton";
+import { getErrorMessage } from "@/lib/error";
 
 type Room = {
   id: string;
@@ -52,8 +53,8 @@ export default function RoomsPage() {
 
       setRooms(Array.isArray(roomsData) ? roomsData : []);
       setChildren(childrenRes.ok && Array.isArray(childrenData) ? childrenData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load rooms.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load rooms."));
     } finally {
       setLoading(false);
     }
@@ -140,8 +141,8 @@ export default function RoomsPage() {
       setShowForm(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to save room.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to save room."));
     } finally {
       setSaving(false);
     }
@@ -165,8 +166,8 @@ export default function RoomsPage() {
       }
       setOk(`Room "${room.name}" deleted.`);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to delete room.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to delete room."));
     }
   }
 

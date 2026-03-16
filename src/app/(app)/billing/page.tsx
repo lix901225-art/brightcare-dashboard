@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api-client";
 import { invoiceStatusBadge as statusBadge } from "@/lib/badge-styles";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type SummaryRow = {
   childId: string;
@@ -102,8 +103,8 @@ export default function BillingPage() {
       if (!childId && childRows.length > 0) {
         setChildId(childRows[0].id);
       }
-    } catch (e: any) {
-      setError(e?.message || "Unable to load billing.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load billing."));
     } finally {
       setLoading(false);
     }
@@ -279,8 +280,8 @@ export default function BillingPage() {
       setDueDate("");
       setItems([{ description: "Tuition", quantity: "1", unitPrice: "" }]);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create invoice.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create invoice."));
     } finally {
       setSaving(false);
     }
@@ -354,8 +355,8 @@ export default function BillingPage() {
       if (!res.ok) throw new Error(data?.message || "Issue failed");
       setOk("Invoice issued.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to issue invoice.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to issue invoice."));
     } finally {
       setSaving(false);
     }

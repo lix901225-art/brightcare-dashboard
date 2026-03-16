@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/api-client";
 import { invoiceStatusBadgeOverdue as statusBadgeClass } from "@/lib/badge-styles";
 import { PageLoadingSkeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type InvoiceDetail = {
   id: string;
@@ -71,8 +72,8 @@ export default function BillingDetailPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Invoice failed: ${res.status}`);
       setInvoice(data);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load invoice.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load invoice."));
     } finally {
       setLoading(false);
     }
@@ -114,8 +115,8 @@ export default function BillingDetailPage() {
       if (!res.ok) throw new Error(data?.message || `Mark paid failed: ${res.status}`);
       setOk("Invoice marked as paid.");
       await loadDetail();
-    } catch (e: any) {
-      setError(e?.message || "Unable to mark paid.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to mark paid."));
     } finally {
       setBusy(false);
     }
@@ -134,8 +135,8 @@ export default function BillingDetailPage() {
       if (!res.ok) throw new Error(data?.message || `Mark unpaid failed: ${res.status}`);
       setOk("Invoice marked as unpaid. All payments removed.");
       await loadDetail();
-    } catch (e: any) {
-      setError(e?.message || "Unable to mark unpaid.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to mark unpaid."));
     } finally {
       setBusy(false);
     }
@@ -155,8 +156,8 @@ export default function BillingDetailPage() {
       if (!res.ok) throw new Error(data?.message || `Void failed: ${res.status}`);
       setOk("Invoice voided.");
       await loadDetail();
-    } catch (e: any) {
-      setError(e?.message || "Unable to void invoice.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to void invoice."));
     } finally {
       setBusy(false);
     }
@@ -175,8 +176,8 @@ export default function BillingDetailPage() {
       if (!res.ok) throw new Error(data?.message || "Issue failed");
       setOk("Invoice issued successfully.");
       await loadDetail();
-    } catch (e: any) {
-      setError(e?.message || "Unable to issue invoice.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to issue invoice."));
     } finally {
       setBusy(false);
     }
@@ -209,8 +210,8 @@ export default function BillingDetailPage() {
       setPayReference("");
       setPayNotes("");
       await loadDetail();
-    } catch (e: any) {
-      setError(e?.message || "Unable to record payment.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to record payment."));
     } finally {
       setBusy(false);
     }

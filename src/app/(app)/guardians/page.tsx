@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api-client";
 import { guardianChipClass as chipClass } from "@/lib/badge-styles";
 import { CardListSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -123,8 +124,8 @@ export default function GuardiansPage() {
       );
 
       setGuardiansByChild(Object.fromEntries(guardianEntries));
-    } catch (e: any) {
-      setError(e?.message || "Unable to load guardians.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load guardians."));
     } finally {
       setLoading(false);
     }
@@ -270,8 +271,8 @@ export default function GuardiansPage() {
       setShowCreate(false);
       resetCreateForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to link guardian.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to link guardian."));
     } finally {
       setSaving(false);
     }
@@ -303,8 +304,8 @@ export default function GuardiansPage() {
       setOk("Guardian updated.");
       closeEditor();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to update guardian.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to update guardian."));
     } finally {
       setSaving(false);
     }
@@ -330,8 +331,8 @@ export default function GuardiansPage() {
       setOk("Guardian link removed.");
       closeEditor();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to remove guardian.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to remove guardian."));
     } finally {
       setSaving(false);
     }

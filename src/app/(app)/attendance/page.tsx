@@ -11,6 +11,7 @@ import { formatTime } from "@/lib/api-helpers";
 import { attendanceBadge as badgeClass } from "@/lib/badge-styles";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -77,8 +78,8 @@ export default function AttendancePage() {
       setChildren(Array.isArray(childrenData) ? childrenData : []);
       setRooms(Array.isArray(roomsData) ? roomsData : []);
       setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load attendance.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load attendance."));
     } finally {
       setLoading(false);
     }
@@ -161,8 +162,8 @@ export default function AttendancePage() {
 
       setOk("Attendance updated.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to update attendance.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to update attendance."));
     } finally {
       setSavingId("");
     }
@@ -184,8 +185,8 @@ export default function AttendancePage() {
 
       setOk("Checked in.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to check in.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to check in."));
     } finally {
       setSavingId("");
     }
@@ -207,8 +208,8 @@ export default function AttendancePage() {
 
       setOk("Checked out.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to check out.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to check out."));
     } finally {
       setSavingId("");
     }
@@ -250,8 +251,8 @@ export default function AttendancePage() {
       }
       setOk(`${checkedIn.length - failed} children checked out.`);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to bulk check out.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to bulk check out."));
     } finally {
       setMarkingAll(false);
     }
@@ -290,8 +291,8 @@ export default function AttendancePage() {
 
       setOk(`${unmarked.length} children marked ${label}.`);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to mark attendance.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to mark attendance."));
     } finally {
       setMarkingAll(false);
     }

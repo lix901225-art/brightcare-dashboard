@@ -10,6 +10,7 @@ import { formatDateTime } from "@/lib/api-helpers";
 import { severityBadge } from "@/lib/badge-styles";
 import { CardListSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -119,8 +120,8 @@ export default function IncidentsPage() {
       setRooms(roomRows);
 
       if (!childId && childRows.length > 0) setChildId(childRows[0].id);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load incidents.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load incidents."));
     } finally {
       setLoading(false);
     }
@@ -225,8 +226,8 @@ export default function IncidentsPage() {
       setShowCreate(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create incident report.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create incident report."));
     } finally {
       setSaving(false);
     }
@@ -256,8 +257,8 @@ export default function IncidentsPage() {
 
       setOk("Incident locked.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to lock incident.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to lock incident."));
     } finally {
       setSaving(false);
     }

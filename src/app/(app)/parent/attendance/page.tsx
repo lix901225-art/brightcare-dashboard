@@ -8,6 +8,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -107,8 +108,8 @@ export default function ParentAttendancePage() {
       if (!attendanceRes.ok) throw new Error(attendanceData?.message || `Attendance failed: ${attendanceRes.status}`);
       setChildren(Array.isArray(childrenData) ? childrenData : []);
       setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load attendance.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load attendance."));
     } finally {
       setLoading(false);
     }

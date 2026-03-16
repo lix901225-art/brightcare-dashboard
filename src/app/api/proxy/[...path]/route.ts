@@ -37,14 +37,10 @@ async function proxy(req: NextRequest) {
         "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
       },
     });
-  } catch (error: any) {
-    return NextResponse.json(
-      {
-        message: error?.message || "Proxy request failed",
-        stack: String(error?.stack || error),
-      },
-      { status: 500 }
-    );
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Proxy request failed";
+    const stack = error instanceof Error ? error.stack : String(error);
+    return NextResponse.json({ message, stack }, { status: 500 });
   }
 }
 

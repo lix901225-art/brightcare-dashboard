@@ -13,6 +13,7 @@ import { apiFetch } from "@/lib/api-client";
 import { calcAge, formatDate } from "@/lib/api-helpers";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -127,8 +128,8 @@ export default function EnrollmentPage() {
         })
       );
       setGuardiansByChild(Object.fromEntries(guardianEntries));
-    } catch (e: any) {
-      setError(e?.message || "Unable to load enrollment data.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load enrollment data."));
     } finally {
       setLoading(false);
     }
@@ -254,8 +255,8 @@ export default function EnrollmentPage() {
       setShowAdd(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to add to waitlist.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to add to waitlist."));
     } finally {
       setSaving(false);
     }
@@ -316,8 +317,8 @@ export default function EnrollmentPage() {
 
       setOk(`${name} enrolled successfully.${invoiceMsg}`);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to enroll.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to enroll."));
     } finally {
       setTransitioning(null);
     }
@@ -345,8 +346,8 @@ export default function EnrollmentPage() {
       const actionLabel = newStatus === "WITHDRAWN" ? "withdrawn" : "moved to waitlist";
       setOk(`${childName} ${actionLabel}.`);
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to update status.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to update status."));
     } finally {
       setTransitioning(null);
     }

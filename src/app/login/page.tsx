@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { getRoleHome } from "@/lib/workspace";
 import { writeSession } from "@/lib/session";
+import { getErrorMessage } from "@/lib/error";
 
 type Mode = "login" | "register";
 
@@ -89,8 +90,8 @@ export default function LoginPage() {
       });
 
       window.location.replace(getRoleHome(data?.role));
-    } catch (e: any) {
-      setError(e?.message || "Unable to continue.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to continue."));
     } finally {
       setLoading(false);
     }

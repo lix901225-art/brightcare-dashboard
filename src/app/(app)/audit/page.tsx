@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type AuditRow = {
   id: string;
@@ -105,8 +106,8 @@ export default function AuditPage() {
       }
 
       setRows(Array.isArray(data) ? data : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load audit log.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load audit log."));
     } finally {
       setLoading(false);
     }

@@ -42,7 +42,8 @@ export default function DashboardPage() {
     setError("");
 
     try {
-      const [childrenRes, attendanceRes, threadsRes, billingRes, incidentsRes, invoicesRes, reportsRes, roomsRes] = await Promise.all([
+      // Use allSettled so one failing endpoint doesn't crash the entire dashboard
+      const results = await Promise.allSettled([
         apiFetch("/children"),
         apiFetch("/attendance"),
         apiFetch("/messages/threads"),
@@ -53,23 +54,33 @@ export default function DashboardPage() {
         apiFetch("/rooms"),
       ]);
 
+      const responses = results.map((r) => (r.status === "fulfilled" ? r.value : null));
+      const [childrenRes, attendanceRes, threadsRes, billingRes, incidentsRes, invoicesRes, reportsRes, roomsRes] = responses;
+
+      // Children is the only truly required endpoint — without it the dashboard is meaningless
+      if (!childrenRes || !childrenRes.ok) {
+        const msg = childrenRes ? `Children failed: ${childrenRes.status}` : "Could not reach server.";
+        throw new Error(msg);
+      }
+
+      const safeJson = async (res: Response | null) => {
+        if (!res || !res.ok) return [];
+        try { return await res.json(); } catch { return []; }
+      };
+
       const childrenData = await childrenRes.json();
-      const attendanceData = await attendanceRes.json();
-      const threadsData = await threadsRes.json();
-      const billingData = await billingRes.json();
-      const incidentsData = await incidentsRes.json();
-      const invoicesData = invoicesRes.ok ? await invoicesRes.json() : [];
-
-      if (!childrenRes.ok) throw new Error(childrenData?.message || `Children failed: ${childrenRes.status}`);
-      if (!attendanceRes.ok) throw new Error(attendanceData?.message || `Attendance failed: ${attendanceRes.status}`);
-      if (!threadsRes.ok) throw new Error(threadsData?.message || `Threads failed: ${threadsRes.status}`);
-
       const childRows = Array.isArray(childrenData) ? childrenData : [];
-      const attendanceRows = Array.isArray(attendanceData) ? attendanceData : [];
-      const threadRows = Array.isArray(threadsData) ? threadsData : [];
-      const billingRows = billingRes.ok && Array.isArray(billingData) ? billingData : [];
-      const incidentRows = incidentsRes.ok && Array.isArray(incidentsData) ? incidentsData : [];
-      const invoiceRows = Array.isArray(invoicesData) ? invoicesData : [];
+
+      const [attendanceData, threadsData, billingData, incidentsData, invoicesData, reportsData, roomsData] =
+        await Promise.all([
+          safeJson(attendanceRes),
+          safeJson(threadsRes),
+          safeJson(billingRes),
+          safeJson(incidentsRes),
+          safeJson(invoicesRes),
+          safeJson(reportsRes),
+          safeJson(roomsRes),
+        ]);
 
       const guardianEntries = await Promise.all(
         childRows.map(async (child: Child) => {
@@ -84,20 +95,17 @@ export default function DashboardPage() {
       );
 
       setChildren(childRows);
-      setAttendance(attendanceRows);
-      setThreads(threadRows);
+      setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
+      setThreads(Array.isArray(threadsData) ? threadsData : []);
       setGuardianMap(Object.fromEntries(guardianEntries));
-      setBillingSummary(billingRows);
-      setIncidents(incidentRows);
-      setInvoices(invoiceRows);
-
-      const reportsData = reportsRes.ok ? await reportsRes.json() : [];
+      setBillingSummary(Array.isArray(billingData) ? billingData : []);
+      setIncidents(Array.isArray(incidentsData) ? incidentsData : []);
+      setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
       setDailyReports(Array.isArray(reportsData) ? reportsData : []);
-
-      const roomsData = roomsRes.ok ? await roomsRes.json() : [];
       setRooms(Array.isArray(roomsData) ? roomsData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load dashboard.");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Unable to load dashboard.";
+      setError(message);
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { patchSession } from "@/lib/session";
+import { getErrorMessage } from "@/lib/error";
 
 type MeResponse = {
   id: string;
@@ -73,8 +74,8 @@ export default function SettingsPage() {
         tenantName: tenantData?.name || tenantData?.id || "Workspace",
         role: meData?.role || "OWNER",
       });
-    } catch (e: any) {
-      setError(e?.message || "Unable to load settings.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load settings."));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -106,8 +107,8 @@ export default function SettingsPage() {
 
       setOk("Owner profile updated.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to update owner profile.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to update owner profile."));
     } finally {
       setSavingProfile(false);
     }
@@ -134,8 +135,8 @@ export default function SettingsPage() {
 
       setOk("Tenant settings updated.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to update tenant settings.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to update tenant settings."));
     } finally {
       setSavingTenant(false);
     }

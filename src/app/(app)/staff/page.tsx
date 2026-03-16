@@ -7,6 +7,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -109,8 +110,8 @@ export default function StaffHomePage() {
       setRooms(roomsRes.ok && Array.isArray(roomsData) ? roomsData : []);
       setReports(reportsRes.ok && Array.isArray(reportsData) ? reportsData : []);
       setIncidents(incidentsRes.ok && Array.isArray(incidentsData) ? incidentsData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load staff workspace.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load staff workspace."));
     } finally {
       setLoading(false);
     }

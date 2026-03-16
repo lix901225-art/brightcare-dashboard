@@ -11,6 +11,7 @@ import { formatDate, formatTime } from "@/lib/api-helpers";
 import { severityBadge } from "@/lib/badge-styles";
 import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -61,8 +62,8 @@ export default function ParentIncidentsPage() {
       if (!incidentsRes.ok) throw new Error(incidentsData?.message || `Incidents failed: ${incidentsRes.status}`);
       setChildren(Array.isArray(childrenData) ? childrenData : []);
       setIncidents(Array.isArray(incidentsData) ? incidentsData : []);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load incidents.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load incidents."));
     } finally {
       setLoading(false);
     }

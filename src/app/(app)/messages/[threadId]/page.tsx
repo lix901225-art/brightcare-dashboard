@@ -9,6 +9,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { formatDateTime } from "@/lib/api-helpers";
+import { getErrorMessage } from "@/lib/error";
 
 type Thread = {
   id: string;
@@ -74,8 +75,8 @@ export default function MessageThreadPage() {
 
       setThread(current);
       setMessages(messageRows);
-    } catch (e: any) {
-      setError(e?.message || "Unable to load thread.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load thread."));
     } finally {
       setLoading(false);
     }
@@ -123,8 +124,8 @@ export default function MessageThreadPage() {
       setBody("");
       setOk("Message sent.");
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to send message.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to send message."));
     } finally {
       setSending(false);
     }

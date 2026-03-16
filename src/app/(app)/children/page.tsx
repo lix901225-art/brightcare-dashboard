@@ -11,6 +11,7 @@ import { calcAge } from "@/lib/api-helpers";
 import { childStatusBadge as statusBadge } from "@/lib/badge-styles";
 import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -98,8 +99,8 @@ export default function ChildrenPage() {
       );
 
       setGuardiansByChild(Object.fromEntries(guardianEntries));
-    } catch (e: any) {
-      setError(e?.message || "Unable to load children.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load children."));
     } finally {
       setLoading(false);
     }
@@ -242,8 +243,8 @@ export default function ChildrenPage() {
       setShowCreate(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create child.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create child."));
     } finally {
       setSaving(false);
     }

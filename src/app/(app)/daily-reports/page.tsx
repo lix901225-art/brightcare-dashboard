@@ -11,6 +11,7 @@ import { readSession } from "@/lib/session";
 import { moodBadge as moodColor } from "@/lib/badge-styles";
 import { CardListSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
+import { getErrorMessage } from "@/lib/error";
 
 type Child = {
   id: string;
@@ -93,8 +94,8 @@ export default function DailyReportsPage() {
       if (!childId && childRows.length > 0) {
         setChildId(childRows[0].id);
       }
-    } catch (e: any) {
-      setError(e?.message || "Unable to load daily reports.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to load daily reports."));
     } finally {
       setLoading(false);
     }
@@ -180,8 +181,8 @@ export default function DailyReportsPage() {
       setShowCreate(false);
       resetForm();
       await loadAll();
-    } catch (e: any) {
-      setError(e?.message || "Unable to create daily report.");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create daily report."));
     } finally {
       setSaving(false);
     }
