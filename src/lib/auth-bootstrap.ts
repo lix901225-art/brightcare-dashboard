@@ -1,19 +1,26 @@
 import { patchSession, readSession, clearSession, type AppSession } from "@/lib/session";
 
 type MeResponse = {
-  id?: string;
-  userId?: string;
   tenantId?: string;
-  displayName?: string | null;
-  phone?: string | null;
+  user?: {
+    id?: string;
+    displayName?: string | null;
+  };
   roles?: string[];
-  role?: "OWNER" | "STAFF" | "PARENT" | null;
 };
 
+function pickPrimaryRole(roles?: string[]): "OWNER" | "STAFF" | "PARENT" | null {
+  if (!roles || roles.length === 0) return null;
+  if (roles.includes("OWNER")) return "OWNER";
+  if (roles.includes("STAFF")) return "STAFF";
+  if (roles.includes("PARENT")) return "PARENT";
+  return null;
+}
+
 function normalizeRole(role: string | null | undefined): "OWNER" | "STAFF" | "PARENT" {
-  if (role === "STAFF") return "STAFF";
+  if (role === "OWNER") return "OWNER";
   if (role === "PARENT") return "PARENT";
-  return "OWNER";
+  return "STAFF";
 }
 
 export async function bootstrapSessionFromBackend(): Promise<AppSession | null> {
@@ -42,11 +49,13 @@ export async function bootstrapSessionFromBackend(): Promise<AppSession | null> 
       return session;
     }
 
+    const backendRole = pickPrimaryRole(data.roles);
+
     const nextSession: AppSession = {
-      userId: data.userId || session.userId,
+      userId: data.user?.id || session.userId,
       tenantId: data.tenantId || session.tenantId,
-      role: normalizeRole(data.role || session.role),
-      displayName: data.displayName || session.displayName || "User",
+      role: normalizeRole(backendRole || session.role),
+      displayName: data.user?.displayName || session.displayName || "User",
       tenantName: session.tenantName || session.tenantId,
     };
 

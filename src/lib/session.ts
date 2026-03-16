@@ -11,9 +11,9 @@ export type AppSession = {
 const STORAGE_KEY = "brightcare.session";
 
 function normalizeRole(value: string | null | undefined): SessionRole {
-  if (value === "STAFF") return "STAFF";
+  if (value === "OWNER") return "OWNER";
   if (value === "PARENT") return "PARENT";
-  return "OWNER";
+  return "STAFF";
 }
 
 export function readSession(): AppSession | null {
