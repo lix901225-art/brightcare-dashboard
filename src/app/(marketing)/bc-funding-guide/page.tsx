@@ -476,12 +476,12 @@ export default function BcFundingGuidePage() {
       <section className="mt-16">
         <div className="rounded-2xl bg-slate-950 p-8 text-center sm:p-12">
           <h2 className="text-2xl font-bold text-white sm:text-3xl">
-            Manage ACCB and CCFRI with BrightCare OS
+            Billing built for BC childcare
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-slate-400">
-            BrightCare automatically tracks ACCB offsets on parent invoices,
-            monitors licensed capacity for compliance, and keeps billing
-            transparent for families receiving subsidies.
+            BrightCare OS helps childcare centres create invoices with ACCB
+            offset line items, track licensed capacity, and give parents clear
+            billing breakdowns &mdash; so you can focus on care, not paperwork.
           </p>
           <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link

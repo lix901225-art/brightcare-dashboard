@@ -160,7 +160,7 @@ export default function HomePage() {
           </p>
           <div className="mt-10 grid gap-4 text-left sm:grid-cols-2">
             {[
-              ["ACCB integration", "Affordable Child Care Benefit offset line items appear directly on invoices, so families see their reduced fees clearly."],
+              ["ACCB billing support", "Affordable Child Care Benefit offset line items appear directly on invoices, so families see their reduced fees clearly."],
               ["CCFRI fee reduction", "Child Care Fee Reduction Initiative provider funding is tracked at the centre level, with info banners on billing pages."],
               ["Licensed capacity tracking", "Room-level capacity dashboards with utilization percentages and over-capacity warnings to stay compliant."],
               ["CCRR referral tracking", "Track inquiry sources including CCRR referrals, BC Child Care Finder, and community referrals in your enrollment pipeline."],

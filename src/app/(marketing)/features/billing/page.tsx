@@ -77,7 +77,7 @@ const STEPS = [
     step: "1",
     title: "Create an invoice",
     description:
-      "Select the child, add line items for tuition, meals, or extras, and BrightCare automatically adds the ACCB offset if applicable.",
+      "Select the child, choose an invoice template (including one with an ACCB offset line item), and add line items for tuition, meals, or extras.",
   },
   {
     step: "2",
@@ -108,9 +108,9 @@ export default function BillingFeaturePage() {
             <span className="text-emerald-600">ACCB &amp; CCFRI</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-600">
-            Create invoices with automatic ACCB fee reduction line items. Track
-            CCFRI provider funding. Give parents clear, transparent billing
-            through their portal.
+            Create invoices with ACCB fee reduction line items built in. Track
+            CCFRI provider funding at the centre level. Give parents clear,
+            transparent billing through their portal.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
@@ -200,8 +200,8 @@ export default function BillingFeaturePage() {
             See billing in action
           </h2>
           <p className="mt-3 text-slate-500">
-            Try invoicing with ACCB offsets in our demo &mdash; no sign-up
-            required.
+            Book a walkthrough and see how ACCB offset invoicing works for
+            your centre.
           </p>
           <div className="mt-8">
             <Link
