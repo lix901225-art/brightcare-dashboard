@@ -58,6 +58,7 @@ export default function IncidentsPage() {
   const [roomFilter, setRoomFilter] = useState("");
   const [severityFilter, setSeverityFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
+  const [quickFilter, setQuickFilter] = useState<"all" | "unlocked" | "high" | "today">("all");
   const [showCreate, setShowCreate] = useState(false);
 
   const [childId, setChildId] = useState("");
@@ -131,8 +132,22 @@ export default function IncidentsPage() {
     loadAll();
   }, []);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const filteredIncidents = useMemo(() => {
     let result = incidents;
+
+    // Quick filter
+    if (quickFilter === "unlocked") {
+      result = result.filter((inc) => !inc.lockedAt);
+    } else if (quickFilter === "high") {
+      result = result.filter((inc) => {
+        const s = inc.severity.toLowerCase();
+        return s === "high" || s === "critical";
+      });
+    } else if (quickFilter === "today") {
+      result = result.filter((inc) => inc.occurredAt.slice(0, 10) === todayStr);
+    }
 
     if (roomFilter) {
       result = result.filter((inc) => inc.roomId === roomFilter);
@@ -161,7 +176,7 @@ export default function IncidentsPage() {
         .toLowerCase()
         .includes(q)
     );
-  }, [incidents, query, roomFilter, severityFilter, typeFilter]);
+  }, [incidents, query, roomFilter, severityFilter, typeFilter, quickFilter, todayStr]);
 
   const stats = useMemo(() => {
     const thirtyDaysAgo = new Date();
@@ -176,14 +191,20 @@ export default function IncidentsPage() {
         i.severity.toLowerCase() === "critical"
     );
     const locked = incidents.filter((i) => i.lockedAt);
+    const unlocked = incidents.filter((i) => !i.lockedAt);
+    const todayCount = incidents.filter(
+      (i) => i.occurredAt.slice(0, 10) === todayStr
+    );
 
     return {
       total: incidents.length,
       last30Days: recent.length,
       highSeverity: highSeverity.length,
       locked: locked.length,
+      unlocked: unlocked.length,
+      today: todayCount.length,
     };
-  }, [incidents]);
+  }, [incidents, todayStr]);
 
   function resetForm() {
     setType("Injury");
@@ -467,8 +488,8 @@ export default function IncidentsPage() {
 
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.total}</div></CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Today</CardTitle></CardHeader>
+            <CardContent><div className="text-3xl font-semibold">{stats.today}</div></CardContent>
           </Card>
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Last 30 days</CardTitle></CardHeader>
@@ -482,9 +503,44 @@ export default function IncidentsPage() {
             </CardContent>
           </Card>
           <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Locked</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.locked}</div></CardContent>
+            <CardHeader className="pb-2">
+              <CardTitle className={stats.unlocked > 0 ? "text-sm text-amber-600" : "text-sm text-slate-500"}>
+                Needs review
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className={["text-3xl font-semibold", stats.unlocked > 0 ? "text-amber-700" : ""].join(" ")}>
+                {stats.unlocked}
+              </div>
+              {stats.unlocked === 0 ? <div className="mt-1 text-xs text-emerald-600">All locked</div> : null}
+            </CardContent>
           </Card>
+        </div>
+
+        {/* Quick-filter chips */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {([
+            { key: "all" as const, label: "All", count: stats.total },
+            { key: "unlocked" as const, label: "Unlocked", count: stats.unlocked },
+            { key: "high" as const, label: "High severity", count: stats.highSeverity },
+            { key: "today" as const, label: "Today", count: stats.today },
+          ]).map((chip) => (
+            <button
+              key={chip.key}
+              onClick={() => setQuickFilter(chip.key)}
+              className={[
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                quickFilter === chip.key
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              ].join(" ")}
+            >
+              {chip.label}
+              <span className={quickFilter === chip.key ? "text-slate-300" : "text-slate-400"}>
+                {chip.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

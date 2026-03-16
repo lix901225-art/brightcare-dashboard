@@ -205,13 +205,13 @@ export default function MessageThreadPage() {
 
   return (
     <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
-      <div className="pb-20 lg:pb-0">
+      <div className={isParent ? "pb-36 lg:pb-0" : "pb-20 lg:pb-0"}>
         <div className="mb-4">
           <Link
-            href={isParent ? "/parent" : "/messages"}
+            href="/messages"
             className="text-sm text-slate-500 hover:text-slate-700"
           >
-            &larr; {isParent ? "Back to home" : "Back to messages"}
+            &larr; Back to messages
           </Link>
         </div>
 
@@ -441,8 +441,11 @@ export default function MessageThreadPage() {
           </Card>
         </div>
 
-        {/* Mobile: sticky bottom composer */}
-        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white p-3 safe-bottom lg:hidden">
+        {/* Mobile: sticky bottom composer — raised above parent bottom nav */}
+        <div className={[
+          "fixed inset-x-0 z-20 border-t border-slate-200 bg-white p-3 lg:hidden",
+          isParent ? "bottom-16" : "bottom-0 safe-bottom",
+        ].join(" ")}>
           <div className="flex items-end gap-2">
             <textarea
               value={body}

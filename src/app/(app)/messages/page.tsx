@@ -182,6 +182,14 @@ export default function MessagesPage() {
   return (
     <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
       <div>
+        {isParent ? (
+          <div className="mb-4">
+            <Link href="/parent" className="text-sm text-slate-500 hover:text-slate-700">
+              &larr; Back to parent home
+            </Link>
+          </div>
+        ) : null}
+
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Messages"
@@ -195,7 +203,7 @@ export default function MessagesPage() {
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
           >
             {showCompose ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showCompose ? "Cancel" : "New thread"}
+            {showCompose ? "Cancel" : isParent ? "New message" : "New thread"}
           </button>
         </div>
 
@@ -243,7 +251,7 @@ export default function MessagesPage() {
           <Card className="mb-6 rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Start conversation</CardTitle>
+                <CardTitle>{isParent ? "Send a message" : "Start conversation"}</CardTitle>
                 <button
                   onClick={() => setShowCompose(false)}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
@@ -297,44 +305,111 @@ export default function MessagesPage() {
                   className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
-                  {creating ? "Sending..." : "Create thread"}
+                  {creating ? "Sending..." : isParent ? "Send" : "Create thread"}
                 </button>
               </div>
             </CardContent>
           </Card>
         ) : null}
 
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full md:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search thread, child, room..."
-              className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none placeholder:text-slate-400"
-            />
+        {/* Search & filter — staff/owner only */}
+        {!isParent ? (
+          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full md:max-w-sm">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search thread, child, room..."
+                className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none placeholder:text-slate-400"
+              />
+            </div>
+            <select
+              value={childFilter}
+              onChange={(e) => setChildFilter(e.target.value)}
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+            >
+              <option value="">All children</option>
+              {children.map((child) => (
+                <option key={child.id} value={child.id}>{child.fullName || child.id}</option>
+              ))}
+            </select>
           </div>
-          <select
-            value={childFilter}
-            onChange={(e) => setChildFilter(e.target.value)}
-            className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-          >
-            <option value="">All children</option>
-            {children.map((child) => (
-              <option key={child.id} value={child.id}>{child.fullName || child.id}</option>
-            ))}
-          </select>
-        </div>
+        ) : children.length > 1 ? (
+          <div className="mb-6">
+            <select
+              value={childFilter}
+              onChange={(e) => setChildFilter(e.target.value)}
+              className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+            >
+              <option value="">All children</option>
+              {children.map((child) => (
+                <option key={child.id} value={child.id}>{child.fullName || child.id}</option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
         <div className="space-y-3">
           {loading ? (
             <CardListSkeleton count={4} />
           ) : filteredThreads.length === 0 ? (
-            <FilteredEmptyState
-              totalCount={threads.length}
-              filterLabel="search"
-            />
+            isParent ? (
+              <div className="rounded-2xl border border-slate-100 bg-white p-8 text-center">
+                <div className="text-sm text-slate-500">No conversations yet</div>
+                <div className="mt-1 text-xs text-slate-400">Tap &ldquo;New message&rdquo; to start a conversation with your centre</div>
+              </div>
+            ) : (
+              <FilteredEmptyState
+                totalCount={threads.length}
+                filterLabel="search"
+              />
+            )
+          ) : isParent ? (
+            /* Parent: clean conversation list */
+            filteredThreads.map((thread) => {
+              const hasUnread = Number(thread.unreadCount || 0) > 0;
+              return (
+                <Link
+                  key={thread.id}
+                  href={`/messages/${encodeURIComponent(thread.id)}`}
+                  className={[
+                    "block rounded-2xl bg-white transition hover:shadow-md",
+                    hasUnread ? "shadow-md ring-1 ring-violet-100" : "shadow-sm",
+                  ].join(" ")}
+                >
+                  <div className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          {hasUnread ? (
+                            <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-violet-500" />
+                          ) : null}
+                          <span className={["text-sm", hasUnread ? "font-semibold text-slate-900" : "font-medium text-slate-700"].join(" ")}>
+                            {thread.childName || "Conversation"}
+                          </span>
+                        </div>
+                        <div className={["mt-1 text-sm line-clamp-1", hasUnread ? "text-slate-700" : "text-slate-500"].join(" ")}>
+                          {thread.lastMessage?.body || thread.lastMessagePreview || "No messages yet"}
+                        </div>
+                      </div>
+                      <div className="shrink-0 text-right">
+                        <div className="text-xs text-slate-400">
+                          {relativeTime(thread.lastMessage?.createdAt || thread.lastMessageAt)}
+                        </div>
+                        {hasUnread ? (
+                          <span className="mt-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-violet-500 px-1.5 text-[10px] font-semibold text-white">
+                            {thread.unreadCount}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })
           ) : (
+            /* Staff/Owner: full admin thread list */
             filteredThreads.map((thread) => (
               <Link
                 key={thread.id}
