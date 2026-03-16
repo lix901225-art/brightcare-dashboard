@@ -171,12 +171,20 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <Link
-            href="/bc-childcare"
-            className="mt-8 inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
-          >
-            Learn more about BC features
-          </Link>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              href="/bc-childcare"
+              className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
+            >
+              Learn more about BC features
+            </Link>
+            <Link
+              href="/bc-funding-guide"
+              className="inline-flex h-11 items-center rounded-xl border border-emerald-200 bg-emerald-50 px-5 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              ACCB &amp; CCFRI funding guide
+            </Link>
+          </div>
         </div>
       </section>
 

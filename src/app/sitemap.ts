@@ -35,6 +35,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
     },
     {
+      url: `${BASE_URL}/bc-funding-guide`,
+      lastModified: new Date("2026-03-16"),
+      changeFrequency: "monthly",
+      priority: 0.9,
+    },
+    {
       url: `${BASE_URL}/privacy`,
       lastModified: new Date("2026-03-15"),
       changeFrequency: "yearly",

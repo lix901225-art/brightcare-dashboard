@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 const NAV_LINKS = [
   { href: "/features/attendance", label: "Features" },
   { href: "/bc-childcare", label: "BC Childcare" },
+  { href: "/bc-funding-guide", label: "Funding Guide" },
   { href: "/contact", label: "Contact" },
 ];
 
@@ -133,6 +134,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                 <Link href="/features/billing" className="block text-slate-600 hover:text-slate-900">Billing &amp; ACCB</Link>
                 <Link href="/features/parent-communication" className="block text-slate-600 hover:text-slate-900">Parent messaging</Link>
                 <Link href="/bc-childcare" className="block text-slate-600 hover:text-slate-900">BC childcare</Link>
+                <Link href="/bc-funding-guide" className="block text-slate-600 hover:text-slate-900">Funding guide (ACCB/CCFRI)</Link>
               </div>
             </div>
             <div>
