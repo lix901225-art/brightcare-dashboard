@@ -9,6 +9,8 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { invoiceStatusBadgeOverdue as statusBadgeClass } from "@/lib/badge-styles";
+import { PageLoadingSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type InvoiceDetail = {
   id: string;
@@ -248,7 +250,7 @@ export default function BillingDetailPage() {
         ) : null}
 
         {loading || !invoice ? (
-          <div className="text-sm text-slate-500">Loading invoice...</div>
+          <PageLoadingSkeleton />
         ) : (
           <>
             {/* DRAFT banner */}
@@ -462,7 +464,39 @@ export default function BillingDetailPage() {
             <Card className="mb-6 rounded-2xl border-0 shadow-sm">
               <CardHeader><CardTitle>Invoice items</CardTitle></CardHeader>
               <CardContent>
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                {/* ── Mobile items list ── */}
+                <div className="space-y-2 md:hidden">
+                  {invoice.items.map((item) => {
+                    const isAccbOffset = item.description.toLowerCase().includes("accb") || item.amount < 0;
+                    return (
+                      <div key={item.id} className={["rounded-xl border p-3", isAccbOffset ? "border-blue-200 bg-blue-50/50" : "border-slate-200"].join(" ")}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="text-sm text-slate-900">
+                            {item.description}
+                            {isAccbOffset && (
+                              <span className="ml-1.5 inline-flex rounded-full border border-blue-200 bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
+                                ACCB
+                              </span>
+                            )}
+                          </div>
+                          <div className={["text-sm font-medium shrink-0", isAccbOffset ? "text-blue-700" : "text-slate-900"].join(" ")}>
+                            {item.amount < 0 ? `–$${Math.abs(item.amount).toFixed(2)}` : `$${item.amount.toFixed(2)}`}
+                          </div>
+                        </div>
+                        <div className="mt-1 text-xs text-slate-500">
+                          {item.quantity} × ${item.unitPrice.toFixed(2)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="flex items-center justify-between rounded-xl border-2 border-slate-300 bg-slate-50 p-3">
+                    <span className="text-sm font-semibold text-slate-900">Total</span>
+                    <span className="text-sm font-semibold text-slate-900">${invoice.totalAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                {/* ── Desktop items table ── */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 text-left text-slate-500">
                       <tr>
@@ -507,34 +541,52 @@ export default function BillingDetailPage() {
               <CardHeader><CardTitle>Payment history</CardTitle></CardHeader>
               <CardContent>
                 {invoice.payments.length === 0 ? (
-                  <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-500">
-                    No payments recorded yet.
-                  </div>
+                  <EmptyState title="No payments recorded" description="Payments will appear here once recorded." />
                 ) : (
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                    <table className="w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3 font-medium">Date</th>
-                          <th className="px-4 py-3 font-medium">Amount</th>
-                          <th className="px-4 py-3 font-medium">Method</th>
-                          <th className="px-4 py-3 font-medium">Reference</th>
-                          <th className="px-4 py-3 font-medium">Notes</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoice.payments.map((payment) => (
-                          <tr key={payment.id} className="border-t border-slate-200">
-                            <td className="px-4 py-3">{new Date(payment.paidAt).toLocaleDateString()}</td>
-                            <td className="px-4 py-3 font-medium text-emerald-700">${payment.amount.toFixed(2)}</td>
-                            <td className="px-4 py-3">{payment.method || "—"}</td>
-                            <td className="px-4 py-3">{payment.reference || "—"}</td>
-                            <td className="px-4 py-3 text-slate-500">{payment.notes || "—"}</td>
+                  <>
+                    {/* ── Mobile payment cards ── */}
+                    <div className="space-y-2 md:hidden">
+                      {invoice.payments.map((payment) => (
+                        <div key={payment.id} className="rounded-xl border border-slate-200 p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-emerald-700">${payment.amount.toFixed(2)}</span>
+                            <span className="text-xs text-slate-500">{new Date(payment.paidAt).toLocaleDateString()}</span>
+                          </div>
+                          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                            {payment.method ? <span>{payment.method}</span> : null}
+                            {payment.reference ? <span>Ref: {payment.reference}</span> : null}
+                          </div>
+                          {payment.notes ? <div className="mt-1 text-xs text-slate-400">{payment.notes}</div> : null}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* ── Desktop payment table ── */}
+                    <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                      <table className="w-full text-sm">
+                        <thead className="bg-slate-50 text-left text-slate-500">
+                          <tr>
+                            <th className="px-4 py-3 font-medium">Date</th>
+                            <th className="px-4 py-3 font-medium">Amount</th>
+                            <th className="px-4 py-3 font-medium">Method</th>
+                            <th className="px-4 py-3 font-medium">Reference</th>
+                            <th className="px-4 py-3 font-medium">Notes</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {invoice.payments.map((payment) => (
+                            <tr key={payment.id} className="border-t border-slate-200">
+                              <td className="px-4 py-3">{new Date(payment.paidAt).toLocaleDateString()}</td>
+                              <td className="px-4 py-3 font-medium text-emerald-700">${payment.amount.toFixed(2)}</td>
+                              <td className="px-4 py-3">{payment.method || "—"}</td>
+                              <td className="px-4 py-3">{payment.reference || "—"}</td>
+                              <td className="px-4 py-3 text-slate-500">{payment.notes || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </CardContent>
             </Card>
