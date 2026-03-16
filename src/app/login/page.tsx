@@ -106,7 +106,7 @@ export default function LoginPage() {
               BrightCare OS
             </div>
             <div className="mt-2 text-sm text-slate-500">
-              Sign in to manage your childcare center.
+              Sign in to manage your childcare centre.
             </div>
           </div>
 
@@ -115,13 +115,13 @@ export default function LoginPage() {
               onClick={() => setMode("login")}
               className={`rounded-lg px-3 py-2 ${mode === "login" ? "bg-white shadow-sm" : "text-slate-500"}`}
             >
-              Login
+              Sign in
             </button>
             <button
               onClick={() => setMode("register")}
               className={`rounded-lg px-3 py-2 ${mode === "register" ? "bg-white shadow-sm" : "text-slate-500"}`}
             >
-              Register
+              Create account
             </button>
           </div>
 
@@ -131,13 +131,23 @@ export default function LoginPage() {
             </div>
           ) : null}
 
-          <div className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (canSubmit) submit();
+            }}
+            className="space-y-4"
+          >
             <label className="grid gap-1">
               <span className="text-sm text-slate-600">Phone</span>
               <input
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter your phone number"
+                type="tel"
+                inputMode="tel"
+                autoComplete={mode === "login" ? "username" : "tel"}
+                maxLength={20}
+                placeholder="e.g. 6041234567"
                 className="h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none placeholder:text-slate-400"
               />
             </label>
@@ -148,6 +158,8 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 type="password"
+                autoComplete={mode === "login" ? "current-password" : "new-password"}
+                maxLength={128}
                 placeholder="Enter your password"
                 className="h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none placeholder:text-slate-400"
               />
@@ -156,34 +168,40 @@ export default function LoginPage() {
             {mode === "register" ? (
               <>
                 <label className="grid gap-1">
-                  <span className="text-sm text-slate-600">Display name</span>
+                  <span className="text-sm text-slate-600">Your name</span>
                   <input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className="h-11 rounded-xl border border-slate-200 px-3 outline-none"
+                    type="text"
+                    autoComplete="name"
+                    maxLength={100}
+                    placeholder="e.g. Sarah Chen"
+                    className="h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none placeholder:text-slate-400"
                   />
                 </label>
 
                 <label className="grid gap-1">
-                  <span className="text-sm text-slate-600">Tenant name</span>
+                  <span className="text-sm text-slate-600">Centre name</span>
                   <input
                     value={tenantName}
                     onChange={(e) => setTenantName(e.target.value)}
-                    className="h-11 rounded-xl border border-slate-200 px-3 outline-none"
-                    placeholder="Optional organization name"
+                    type="text"
+                    maxLength={100}
+                    className="h-11 rounded-xl border border-slate-200 px-3 text-sm outline-none placeholder:text-slate-400"
+                    placeholder="Optional — your childcare centre"
                   />
                 </label>
               </>
             ) : null}
 
             <button
-              onClick={submit}
+              type="submit"
               disabled={!canSubmit}
               className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
             >
-              {loading ? "Please wait..." : mode === "login" ? "Login" : "Register"}
+              {loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}
             </button>
-          </div>
+          </form>
         </CardContent>
       </Card>
     </main>
