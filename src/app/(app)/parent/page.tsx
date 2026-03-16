@@ -236,7 +236,7 @@ export default function ParentHomePage() {
       <div>
         <PageIntro
           title="Parent Workspace"
-          description="Stay connected with your child's day — attendance, reports, and messages."
+          description="Stay connected with your child\u2019s day — attendance, reports, and messages from your centre."
         />
 
         {error ? (
@@ -497,7 +497,7 @@ export default function ParentHomePage() {
                   <Link href="/messages" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
                     <div className="text-sm font-medium text-slate-900">Send a message</div>
                     <div className="mt-1 text-sm text-slate-600">
-                      Communicate with your child&apos;s teacher or admin.
+                      Communicate with your child&apos;s educators and centre staff.
                     </div>
                   </Link>
                   <Link href="/daily-reports" className="block rounded-xl border border-slate-200 p-4 hover:bg-slate-50">
@@ -519,7 +519,7 @@ export default function ParentHomePage() {
                       ) : null}
                     </div>
                     <div className="mt-1 text-sm text-slate-600">
-                      View and acknowledge daycare policies.
+                      View and acknowledge centre policies.
                     </div>
                   </Link>
                 </CardContent>

@@ -194,7 +194,7 @@ export default function DailyReportsPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Daily Reports"
-            description="Daily activity logs for each child — meals, naps, mood, and activities."
+            description="Daily activity logs shared with families — meals, naps, mood, and activities."
           />
           {canCreate ? (
             <button
@@ -364,27 +364,29 @@ export default function DailyReportsPage() {
           </Card>
         ) : null}
 
-        <div className="mb-6 grid gap-4 md:grid-cols-4">
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total reports</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.total}</div></CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Today</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.today}</div></CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Children covered</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.childrenCoveredToday}</div></CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Missing today</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-3xl font-semibold">{stats.childrenMissing}</div>
-              {stats.childrenMissing > 0 ? <div className="mt-1 text-xs text-amber-600">Reports needed</div> : null}
-            </CardContent>
-          </Card>
-        </div>
+        {canCreate ? (
+          <div className="mb-6 grid gap-4 md:grid-cols-4">
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total reports</CardTitle></CardHeader>
+              <CardContent><div className="text-3xl font-semibold">{stats.total}</div></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Today</CardTitle></CardHeader>
+              <CardContent><div className="text-3xl font-semibold">{stats.today}</div></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Children covered</CardTitle></CardHeader>
+              <CardContent><div className="text-3xl font-semibold">{stats.childrenCoveredToday}</div></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Reports needed</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-3xl font-semibold">{stats.childrenMissing}</div>
+                {stats.childrenMissing > 0 ? <div className="mt-1 text-xs text-amber-600">Not yet filed</div> : null}
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
 
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="relative w-full md:max-w-sm">

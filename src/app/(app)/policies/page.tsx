@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { readSession } from "@/lib/session";
 import { getErrorMessage } from "@/lib/error";
 
 type Policy = {
@@ -24,6 +25,9 @@ type PolicyAck = {
 };
 
 export default function PoliciesPage() {
+  const session = readSession();
+  const isParent = session?.role === "PARENT";
+
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -164,15 +168,20 @@ export default function PoliciesPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Policies"
-            description="Manage daycare policies and track parent acknowledgements."
+            description={isParent
+              ? "Review and acknowledge your centre\u2019s policies."
+              : "Manage daycare policies and track parent acknowledgements."
+            }
           />
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            New policy
-          </button>
+          {!isParent ? (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              New policy
+            </button>
+          ) : null}
         </div>
 
         {ok ? (
@@ -187,7 +196,7 @@ export default function PoliciesPage() {
           </div>
         ) : null}
 
-        {showCreate ? (
+        {showCreate && !isParent ? (
           <Card className="mb-6 rounded-2xl border-0 shadow-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -252,28 +261,36 @@ export default function PoliciesPage() {
           </Card>
         ) : null}
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader><CardTitle>Total policies</CardTitle></CardHeader>
-            <CardContent><div className="text-4xl font-semibold">{policies.length}</div></CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader><CardTitle>Latest version</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-lg font-semibold text-slate-700">
-                {policies.length > 0 ? policies[0]?.version || "—" : "—"}
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader><CardTitle>Acknowledgements</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-sm text-slate-500">
-                Expand a policy below to view acknowledgement details.
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {isParent ? (
+          <div className="mb-6 rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
+            <p className="text-sm text-sky-800">
+              Please review the policies below and acknowledge each one. Tap a policy to read it and confirm.
+            </p>
+          </div>
+        ) : (
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader><CardTitle>Total policies</CardTitle></CardHeader>
+              <CardContent><div className="text-4xl font-semibold">{policies.length}</div></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader><CardTitle>Latest version</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-lg font-semibold text-slate-700">
+                  {policies.length > 0 ? policies[0]?.version || "—" : "—"}
+                </div>
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader><CardTitle>Acknowledgements</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-sm text-slate-500">
+                  Expand a policy below to view acknowledgement details.
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <div className="mb-6 relative w-full md:max-w-sm">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -291,7 +308,9 @@ export default function PoliciesPage() {
           </div>
         ) : filteredPolicies.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            {policies.length === 0 ? "No policies yet. Create your first policy above." : "No policies match your search."}
+            {policies.length === 0
+              ? (isParent ? "No policies posted by your centre yet." : "No policies yet. Create your first policy above.")
+              : "No policies match your search."}
           </div>
         ) : (
           <div className="space-y-4">
@@ -345,27 +364,42 @@ export default function PoliciesPage() {
                       </div>
 
                       <div className="mt-4">
-                        <div className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-2">
-                          Acknowledgements ({policyAcks.length})
-                        </div>
-                        {acksLoading === policy.id ? (
-                          <div className="text-sm text-slate-500">Loading...</div>
-                        ) : policyAcks.length === 0 ? (
-                          <div className="text-sm text-slate-500">No acknowledgements yet.</div>
+                        {isParent ? (
+                          /* Parents only see their own acknowledgement status */
+                          policyAcks.some((a) => a.userId === session?.userId) ? (
+                            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                              ✓ You acknowledged this policy on{" "}
+                              {new Date(
+                                policyAcks.find((a) => a.userId === session?.userId)!.ackedAt
+                              ).toLocaleDateString()}
+                            </div>
+                          ) : null
                         ) : (
-                          <div className="space-y-1">
-                            {policyAcks.map((ack) => (
-                              <div
-                                key={ack.id}
-                                className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm"
-                              >
-                                <span className="text-slate-700">User {ack.userId.slice(0, 8)}...</span>
-                                <span className="text-xs text-slate-500">
-                                  {new Date(ack.ackedAt).toLocaleString()}
-                                </span>
+                          /* Owner/staff see full ack list */
+                          <>
+                            <div className="text-xs font-medium uppercase tracking-wide text-slate-500 mb-2">
+                              Acknowledgements ({policyAcks.length})
+                            </div>
+                            {acksLoading === policy.id ? (
+                              <div className="text-sm text-slate-500">Loading...</div>
+                            ) : policyAcks.length === 0 ? (
+                              <div className="text-sm text-slate-500">No acknowledgements yet.</div>
+                            ) : (
+                              <div className="space-y-1">
+                                {policyAcks.map((ack) => (
+                                  <div
+                                    key={ack.id}
+                                    className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 px-3 py-2 text-sm"
+                                  >
+                                    <span className="text-slate-700">User {ack.userId.slice(0, 8)}...</span>
+                                    <span className="text-xs text-slate-500">
+                                      {new Date(ack.ackedAt).toLocaleString()}
+                                    </span>
+                                  </div>
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </CardContent>

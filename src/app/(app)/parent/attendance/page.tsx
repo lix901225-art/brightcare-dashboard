@@ -190,7 +190,7 @@ export default function ParentAttendancePage() {
                 <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Currently checked in</CardTitle></CardHeader>
                 <CardContent>
                   <div className="text-3xl font-semibold">{stats.checkedIn}</div>
-                  <div className="mt-1 text-xs text-slate-500">at the center now</div>
+                  <div className="mt-1 text-xs text-slate-500">at the centre now</div>
                 </CardContent>
               </Card>
             </div>

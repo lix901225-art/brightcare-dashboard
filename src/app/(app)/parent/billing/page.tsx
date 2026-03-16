@@ -215,6 +215,13 @@ export default function ParentBillingPage() {
               </Card>
             </div>
 
+            {/* ACCB / fee context */}
+            <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+              <p className="text-sm text-blue-800">
+                <strong>About your fees:</strong> Invoice totals reflect your parent portion after CCFRI (Child Care Fee Reduction Initiative) has been applied by your centre. If you receive ACCB (Affordable Child Care Benefit), that amount is applied separately by the government and may further reduce what you owe.
+              </p>
+            </div>
+
             {/* Overdue urgency banner */}
             {overdueInvoices.length > 0 ? (
               <div className="mt-6 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">

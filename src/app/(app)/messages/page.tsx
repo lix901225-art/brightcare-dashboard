@@ -8,6 +8,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { readSession } from "@/lib/session";
 import { relativeTime } from "@/lib/api-helpers";
 import { CardListSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
@@ -40,6 +41,9 @@ function formatTime(value?: string | null) {
 }
 
 export default function MessagesPage() {
+  const session = readSession();
+  const isParent = session?.role === "PARENT";
+
   const [threads, setThreads] = useState<Thread[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +185,10 @@ export default function MessagesPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Messages"
-            description="Family and staff communication threads tied to children and rooms."
+            description={isParent
+              ? "Messages between you and your child\u2019s centre."
+              : "Family and staff communication threads tied to children and rooms."
+            }
           />
           <button
             onClick={() => setShowCompose(!showCompose)}
@@ -204,23 +211,33 @@ export default function MessagesPage() {
           </div>
         ) : null}
 
-        <div className="mb-6 grid gap-4 md:grid-cols-3">
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total threads</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.total}</div></CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Unread</CardTitle></CardHeader>
-            <CardContent>
-              <div className="text-3xl font-semibold">{stats.unread}</div>
-              {stats.unread > 0 ? <div className="mt-1 text-xs text-violet-600">{stats.unread} pending</div> : null}
-            </CardContent>
-          </Card>
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Child-linked</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{stats.withChildren}</div></CardContent>
-          </Card>
-        </div>
+        {isParent ? (
+          stats.unread > 0 ? (
+            <div className="mb-6 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
+              <p className="text-sm font-medium text-violet-800">
+                You have {stats.unread} unread {stats.unread === 1 ? "message" : "messages"} from your centre.
+              </p>
+            </div>
+          ) : null
+        ) : (
+          <div className="mb-6 grid gap-4 md:grid-cols-3">
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total threads</CardTitle></CardHeader>
+              <CardContent><div className="text-3xl font-semibold">{stats.total}</div></CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Unread</CardTitle></CardHeader>
+              <CardContent>
+                <div className="text-3xl font-semibold">{stats.unread}</div>
+                {stats.unread > 0 ? <div className="mt-1 text-xs text-violet-600">{stats.unread} pending</div> : null}
+              </CardContent>
+            </Card>
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Child-linked</CardTitle></CardHeader>
+              <CardContent><div className="text-3xl font-semibold">{stats.withChildren}</div></CardContent>
+            </Card>
+          </div>
+        )}
 
         {showCompose ? (
           <Card className="mb-6 rounded-2xl border-0 shadow-sm">
@@ -259,7 +276,7 @@ export default function MessagesPage() {
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
-                  placeholder="Write a message to the family or internal staff group..."
+                  placeholder={isParent ? "Write a message to your child\u2019s centre..." : "Write a message to the family or internal staff group..."}
                   className="min-h-[110px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
                 />
               </div>

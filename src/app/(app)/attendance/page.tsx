@@ -303,7 +303,7 @@ export default function AttendancePage() {
       <div>
         <PageIntro
           title="Attendance"
-          description="Daily roster, attendance status, and quick actions for operations."
+          description="Daily attendance records for BC licensing compliance. Track check-in/out times and manage absences."
         />
 
         {ok ? (

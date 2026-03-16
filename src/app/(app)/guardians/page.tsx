@@ -344,7 +344,7 @@ export default function GuardiansPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Guardians"
-            description="Guardian coverage, emergency contacts, pickup authorization, and parent access."
+            description="Guardian coverage, emergency contacts, pickup authorization, and parent portal access per BC licensing requirements."
           />
           <button
             onClick={() => {

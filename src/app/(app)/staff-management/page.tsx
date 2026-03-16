@@ -145,7 +145,7 @@ export default function StaffManagementPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Staff & Users"
-            description="Manage staff accounts, parent logins, and user roles."
+            description="Manage staff accounts, parent portal access, and user roles for your centre."
           />
           <button
             onClick={() => setShowCreate(true)}
