@@ -4,13 +4,19 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Daycare Billing & ACCB Fee Reduction — BrightCare OS",
   description:
-    "Invoice creation with ACCB offset line items, CCFRI fee reduction tracking, overdue management, partial payments, and parent-facing balance views for licensed BC childcare centres.",
+    "Invoicing with ACCB offset line items, CCFRI tracking, overdue management, and parent-facing balance views for licensed BC childcare centres.",
   openGraph: {
     title: "Daycare Billing & ACCB Fee Reduction — BrightCare OS",
     description:
       "Billing built for BC childcare — ACCB offsets, CCFRI tracking, and clear parent invoices.",
     type: "website",
     url: "/features/billing",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Daycare Billing & ACCB — BrightCare OS",
+    description:
+      "Billing built for BC childcare — ACCB offsets, CCFRI tracking, and clear parent invoices.",
   },
   robots: { index: true, follow: true },
 };
@@ -146,6 +152,7 @@ export default function BillingFeaturePage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={1.5}
+                    aria-hidden="true"
                   >
                     {cap.icon}
                   </svg>

@@ -2,16 +2,21 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title:
-    "BC Childcare Software — Vancouver Daycare Management | BrightCare OS",
+  title: "BC Childcare Software — Daycare Management | BrightCare OS",
   description:
-    "Childcare management software built specifically for licensed BC daycare centres and preschools. ACCB fee reduction, CCFRI tracking, licensed capacity compliance, and CCRR referral source tracking.",
+    "Management software for licensed BC daycare centres. ACCB fee reduction, CCFRI tracking, capacity compliance, and CCRR referral source tracking.",
   openGraph: {
-    title: "BC Childcare Software — Vancouver Daycare Management | BrightCare OS",
+    title: "BC Childcare Software — Daycare Management | BrightCare OS",
     description:
       "Built specifically for licensed BC daycare centres — ACCB, CCFRI, capacity compliance, and more.",
     type: "website",
     url: "/bc-childcare",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BC Childcare Software — BrightCare OS",
+    description:
+      "Built specifically for licensed BC daycare centres — ACCB, CCFRI, capacity compliance, and more.",
   },
   robots: { index: true, follow: true },
 };
@@ -153,6 +158,7 @@ export default function BCChildcarePage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={1.5}
+                    aria-hidden="true"
                   >
                     {feat.icon}
                   </svg>

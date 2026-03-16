@@ -11,6 +11,11 @@ export const metadata: Metadata = {
     type: "website",
     url: "/privacy",
   },
+  twitter: {
+    card: "summary",
+    title: "Privacy Policy — BrightCare OS",
+    description: "How BrightCare OS protects your data. Canadian data residency, no third-party sharing.",
+  },
   robots: { index: true, follow: true },
 };
 

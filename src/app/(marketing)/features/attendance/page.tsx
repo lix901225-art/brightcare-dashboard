@@ -4,13 +4,19 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Childcare Attendance Tracking Software — BrightCare OS",
   description:
-    "Real-time check-in and check-out tracking for licensed BC daycare centres. Room-based rosters, batch marking, licensed capacity monitoring, and parent-visible attendance history.",
+    "Check-in/out tracking for licensed BC daycare centres. Room-based rosters, batch marking, capacity monitoring, and parent-visible history.",
   openGraph: {
     title: "Childcare Attendance Tracking Software — BrightCare OS",
     description:
       "Real-time attendance tracking built for licensed BC childcare centres.",
     type: "website",
     url: "/features/attendance",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Childcare Attendance Tracking — BrightCare OS",
+    description:
+      "Real-time attendance tracking built for licensed BC childcare centres.",
   },
   robots: { index: true, follow: true },
 };
@@ -147,6 +153,7 @@ export default function AttendanceFeaturePage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={1.5}
+                    aria-hidden="true"
                   >
                     {cap.icon}
                   </svg>

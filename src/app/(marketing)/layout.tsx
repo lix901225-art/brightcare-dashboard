@@ -81,8 +81,8 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
           {/* Mobile menu — details/summary, no JS */}
           <details className="relative md:hidden">
-            <summary className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 list-none [&::-webkit-details-marker]:hidden">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <summary className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 list-none [&::-webkit-details-marker]:hidden" aria-label="Toggle navigation menu">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </summary>

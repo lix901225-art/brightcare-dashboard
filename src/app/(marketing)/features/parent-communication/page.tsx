@@ -4,13 +4,19 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Parent Messaging & Daily Reports — BrightCare OS",
   description:
-    "Threaded parent messaging, per-child daily reports (meals, naps, mood, activities), and a dedicated parent portal — all accessible via phone browser with no app download.",
+    "Threaded messaging, per-child daily reports, and a parent portal accessible via phone browser — no app download required.",
   openGraph: {
     title: "Parent Messaging & Daily Reports — BrightCare OS",
     description:
       "Keep parents connected with daily reports and real-time messaging.",
     type: "website",
     url: "/features/parent-communication",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Parent Messaging & Daily Reports — BrightCare OS",
+    description:
+      "Keep parents connected with daily reports and real-time messaging.",
   },
   robots: { index: true, follow: true },
 };
@@ -146,6 +152,7 @@ export default function ParentCommunicationFeaturePage() {
                     viewBox="0 0 24 24"
                     stroke="currentColor"
                     strokeWidth={1.5}
+                    aria-hidden="true"
                   >
                     {cap.icon}
                   </svg>
