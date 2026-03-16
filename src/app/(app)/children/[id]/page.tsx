@@ -130,25 +130,30 @@ export default function ChildDetailPage() {
         setError("");
         setOk("");
 
-        const [childrenRes, guardiansRes, roomsRes, attendanceRes, incidentsRes, reportsRes] = await Promise.all([
-          apiFetch("/children"),
+        // Fetch child directly by ID + supporting data in parallel
+        // Attendance & incidents use child-filtered endpoints when available,
+        // with fallback to fetching all and filtering client-side
+        const [childRes, guardiansRes, roomsRes, attendanceRes, incidentsRes, reportsRes] = await Promise.all([
+          apiFetch(`/children/${id}`).catch(() => apiFetch("/children")),
           apiFetch(`/children/${id}/guardians`),
           apiFetch("/rooms"),
-          apiFetch("/attendance"),
-          apiFetch("/incidents"),
+          apiFetch(`/attendance?childId=${id}`).catch(() => apiFetch("/attendance")),
+          apiFetch(`/incidents?childId=${id}`).catch(() => apiFetch("/incidents")),
           apiFetch(`/daily-reports?childId=${id}`),
         ]);
 
-        const childrenData = await childrenRes.json();
+        const childData = await childRes.json();
         const guardiansData = await guardiansRes.json();
         const roomsData = await roomsRes.json();
 
-        if (!childrenRes.ok) throw new Error(childrenData?.message || `Children load failed: ${childrenRes.status}`);
+        if (!childRes.ok && !Array.isArray(childData)) throw new Error(childData?.message || `Child load failed: ${childRes.status}`);
         if (!guardiansRes.ok) throw new Error(guardiansData?.message || `Guardians load failed: ${guardiansRes.status}`);
         if (!roomsRes.ok) throw new Error(roomsData?.message || `Rooms load failed: ${roomsRes.status}`);
 
-        const rows = Array.isArray(childrenData) ? childrenData : [];
-        const found = rows.find((x: Child) => x.id === id) || null;
+        // Handle both direct child response and array-of-all-children fallback
+        const found = Array.isArray(childData)
+          ? childData.find((x: Child) => x.id === id) || null
+          : (childData?.id ? childData as Child : null);
 
         const attendanceData = attendanceRes.ok ? await attendanceRes.json() : [];
         const incidentsData = incidentsRes.ok ? await incidentsRes.json() : [];
@@ -160,15 +165,17 @@ export default function ChildDetailPage() {
           setGuardians(Array.isArray(guardiansData) ? guardiansData : []);
           setRooms(Array.isArray(roomsData) ? roomsData : []);
 
-          // Filter attendance for this child, latest 5
-          const childAttendance = (Array.isArray(attendanceData) ? attendanceData : [])
+          // Attendance for this child, latest 5 (may already be filtered by API)
+          const allAttendance = Array.isArray(attendanceData) ? attendanceData : [];
+          const childAttendance = allAttendance
             .filter((a: AttendanceRow) => a.childId === id)
             .sort((a: AttendanceRow, b: AttendanceRow) => (b.date || "").localeCompare(a.date || ""))
             .slice(0, 5);
           setRecentAttendance(childAttendance);
 
-          // Filter incidents for this child, latest 3
-          const childIncidents = (Array.isArray(incidentsData) ? incidentsData : [])
+          // Incidents for this child, latest 3 (may already be filtered by API)
+          const allIncidents = Array.isArray(incidentsData) ? incidentsData : [];
+          const childIncidents = allIncidents
             .filter((i: IncidentRow) => i.childId === id)
             .sort((a: IncidentRow, b: IncidentRow) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
             .slice(0, 3);

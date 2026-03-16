@@ -420,56 +420,123 @@ export default function AttendancePage() {
                 filterLabel="search or filter"
               />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full min-w-[700px] text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Child</th>
-                      <th className="px-4 py-3 font-medium">Room</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Check-in</th>
-                      <th className="px-4 py-3 font-medium">Check-out</th>
-                      <th className="px-4 py-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRows.map(({ child, roomName, attendance }) => {
-                      const status = (attendance?.status || "UNKNOWN").toUpperCase();
-                      const busy = savingId === child.id;
-
-                      return (
-                        <tr key={child.id} className="border-t border-slate-200">
-                          <td className="px-4 py-3">
+              <>
+                {/* Mobile card view */}
+                <div className="space-y-3 md:hidden">
+                  {filteredRows.map(({ child, roomName, attendance }) => {
+                    const status = (attendance?.status || "UNKNOWN").toUpperCase();
+                    const busy = savingId === child.id;
+                    return (
+                      <div key={child.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                        <div className="flex items-start justify-between">
+                          <div>
                             <div className="font-medium text-slate-900">{child.fullName || child.id}</div>
-                            <div className="text-xs text-slate-500">{child.preferredName || "—"}</div>
-                          </td>
-                          <td className="px-4 py-3">{roomName}</td>
-                          <td className="px-4 py-3">
-                            <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", badgeClass(status)].join(" ")}>
-                              {status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">{fmt(attendance?.checkinAt || attendance?.recordedAt)}</td>
-                          <td className="px-4 py-3">{fmt(attendance?.checkoutAt)}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex flex-wrap gap-2">
-                              {status === "UNKNOWN" || status === "ABSENT" ? (
-                                <>
-                                  <button
-                                    disabled={busy}
-                                    onClick={() => checkIn(child.id)}
-                                    className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50"
-                                  >
-                                    Check in
-                                  </button>
-                                  <button
-                                    disabled={busy}
-                                    onClick={() => mark(child.id, "PRESENT")}
-                                    className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
-                                  >
-                                    Present
-                                  </button>
-                                  {status !== "ABSENT" ? (
+                            <div className="text-xs text-slate-500">{roomName}</div>
+                          </div>
+                          <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", badgeClass(status)].join(" ")}>
+                            {status}
+                          </span>
+                        </div>
+                        {(attendance?.checkinAt || attendance?.checkoutAt) && (
+                          <div className="mt-2 flex gap-4 text-xs text-slate-500">
+                            {attendance?.checkinAt && <span>In: {fmt(attendance.checkinAt)}</span>}
+                            {attendance?.checkoutAt && <span>Out: {fmt(attendance.checkoutAt)}</span>}
+                          </div>
+                        )}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {(status === "UNKNOWN" || status === "ABSENT") && (
+                            <>
+                              <button disabled={busy} onClick={() => checkIn(child.id)} className="inline-flex h-8 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 disabled:opacity-50">Check in</button>
+                              <button disabled={busy} onClick={() => mark(child.id, "PRESENT")} className="inline-flex h-8 items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-medium text-emerald-700 disabled:opacity-50">Present</button>
+                              {status !== "ABSENT" && <button disabled={busy} onClick={() => mark(child.id, "ABSENT")} className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-700 disabled:opacity-50">Absent</button>}
+                            </>
+                          )}
+                          {status === "PRESENT" && (
+                            <>
+                              <button disabled={busy} onClick={() => checkIn(child.id)} className="inline-flex h-8 items-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-xs font-medium text-sky-700 disabled:opacity-50">Check in</button>
+                              <button disabled={busy} onClick={() => mark(child.id, "ABSENT")} className="inline-flex h-8 items-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-700 disabled:opacity-50">Absent</button>
+                            </>
+                          )}
+                          {status === "CHECKED_IN" && (
+                            <button disabled={busy} onClick={() => checkOut(child.id)} className="inline-flex h-8 items-center rounded-lg border border-violet-200 bg-violet-50 px-3 text-xs font-medium text-violet-700 disabled:opacity-50">Check out</button>
+                          )}
+                          {status === "CHECKED_OUT" && <span className="text-xs text-slate-400">Done for today</span>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Desktop table view */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full min-w-[700px] text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Child</th>
+                        <th className="px-4 py-3 font-medium">Room</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Check-in</th>
+                        <th className="px-4 py-3 font-medium">Check-out</th>
+                        <th className="px-4 py-3 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRows.map(({ child, roomName, attendance }) => {
+                        const status = (attendance?.status || "UNKNOWN").toUpperCase();
+                        const busy = savingId === child.id;
+
+                        return (
+                          <tr key={child.id} className="border-t border-slate-200">
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-900">{child.fullName || child.id}</div>
+                              <div className="text-xs text-slate-500">{child.preferredName || "—"}</div>
+                            </td>
+                            <td className="px-4 py-3">{roomName}</td>
+                            <td className="px-4 py-3">
+                              <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", badgeClass(status)].join(" ")}>
+                                {status}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{fmt(attendance?.checkinAt || attendance?.recordedAt)}</td>
+                            <td className="px-4 py-3">{fmt(attendance?.checkoutAt)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-wrap gap-2">
+                                {status === "UNKNOWN" || status === "ABSENT" ? (
+                                  <>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => checkIn(child.id)}
+                                      className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                                    >
+                                      Check in
+                                    </button>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => mark(child.id, "PRESENT")}
+                                      className="inline-flex h-9 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                                    >
+                                      Present
+                                    </button>
+                                    {status !== "ABSENT" ? (
+                                      <button
+                                        disabled={busy}
+                                        onClick={() => mark(child.id, "ABSENT")}
+                                        className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                                      >
+                                        Absent
+                                      </button>
+                                    ) : null}
+                                  </>
+                                ) : null}
+                                {status === "PRESENT" ? (
+                                  <>
+                                    <button
+                                      disabled={busy}
+                                      onClick={() => checkIn(child.id)}
+                                      className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                                    >
+                                      Check in
+                                    </button>
                                     <button
                                       disabled={busy}
                                       onClick={() => mark(child.id, "ABSENT")}
@@ -477,47 +544,29 @@ export default function AttendancePage() {
                                     >
                                       Absent
                                     </button>
-                                  ) : null}
-                                </>
-                              ) : null}
-                              {status === "PRESENT" ? (
-                                <>
+                                  </>
+                                ) : null}
+                                {status === "CHECKED_IN" ? (
                                   <button
                                     disabled={busy}
-                                    onClick={() => checkIn(child.id)}
-                                    className="inline-flex h-9 items-center justify-center rounded-lg border border-sky-200 bg-sky-50 px-3 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50"
+                                    onClick={() => checkOut(child.id)}
+                                    className="inline-flex h-9 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-3 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-50"
                                   >
-                                    Check in
+                                    Check out
                                   </button>
-                                  <button
-                                    disabled={busy}
-                                    onClick={() => mark(child.id, "ABSENT")}
-                                    className="inline-flex h-9 items-center justify-center rounded-lg border border-rose-200 bg-rose-50 px-3 text-sm font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                                  >
-                                    Absent
-                                  </button>
-                                </>
-                              ) : null}
-                              {status === "CHECKED_IN" ? (
-                                <button
-                                  disabled={busy}
-                                  onClick={() => checkOut(child.id)}
-                                  className="inline-flex h-9 items-center justify-center rounded-lg border border-violet-200 bg-violet-50 px-3 text-sm font-medium text-violet-700 hover:bg-violet-100 disabled:opacity-50"
-                                >
-                                  Check out
-                                </button>
-                              ) : null}
-                              {status === "CHECKED_OUT" ? (
-                                <span className="inline-flex h-9 items-center px-3 text-sm text-slate-400">Done for today</span>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                ) : null}
+                                {status === "CHECKED_OUT" ? (
+                                  <span className="inline-flex h-9 items-center px-3 text-sm text-slate-400">Done for today</span>
+                                ) : null}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

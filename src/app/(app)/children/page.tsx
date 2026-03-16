@@ -488,98 +488,156 @@ export default function ChildrenPage() {
                 onClear={() => { setQuery(""); setStatusFilter(""); setRoomFilter(""); }}
               />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full min-w-[700px] text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Child</th>
-                      <th className="px-4 py-3 font-medium">Room</th>
-                      <th className="px-4 py-3 font-medium">Primary guardian</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Coverage</th>
-                      <th className="px-4 py-3 font-medium">Profile</th>
-                      <th className="px-4 py-3 font-medium"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRows.map((row) => (
-                      <tr key={row.id} className="border-t border-slate-200 hover:bg-slate-50/50">
-                        <td className="px-4 py-3">
-                          <Link href={`/children/${encodeURIComponent(row.id)}`} className="group">
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-slate-900 group-hover:text-slate-600">{row.fullName || row.id}</span>
-                              {row.allergies ? (
-                                <span className="inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-rose-600" title={row.allergies}>
-                                  <AlertTriangle className="h-2.5 w-2.5" />
-                                  Allergy
-                                </span>
-                              ) : null}
-                              {row.medicalNotes && !row.allergies ? (
-                                <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-600" title={row.medicalNotes}>
-                                  Medical
-                                </span>
-                              ) : null}
-                            </div>
-                            {(row.preferredName || row.dob) ? (
-                              <div className="text-xs text-slate-500">
-                                {row.preferredName || ""}{row.preferredName && row.dob ? " · " : ""}{row.dob ? calcAge(row.dob) || "" : ""}
-                              </div>
+              <>
+                {/* Mobile card view */}
+                <div className="space-y-3 md:hidden">
+                  {filteredRows.map((row) => (
+                    <Link
+                      key={row.id}
+                      href={`/children/${encodeURIComponent(row.id)}`}
+                      className="block rounded-xl border border-slate-200 bg-white p-4 hover:bg-slate-50/50"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-slate-900">{row.fullName || row.id}</span>
+                            {row.allergies ? (
+                              <span className="inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-rose-600">
+                                <AlertTriangle className="h-2.5 w-2.5" />
+                              </span>
                             ) : null}
-                          </Link>
-                        </td>
-                        <td className="px-4 py-3 text-slate-600">{row.roomName}</td>
-                        <td className="px-4 py-3">
-                          <div className="text-slate-900">{row.guardianName}</div>
-                          {row.guardianPhone !== "—" ? <div className="text-xs text-slate-500">{row.guardianPhone}</div> : null}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", statusBadge(row.status)].join(" ")}>
-                            {row.status || "UNKNOWN"}
+                          </div>
+                          {(row.preferredName || row.dob) ? (
+                            <div className="mt-0.5 text-xs text-slate-500">
+                              {row.preferredName || ""}{row.preferredName && row.dob ? " · " : ""}{row.dob ? calcAge(row.dob) || "" : ""}
+                            </div>
+                          ) : null}
+                        </div>
+                        <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", statusBadge(row.status)].join(" ")}>
+                          {row.status || "UNKNOWN"}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500">
+                        {row.roomName !== "—" && <span>{row.roomName}</span>}
+                        {row.guardianName !== "—" && <span>· {row.guardianName}</span>}
+                      </div>
+                      <div className="mt-2 flex gap-2">
+                        {row.missingCount > 0 ? (
+                          <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">
+                            Missing {row.missingCount}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          {row.missingCount > 0 ? (
-                            <Link
-                              href={`/guardians?childId=${encodeURIComponent(row.id)}`}
-                              className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                            >
-                              Missing {row.missingCount}
+                        ) : (
+                          <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                            Coverage ✓
+                          </span>
+                        )}
+                        <span className={[
+                          "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium",
+                          row.profileComplete === row.profileTotal
+                            ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                            : "border-amber-200 bg-amber-50 text-amber-700",
+                        ].join(" ")}>
+                          Profile {row.profileComplete}/{row.profileTotal}
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+
+                {/* Desktop table view */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full min-w-[700px] text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Child</th>
+                        <th className="px-4 py-3 font-medium">Room</th>
+                        <th className="px-4 py-3 font-medium">Primary guardian</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Coverage</th>
+                        <th className="px-4 py-3 font-medium">Profile</th>
+                        <th className="px-4 py-3 font-medium"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredRows.map((row) => (
+                        <tr key={row.id} className="border-t border-slate-200 hover:bg-slate-50/50">
+                          <td className="px-4 py-3">
+                            <Link href={`/children/${encodeURIComponent(row.id)}`} className="group">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium text-slate-900 group-hover:text-slate-600">{row.fullName || row.id}</span>
+                                {row.allergies ? (
+                                  <span className="inline-flex items-center gap-0.5 rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-rose-600" title={row.allergies}>
+                                    <AlertTriangle className="h-2.5 w-2.5" />
+                                    Allergy
+                                  </span>
+                                ) : null}
+                                {row.medicalNotes && !row.allergies ? (
+                                  <span className="inline-flex items-center rounded-md bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-amber-600" title={row.medicalNotes}>
+                                    Medical
+                                  </span>
+                                ) : null}
+                              </div>
+                              {(row.preferredName || row.dob) ? (
+                                <div className="text-xs text-slate-500">
+                                  {row.preferredName || ""}{row.preferredName && row.dob ? " · " : ""}{row.dob ? calcAge(row.dob) || "" : ""}
+                                </div>
+                              ) : null}
                             </Link>
-                          ) : (
-                            <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
-                              Complete
+                          </td>
+                          <td className="px-4 py-3 text-slate-600">{row.roomName}</td>
+                          <td className="px-4 py-3">
+                            <div className="text-slate-900">{row.guardianName}</div>
+                            {row.guardianPhone !== "—" ? <div className="text-xs text-slate-500">{row.guardianPhone}</div> : null}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", statusBadge(row.status)].join(" ")}>
+                              {row.status || "UNKNOWN"}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          {row.profileComplete === row.profileTotal ? (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                              <CheckCircle2 className="h-3 w-3" />
-                              {row.profileComplete}/{row.profileTotal}
-                            </span>
-                          ) : (
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.missingCount > 0 ? (
+                              <Link
+                                href={`/guardians?childId=${encodeURIComponent(row.id)}`}
+                                className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                              >
+                                Missing {row.missingCount}
+                              </Link>
+                            ) : (
+                              <span className="inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+                                Complete
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
+                            {row.profileComplete === row.profileTotal ? (
+                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                <CheckCircle2 className="h-3 w-3" />
+                                {row.profileComplete}/{row.profileTotal}
+                              </span>
+                            ) : (
+                              <Link
+                                href={`/children/${encodeURIComponent(row.id)}`}
+                                className="group inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                                title={`Missing: ${row.profileMissing.join(", ")}`}
+                              >
+                                {row.profileComplete}/{row.profileTotal}
+                              </Link>
+                            )}
+                          </td>
+                          <td className="px-4 py-3">
                             <Link
                               href={`/children/${encodeURIComponent(row.id)}`}
-                              className="group inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                              title={`Missing: ${row.profileMissing.join(", ")}`}
+                              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                             >
-                              {row.profileComplete}/{row.profileTotal}
+                              View
                             </Link>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Link
-                            href={`/children/${encodeURIComponent(row.id)}`}
-                            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                          >
-                            View
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
