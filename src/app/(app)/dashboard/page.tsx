@@ -575,6 +575,9 @@ export default function DashboardPage() {
                       <span>{metrics.collectionRate}% collection rate</span>
                       <span>{metrics.overdueCount} overdue</span>
                     </div>
+                    <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2 text-[11px] leading-relaxed text-blue-700">
+                      Revenue reflects parent fees after ACCB offsets. CCFRI provider funding is applied at the centre level and not included in invoice totals.
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -652,9 +655,14 @@ export default function DashboardPage() {
                           : `${licensingCompliance.roomsMissingCapacity} room(s) missing licensed capacity data. Update in Rooms to ensure inspection readiness.`}
                       </div>
                     )}
-                    <Link href="/rooms" className="mt-3 block text-sm font-medium text-slate-600 hover:text-slate-900">
-                      Manage rooms &amp; licensed capacity &rarr;
-                    </Link>
+                    <div className="mt-3 flex items-center justify-between">
+                      <Link href="/rooms" className="text-sm font-medium text-slate-600 hover:text-slate-900">
+                        Manage rooms &amp; licensed capacity &rarr;
+                      </Link>
+                      <span className="text-[11px] text-slate-400">
+                        Per BC Community Care &amp; Assisted Living Act
+                      </span>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

@@ -416,11 +416,13 @@ export default function BillingDetailPage() {
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
                       >
                         <option value="">Select method</option>
+                        <option value="E_TRANSFER">Interac e-Transfer</option>
                         <option value="CASH">Cash</option>
-                        <option value="CHECK">Check</option>
-                        <option value="E_TRANSFER">E-Transfer</option>
-                        <option value="CREDIT_CARD">Credit Card</option>
+                        <option value="CHEQUE">Cheque</option>
+                        <option value="CREDIT_CARD">Credit card</option>
                         <option value="DEBIT">Debit</option>
+                        <option value="PRE_AUTHORIZED">Pre-authorized debit</option>
+                        <option value="SUBSIDY">Gov&apos;t subsidy / ACCB</option>
                         <option value="OTHER">Other</option>
                       </select>
                     </div>

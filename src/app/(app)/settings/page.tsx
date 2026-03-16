@@ -121,7 +121,7 @@ export default function SettingsPage() {
       setOk("");
 
       const trimmed = tenantName.trim();
-      if (!trimmed) throw new Error("Tenant name is required.");
+      if (!trimmed) throw new Error("Centre name is required.");
 
       const res = await apiFetch("/tenant/current", {
         method: "PATCH",
@@ -133,10 +133,10 @@ export default function SettingsPage() {
 
       patchSession({ tenantName: data?.name || trimmed });
 
-      setOk("Tenant settings updated.");
+      setOk("Centre settings updated.");
       await loadAll();
     } catch (e: unknown) {
-      setError(getErrorMessage(e, "Unable to update tenant settings."));
+      setError(getErrorMessage(e, "Unable to update centre settings."));
     } finally {
       setSavingTenant(false);
     }
@@ -147,7 +147,7 @@ export default function SettingsPage() {
       <div>
         <PageIntro
           title="Settings"
-          description="Manage your profile and organization settings."
+          description="Manage your profile and centre settings."
         />
 
         {ok ? <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{ok}</div> : null}
@@ -211,24 +211,24 @@ export default function SettingsPage() {
           </Card>
 
           <Card className={["rounded-2xl shadow-sm", section === "tenant" ? "border border-amber-300 bg-amber-50/40" : "border-0"].join(" ")}>
-            <CardHeader><CardTitle>Tenant settings</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Centre settings</CardTitle></CardHeader>
             <CardContent>
               {loading ? (
-                <div className="text-sm text-slate-500">Loading tenant settings...</div>
+                <div className="text-sm text-slate-500">Loading centre settings...</div>
               ) : (
                 <div className="space-y-4">
                   <label className="grid gap-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Tenant ID</span>
+                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Centre ID</span>
                     <input value={tenant?.id || ""} disabled className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm outline-none" />
                   </label>
 
                   <label className="grid gap-1">
-                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Tenant name</span>
+                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Centre name</span>
                     <input
                       value={tenantName}
                       onChange={(e) => setTenantName(e.target.value)}
                       className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                      placeholder="Tenant name"
+                      placeholder="e.g. Sunshine Kids Daycare"
                     />
                   </label>
 
@@ -238,7 +238,7 @@ export default function SettingsPage() {
                     className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                   >
                     <Save className="h-4 w-4" />
-                    {savingTenant ? "Saving..." : "Save tenant settings"}
+                    {savingTenant ? "Saving..." : "Save centre settings"}
                   </button>
                 </div>
               )}

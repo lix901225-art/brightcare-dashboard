@@ -212,7 +212,7 @@ export default function AuditPage() {
       <div>
         <PageIntro
           title="Audit Log"
-          description="Owner-facing operational history for critical system actions."
+          description="Operational audit trail for BC licensing visits and compliance records."
         />
 
         <div className="mb-6 grid gap-3 lg:grid-cols-6">

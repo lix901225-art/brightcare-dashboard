@@ -270,7 +270,7 @@ export default function IncidentsPage() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Incidents"
-            description="Safety and incident tracking for compliance and parent communication."
+            description="Safety incident tracking for BC licensing compliance and parent communication."
           />
           <button
             onClick={() => setShowCreate(true)}

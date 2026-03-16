@@ -99,6 +99,11 @@ export default function EnrollmentPage() {
   const [regFeeAmount, setRegFeeAmount] = useState("150.00");
   const [regFeeLabel, setRegFeeLabel] = useState("Registration Fee");
 
+  // Withdrawal reason modal
+  const [withdrawTarget, setWithdrawTarget] = useState<Child | null>(null);
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [withdrawNotes, setWithdrawNotes] = useState("");
+
   async function loadAll() {
     setLoading(true);
     setError("");
@@ -178,6 +183,7 @@ export default function EnrollmentPage() {
       { label: "Guardian linked", ok: guardians.length > 0 },
       { label: "Emergency contact", ok: guardians.some((g) => g.isEmergencyContact) },
       { label: "Primary contact", ok: guardians.some((g) => g.isPrimaryContact) },
+      { label: "Allergies / medical documented", ok: child.allergies != null || child.medicalNotes != null },
     ];
     return checks;
   }
@@ -324,12 +330,51 @@ export default function EnrollmentPage() {
     }
   }
 
-  async function transitionStatus(childId: string, newStatus: "WAITLIST" | "WITHDRAWN", childName: string) {
-    const labels: Record<string, string> = {
-      WAITLIST: "move to waitlist",
-      WITHDRAWN: "withdraw",
-    };
-    if (!confirm(`${labels[newStatus]?.charAt(0).toUpperCase()}${labels[newStatus]?.slice(1)} ${childName}?`)) return;
+  function handleWithdrawClick(child: Child) {
+    setWithdrawTarget(child);
+    setWithdrawReason("");
+    setWithdrawNotes("");
+  }
+
+  async function confirmWithdraw() {
+    if (!withdrawTarget) return;
+    const childId = withdrawTarget.id;
+    const name = withdrawTarget.fullName || "Child";
+    setWithdrawTarget(null);
+
+    try {
+      setTransitioning(childId);
+      setError("");
+      setOk("");
+
+      // Append withdrawal reason to specialConsiderations
+      const existing = children.find((c) => c.id === childId)?.specialConsiderations || "";
+      const parts: string[] = [existing];
+      if (withdrawReason) parts.push(`[Withdrawal: ${withdrawReason}]`);
+      if (withdrawNotes.trim()) parts.push(`[Withdrawal note: ${withdrawNotes.trim()}]`);
+      const sc = parts.filter(Boolean).join(" ");
+
+      const body: Record<string, unknown> = { status: "WITHDRAWN" };
+      if (sc !== existing) body.specialConsiderations = sc;
+
+      const res = await apiFetch(`/children/${childId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
+
+      setOk(`${name} withdrawn.${withdrawReason ? ` Reason: ${withdrawReason}.` : ""}`);
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to withdraw."));
+    } finally {
+      setTransitioning(null);
+    }
+  }
+
+  async function transitionStatus(childId: string, newStatus: "WAITLIST", childName: string) {
+    if (!confirm(`Move ${childName} to waitlist?`)) return;
 
     try {
       setTransitioning(childId);
@@ -343,8 +388,7 @@ export default function EnrollmentPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
 
-      const actionLabel = newStatus === "WITHDRAWN" ? "withdrawn" : "moved to waitlist";
-      setOk(`${childName} ${actionLabel}.`);
+      setOk(`${childName} moved to waitlist.`);
       await loadAll();
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to update status."));
@@ -499,6 +543,71 @@ export default function EnrollmentPage() {
             </Card>
           );
         })() : null}
+
+        {/* Withdrawal reason modal */}
+        {withdrawTarget ? (
+          <Card className="mb-6 rounded-2xl border-0 shadow-sm ring-1 ring-rose-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Withdraw: {withdrawTarget.fullName || "Child"}</CardTitle>
+                <button
+                  onClick={() => setWithdrawTarget(null)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Reason for withdrawal</div>
+                  <select
+                    value={withdrawReason}
+                    onChange={(e) => setWithdrawReason(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                  >
+                    <option value="">Select reason</option>
+                    <option value="Family relocated">Family relocated</option>
+                    <option value="Switched centres">Switched centres</option>
+                    <option value="Aged out of program">Aged out of program</option>
+                    <option value="Financial reasons">Financial reasons</option>
+                    <option value="Schedule no longer fits">Schedule no longer fits</option>
+                    <option value="Child starting school">Child starting school (K entry)</option>
+                    <option value="Family decision">Family decision</option>
+                    <option value="Centre-initiated">Centre-initiated</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Notes (optional)</div>
+                  <input
+                    value={withdrawNotes}
+                    onChange={(e) => setWithdrawNotes(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="Additional context..."
+                  />
+                </div>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={confirmWithdraw}
+                  disabled={transitioning === withdrawTarget.id}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-rose-600 px-4 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
+                >
+                  <UserMinus className="h-4 w-4" />
+                  Confirm withdrawal
+                </button>
+                <button
+                  onClick={() => setWithdrawTarget(null)}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
 
         {/* Add to waitlist form */}
         {showAdd ? (
@@ -800,7 +909,7 @@ export default function EnrollmentPage() {
                           ) : null}
                           {s === "ACTIVE" ? (
                             <button
-                              onClick={() => transitionStatus(child.id, "WITHDRAWN", name)}
+                              onClick={() => handleWithdrawClick(child)}
                               disabled={isTransitioning}
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                             >
@@ -944,7 +1053,7 @@ export default function EnrollmentPage() {
                                 ) : null}
                                 {s === "ACTIVE" ? (
                                   <button
-                                    onClick={() => transitionStatus(child.id, "WITHDRAWN", name)}
+                                    onClick={() => handleWithdrawClick(child)}
                                     disabled={isTransitioning}
                                     className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                                   >
