@@ -5,17 +5,22 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { writeSession } from "@/lib/session";
 
+const DEMO_ENABLED = process.env.NEXT_PUBLIC_DEMO_ENABLED === "true";
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 2000;
 
 export default function DemoPage() {
   const router = useRouter();
-  const [status, setStatus] = useState<"loading" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "disabled" | "error">(
+    DEMO_ENABLED ? "loading" : "disabled",
+  );
   const [errorMsg, setErrorMsg] = useState("");
   const retriesRef = useRef(0);
   const cancelledRef = useRef(false);
 
   const attemptLogin = useCallback(async () => {
+    if (!DEMO_ENABLED) return;
+
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 10_000);
@@ -69,6 +74,8 @@ export default function DemoPage() {
   }, [router]);
 
   useEffect(() => {
+    if (!DEMO_ENABLED) return;
+
     cancelledRef.current = false;
     retriesRef.current = 0;
     void attemptLogin();
@@ -84,6 +91,36 @@ export default function DemoPage() {
     setErrorMsg("");
     void attemptLogin();
   };
+
+  if (status === "disabled") {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+        <div className="w-full max-w-sm text-center">
+          <h1 className="text-lg font-semibold text-slate-900">
+            Demo not available
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            The demo environment is not enabled. Please sign in with your
+            account.
+          </p>
+          <div className="mt-6 flex flex-col gap-3">
+            <Link
+              href="/login"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/"
+              className="text-sm text-slate-500 hover:text-slate-700"
+            >
+              &larr; Back to homepage
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
