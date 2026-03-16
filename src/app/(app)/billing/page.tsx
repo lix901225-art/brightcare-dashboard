@@ -719,28 +719,43 @@ export default function BillingPage() {
             {loading ? (
               <TableSkeleton rows={4} cols={3} />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Child</th>
-                      <th className="px-4 py-3 font-medium">Total</th>
-                      <th className="px-4 py-3 font-medium">Paid</th>
-                      <th className="px-4 py-3 font-medium">Balance</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.map((row) => (
-                      <tr key={row.childId} className="border-t border-slate-200">
-                        <td className="px-4 py-3 font-medium text-slate-900">{row.childName}</td>
-                        <td className="px-4 py-3">${row.total.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-emerald-700">${row.paid.toFixed(2)}</td>
-                        <td className={["px-4 py-3 font-medium", row.balance > 0 ? "text-rose-700" : "text-slate-600"].join(" ")}>${row.balance.toFixed(2)}</td>
+              <>
+                {/* Mobile balance cards */}
+                <div className="space-y-2 md:hidden">
+                  {summary.map((row) => (
+                    <div key={row.childId} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
+                      <div className="font-medium text-slate-900 text-sm">{row.childName}</div>
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="text-emerald-700">${row.paid.toFixed(0)}</span>
+                        <span className={`font-semibold ${row.balance > 0 ? "text-rose-700" : "text-slate-500"}`}>${row.balance.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop balance table */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Child</th>
+                        <th className="px-4 py-3 font-medium">Total</th>
+                        <th className="px-4 py-3 font-medium">Paid</th>
+                        <th className="px-4 py-3 font-medium">Balance</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {summary.map((row) => (
+                        <tr key={row.childId} className="border-t border-slate-200">
+                          <td className="px-4 py-3 font-medium text-slate-900">{row.childName}</td>
+                          <td className="px-4 py-3">${row.total.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-emerald-700">${row.paid.toFixed(2)}</td>
+                          <td className={["px-4 py-3 font-medium", row.balance > 0 ? "text-rose-700" : "text-slate-600"].join(" ")}>${row.balance.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
@@ -848,65 +863,114 @@ export default function BillingPage() {
                 filterLabel="search or status filter"
               />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Child</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Issued</th>
-                      <th className="px-4 py-3 font-medium">Due</th>
-                      <th className="px-4 py-3 font-medium">Total</th>
-                      <th className="px-4 py-3 font-medium">Paid</th>
-                      <th className="px-4 py-3 font-medium">Balance</th>
-                      <th className="px-4 py-3 font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredInvoices.map((row) => {
-                      const todayStr = new Date().toISOString().slice(0, 10);
-                      const isOverdue = row.balanceAmount > 0 && row.dueDate && row.dueDate.slice(0, 10) < todayStr && row.status.toUpperCase() !== "VOID" && row.status.toUpperCase() !== "PAID";
-                      const displayStatus = isOverdue ? "OVERDUE" : row.status;
+              <>
+                {/* Mobile invoice cards */}
+                <div className="space-y-3 md:hidden">
+                  {filteredInvoices.map((row) => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    const isOverdue = row.balanceAmount > 0 && row.dueDate && row.dueDate.slice(0, 10) < todayStr && row.status.toUpperCase() !== "VOID" && row.status.toUpperCase() !== "PAID";
+                    const displayStatus = isOverdue ? "OVERDUE" : row.status;
+                    return (
+                      <Link
+                        key={row.id}
+                        href={`/billing/${encodeURIComponent(row.id)}`}
+                        className={`block rounded-xl border p-4 ${isOverdue ? "border-rose-200 bg-rose-50/50" : "border-slate-200 bg-white"}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="font-medium text-slate-900 text-sm">{row.childName}</div>
+                          <span className={["inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium", statusBadge(displayStatus)].join(" ")}>
+                            {displayStatus}
+                          </span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <div className="text-slate-500">
+                            {row.dueDate ? `Due ${row.dueDate.slice(0, 10)}` : "No due date"}
+                          </div>
+                          <div className={`font-semibold ${row.balanceAmount > 0 ? "text-rose-700" : "text-emerald-700"}`}>
+                            {row.balanceAmount > 0 ? `$${row.balanceAmount.toFixed(2)} due` : "Paid"}
+                          </div>
+                        </div>
+                        <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                          <span>Total: ${row.totalAmount.toFixed(2)}</span>
+                          <span>Paid: ${row.paidAmount.toFixed(2)}</span>
+                        </div>
+                        {row.status.toUpperCase() === "DRAFT" && (
+                          <div className="mt-3">
+                            <button
+                              onClick={(e) => { e.preventDefault(); issueInvoice(row.id); }}
+                              disabled={saving}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-medium text-white disabled:opacity-50"
+                            >
+                              <Send className="h-3 w-3" /> Issue
+                            </button>
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
 
-                      return (
-                        <tr key={row.id} className={`border-t border-slate-200 ${isOverdue ? "bg-rose-50/50" : ""}`}>
-                          <td className="px-4 py-3 font-medium text-slate-900">{row.childName}</td>
-                          <td className="px-4 py-3">
-                            <span className={["inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium", statusBadge(displayStatus)].join(" ")}>
-                              {displayStatus}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">{row.issueDate?.slice(0, 10) || "—"}</td>
-                          <td className={`px-4 py-3 ${isOverdue ? "font-medium text-rose-600" : ""}`}>{row.dueDate?.slice(0, 10) || "—"}</td>
-                          <td className="px-4 py-3">${row.totalAmount.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-emerald-700">${row.paidAmount.toFixed(2)}</td>
-                          <td className={["px-4 py-3 font-medium", row.balanceAmount > 0 ? "text-rose-700" : "text-slate-600"].join(" ")}>${row.balanceAmount.toFixed(2)}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              {row.status.toUpperCase() === "DRAFT" ? (
-                                <button
-                                  onClick={() => issueInvoice(row.id)}
-                                  disabled={saving}
-                                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                {/* Desktop invoice table */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Child</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Issued</th>
+                        <th className="px-4 py-3 font-medium">Due</th>
+                        <th className="px-4 py-3 font-medium">Total</th>
+                        <th className="px-4 py-3 font-medium">Paid</th>
+                        <th className="px-4 py-3 font-medium">Balance</th>
+                        <th className="px-4 py-3 font-medium">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredInvoices.map((row) => {
+                        const todayStr = new Date().toISOString().slice(0, 10);
+                        const isOverdue = row.balanceAmount > 0 && row.dueDate && row.dueDate.slice(0, 10) < todayStr && row.status.toUpperCase() !== "VOID" && row.status.toUpperCase() !== "PAID";
+                        const displayStatus = isOverdue ? "OVERDUE" : row.status;
+
+                        return (
+                          <tr key={row.id} className={`border-t border-slate-200 ${isOverdue ? "bg-rose-50/50" : ""}`}>
+                            <td className="px-4 py-3 font-medium text-slate-900">{row.childName}</td>
+                            <td className="px-4 py-3">
+                              <span className={["inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium", statusBadge(displayStatus)].join(" ")}>
+                                {displayStatus}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">{row.issueDate?.slice(0, 10) || "—"}</td>
+                            <td className={`px-4 py-3 ${isOverdue ? "font-medium text-rose-600" : ""}`}>{row.dueDate?.slice(0, 10) || "—"}</td>
+                            <td className="px-4 py-3">${row.totalAmount.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-emerald-700">${row.paidAmount.toFixed(2)}</td>
+                            <td className={["px-4 py-3 font-medium", row.balanceAmount > 0 ? "text-rose-700" : "text-slate-600"].join(" ")}>${row.balanceAmount.toFixed(2)}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                {row.status.toUpperCase() === "DRAFT" ? (
+                                  <button
+                                    onClick={() => issueInvoice(row.id)}
+                                    disabled={saving}
+                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                                  >
+                                    <Send className="h-3 w-3" />
+                                    Issue
+                                  </button>
+                                ) : null}
+                                <Link
+                                  href={`/billing/${encodeURIComponent(row.id)}`}
+                                  className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
                                 >
-                                  <Send className="h-3 w-3" />
-                                  Issue
-                                </button>
-                              ) : null}
-                              <Link
-                                href={`/billing/${encodeURIComponent(row.id)}`}
-                                className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                              >
-                                Open
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                  Open
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

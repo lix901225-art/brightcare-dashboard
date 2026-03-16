@@ -303,37 +303,56 @@ export default function StaffManagementPage() {
                 filterLabel="search or role filter"
               />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full min-w-[500px] text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Name</th>
-                      <th className="px-4 py-3 font-medium">Phone</th>
-                      <th className="px-4 py-3 font-medium">Role</th>
-                      <th className="px-4 py-3 font-medium">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id} className="border-t border-slate-200">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-slate-900">{user.displayName || "Unnamed"}</div>
-                          <div className="text-xs text-slate-500">{user.id.slice(0, 8)}...</div>
-                        </td>
-                        <td className="px-4 py-3">{user.phone || "—"}</td>
-                        <td className="px-4 py-3">
-                          <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
-                            {user.role || "—"}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3 text-slate-500">
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
-                        </td>
+              <>
+                {/* Mobile card view */}
+                <div className="space-y-2 md:hidden">
+                  {filteredUsers.map((user) => (
+                    <div key={user.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="font-medium text-slate-900 text-sm">{user.displayName || "Unnamed"}</div>
+                          {user.phone && <div className="mt-0.5 text-xs text-slate-500">{user.phone}</div>}
+                        </div>
+                        <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
+                          {user.role || "—"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Desktop table view */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full min-w-[500px] text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Name</th>
+                        <th className="px-4 py-3 font-medium">Phone</th>
+                        <th className="px-4 py-3 font-medium">Role</th>
+                        <th className="px-4 py-3 font-medium">Joined</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {filteredUsers.map((user) => (
+                        <tr key={user.id} className="border-t border-slate-200">
+                          <td className="px-4 py-3">
+                            <div className="font-medium text-slate-900">{user.displayName || "Unnamed"}</div>
+                            <div className="text-xs text-slate-500">{user.id.slice(0, 8)}...</div>
+                          </td>
+                          <td className="px-4 py-3">{user.phone || "—"}</td>
+                          <td className="px-4 py-3">
+                            <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
+                              {user.role || "—"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-slate-500">
+                            {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
