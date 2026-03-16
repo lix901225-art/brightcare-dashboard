@@ -6,6 +6,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, type AppRole } from "@/lib/workspace";
 import { clearSession, readSession } from "@/lib/session";
+import { StaffMobileNav } from "@/components/app/staff-mobile-nav";
 
 type ShellSession = {
   role: AppRole;
@@ -255,7 +256,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 px-4 py-6 lg:px-8 lg:py-8">{children}</main>
+          <main className={[
+            "flex-1 px-4 py-6 lg:px-8 lg:py-8",
+            mounted && session.role === "STAFF" ? "pb-24 lg:pb-8" : "",
+          ].join(" ")}>
+            {children}
+          </main>
+
+          {/* Staff bottom tab bar on mobile */}
+          {mounted && session.role === "STAFF" ? <StaffMobileNav /> : null}
         </div>
       </div>
     </div>

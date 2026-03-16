@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Calendar, Clock } from "lucide-react";
+import { PullToRefresh } from "@/components/app/pull-to-refresh";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -225,8 +226,13 @@ export default function ParentHomePage() {
     return days.reverse();
   }, []);
 
+  const handleRefresh = useCallback(async () => {
+    await loadAll();
+  }, [today]);
+
   return (
     <RoleGate allow={["PARENT", "OWNER"]}>
+      <PullToRefresh onRefresh={handleRefresh}>
       <div>
         <PageIntro
           title="Parent Workspace"
@@ -522,6 +528,7 @@ export default function ParentHomePage() {
           </>
         )}
       </div>
+      </PullToRefresh>
     </RoleGate>
   );
 }

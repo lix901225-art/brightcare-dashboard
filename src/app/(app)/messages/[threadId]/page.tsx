@@ -139,7 +139,7 @@ export default function MessageThreadPage() {
 
   return (
     <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
-      <div>
+      <div className="pb-20 lg:pb-0">
         <div className="mb-4">
           <Link
             href="/messages"
@@ -260,9 +260,40 @@ export default function MessageThreadPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl border-0 shadow-sm">
-          <CardHeader><CardTitle>Reply</CardTitle></CardHeader>
-          <CardContent>
+        {/* Desktop: card-based reply. Mobile: sticky chat-style composer */}
+        <div className="hidden lg:block">
+          <Card className="rounded-2xl border-0 shadow-sm">
+            <CardHeader><CardTitle>Reply</CardTitle></CardHeader>
+            <CardContent>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (body.trim() && !sending) sendMessage();
+                  }
+                }}
+                placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
+                className="min-h-[120px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+              />
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={sendMessage}
+                  disabled={sending}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  <Send className="h-4 w-4" />
+                  {sending ? "Sending..." : "Send"}
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Mobile: sticky bottom composer */}
+        <div className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white p-3 safe-bottom lg:hidden">
+          <div className="flex items-end gap-2">
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
@@ -272,21 +303,19 @@ export default function MessageThreadPage() {
                   if (body.trim() && !sending) sendMessage();
                 }
               }}
-              placeholder="Type a message… (Enter to send, Shift+Enter for new line)"
-              className="min-h-[120px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+              placeholder="Type a message…"
+              rows={1}
+              className="min-h-[44px] max-h-[120px] flex-1 resize-none rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none"
             />
-            <div className="mt-4 flex justify-end">
-              <button
-                onClick={sendMessage}
-                disabled={sending}
-                className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-              >
-                <Send className="h-4 w-4" />
-                {sending ? "Sending..." : "Send"}
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+            <button
+              onClick={sendMessage}
+              disabled={sending || !body.trim()}
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       </div>
     </RoleGate>
   );

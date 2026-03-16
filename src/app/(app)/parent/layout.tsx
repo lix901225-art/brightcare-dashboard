@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect } from "react";
 import { ParentMobileNav } from "@/components/app/parent-mobile-nav";
+import { PwaInstallPrompt } from "@/components/app/pwa-install-prompt";
 
 export default function ParentLayout({ children }: { children: ReactNode }) {
   // Register service worker for PWA installability
@@ -18,6 +19,7 @@ export default function ParentLayout({ children }: { children: ReactNode }) {
       {/* Extra bottom padding on mobile to clear the fixed tab bar */}
       <div className="pb-20 lg:pb-0">{children}</div>
       <ParentMobileNav />
+      <PwaInstallPrompt />
     </>
   );
 }
