@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, X, Utensils, Moon, Smile, Activity } from "lucide-react";
+import { AlertTriangle, Plus, Search, X, Utensils, Moon, Smile, Activity } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,6 +141,17 @@ export default function DailyReportsPage() {
       childrenMissing: Math.max(0, children.length - uniqueChildrenToday.size),
     };
   }, [reports, children]);
+
+  const missingChildren = useMemo(() => {
+    if (!canCreate) return [];
+    const today = new Date().toISOString().slice(0, 10);
+    const coveredChildIds = new Set(
+      reports
+        .filter((r) => String(r.date).slice(0, 10) === today)
+        .map((r) => r.childId)
+    );
+    return children.filter((c) => !coveredChildIds.has(c.id));
+  }, [canCreate, reports, children]);
 
   function resetForm() {
     setMeals("");
@@ -385,6 +396,39 @@ export default function DailyReportsPage() {
                 {stats.childrenMissing > 0 ? <div className="mt-1 text-xs text-amber-600">Not yet filed</div> : null}
               </CardContent>
             </Card>
+          </div>
+        ) : null}
+
+        {/* Missing reports today — actionable panel for staff */}
+        {canCreate && missingChildren.length > 0 && !filterDate ? (
+          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
+            <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
+              <AlertTriangle className="h-4 w-4" />
+              {missingChildren.length} {missingChildren.length === 1 ? "child" : "children"} missing daily reports today
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {missingChildren.slice(0, 8).map((child) => (
+                <button
+                  key={child.id}
+                  onClick={() => {
+                    setChildId(child.id);
+                    setDate(new Date().toISOString().slice(0, 10));
+                    resetForm();
+                    setChildId(child.id);
+                    setShowCreate(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-50"
+                >
+                  <Plus className="h-3 w-3" />
+                  {child.fullName || "Child"}
+                </button>
+              ))}
+              {missingChildren.length > 8 ? (
+                <span className="inline-flex items-center px-2 py-1.5 text-xs text-amber-600">
+                  +{missingChildren.length - 8} more
+                </span>
+              ) : null}
+            </div>
           </div>
         ) : null}
 

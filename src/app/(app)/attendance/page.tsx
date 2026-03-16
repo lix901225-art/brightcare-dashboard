@@ -55,6 +55,7 @@ export default function AttendancePage() {
   const [query, setQuery] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [roomFilter, setRoomFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   async function loadAll() {
     try {
@@ -115,6 +116,16 @@ export default function AttendancePage() {
     if (roomFilter) {
       result = result.filter(({ child }) => child.roomId === roomFilter);
     }
+    if (statusFilter) {
+      result = result.filter(({ attendance }) => {
+        const s = (attendance?.status || "UNKNOWN").toUpperCase();
+        if (statusFilter === "UNMARKED") return s === "UNKNOWN";
+        if (statusFilter === "PRESENT") return s === "PRESENT" || s === "CHECKED_IN" || s === "CHECKED_OUT";
+        if (statusFilter === "ABSENT") return s === "ABSENT";
+        if (statusFilter === "CHECKED_IN") return s === "CHECKED_IN";
+        return true;
+      });
+    }
 
     const q = query.trim().toLowerCase();
     if (!q) return result;
@@ -131,7 +142,7 @@ export default function AttendancePage() {
         .toLowerCase()
         .includes(q)
     );
-  }, [rows, query, roomFilter, filterChildId]);
+  }, [rows, query, roomFilter, filterChildId, statusFilter]);
 
   const stats = useMemo(() => {
     const statuses = rows.map((r) => (r.attendance?.status || "UNKNOWN").toUpperCase());
@@ -376,6 +387,33 @@ export default function AttendancePage() {
               className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
             />
           </div>
+        </div>
+
+        {/* Status filter chips */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {([
+            { value: "", label: "All", count: rows.length },
+            { value: "UNMARKED", label: "Unmarked", count: stats.unknown },
+            { value: "PRESENT", label: "Present", count: stats.present },
+            { value: "ABSENT", label: "Absent", count: stats.absent },
+            { value: "CHECKED_IN", label: "Checked in", count: stats.checkedIn },
+          ] as const).map((chip) => (
+            <button
+              key={chip.value}
+              onClick={() => setStatusFilter(chip.value)}
+              className={[
+                "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                statusFilter === chip.value
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              ].join(" ")}
+            >
+              {chip.label}
+              <span className={statusFilter === chip.value ? "text-white/70" : "text-slate-400"}>
+                {chip.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {(stats.unknown > 0 || stats.checkedIn > 0) ? (
