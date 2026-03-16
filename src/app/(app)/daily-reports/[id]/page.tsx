@@ -8,6 +8,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { moodBadge as moodColor } from "@/lib/badge-styles";
+import { PageLoadingSkeleton } from "@/components/ui/skeleton";
 
 type ReportDetail = {
   id: string;
@@ -94,9 +95,7 @@ export default function DailyReportDetailPage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            Loading daily report...
-          </div>
+          <PageLoadingSkeleton />
         ) : report ? (
           <>
             <Card className="mb-6 rounded-2xl border-0 shadow-sm">

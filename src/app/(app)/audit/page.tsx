@@ -6,6 +6,8 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type AuditRow = {
   id: string;
@@ -354,65 +356,103 @@ export default function AuditPage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading audit log...
-              </div>
+              <TableSkeleton rows={6} cols={5} />
             ) : filtered.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                No audit records found.
-              </div>
+              <FilteredEmptyState
+                totalCount={rows.length}
+                filterLabel="filter"
+                onClear={query || actionFilter !== "ALL" || entityFilter !== "ALL" || startDate || endDate ? resetFilters : undefined}
+              />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Time</th>
-                      <th className="px-4 py-3 font-medium">Actor</th>
-                      <th className="px-4 py-3 font-medium">Action</th>
-                      <th className="px-4 py-3 font-medium">Entity</th>
-                      <th className="px-4 py-3 font-medium">Metadata</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paged.map((row) => {
-                      const href = resolveAuditHref(row);
-                      return (
-                        <tr key={row.id} className="border-t border-slate-200 align-top">
-                          <td className="px-4 py-3 whitespace-nowrap text-slate-700">
+              <>
+                {/* ── Mobile card view ── */}
+                <div className="space-y-3 md:hidden">
+                  {paged.map((row) => {
+                    const href = resolveAuditHref(row);
+                    return (
+                      <div key={row.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+                            {pretty(row.action)}
+                          </span>
+                          <span className="text-xs text-slate-500 shrink-0">
                             {new Date(row.createdAt).toLocaleString()}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-slate-900">{pretty(row.actorType)}</div>
-                            <div className="mt-1 text-xs text-slate-500">{row.actorUserId}</div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
-                              {pretty(row.action)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-slate-900">{pretty(row.entityType)}</div>
-                            <div className="mt-1 text-xs text-slate-500">
-                              {href ? (
-                                <Link href={href} className="underline decoration-slate-300 underline-offset-2 hover:text-slate-700">
-                                  {row.entityId}
-                                </Link>
-                              ) : (
-                                row.entityId
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <pre className="max-w-xl whitespace-pre-wrap break-words text-xs text-slate-600">
-                              {row.metadata ? JSON.stringify(row.metadata, null, 2) : "—"}
-                            </pre>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                          <span className="font-medium text-slate-700">{pretty(row.actorType)}</span>
+                          <span className="font-medium text-slate-700">{pretty(row.entityType)}</span>
+                          {href ? (
+                            <Link href={href} className="underline decoration-slate-300 underline-offset-2 hover:text-slate-700 truncate max-w-[200px]">
+                              {row.entityId}
+                            </Link>
+                          ) : (
+                            <span className="truncate max-w-[200px]">{row.entityId}</span>
+                          )}
+                        </div>
+                        {row.metadata ? (
+                          <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-slate-50 p-2 text-[11px] text-slate-600">
+                            {JSON.stringify(row.metadata, null, 2)}
+                          </pre>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── Desktop table ── */}
+                <div className="hidden md:block overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Time</th>
+                        <th className="px-4 py-3 font-medium">Actor</th>
+                        <th className="px-4 py-3 font-medium">Action</th>
+                        <th className="px-4 py-3 font-medium">Entity</th>
+                        <th className="px-4 py-3 font-medium">Metadata</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paged.map((row) => {
+                        const href = resolveAuditHref(row);
+                        return (
+                          <tr key={row.id} className="border-t border-slate-200 align-top">
+                            <td className="px-4 py-3 whitespace-nowrap text-slate-700">
+                              {new Date(row.createdAt).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-900">{pretty(row.actorType)}</div>
+                              <div className="mt-1 text-xs text-slate-500">{row.actorUserId}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700">
+                                {pretty(row.action)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-900">{pretty(row.entityType)}</div>
+                              <div className="mt-1 text-xs text-slate-500">
+                                {href ? (
+                                  <Link href={href} className="underline decoration-slate-300 underline-offset-2 hover:text-slate-700">
+                                    {row.entityId}
+                                  </Link>
+                                ) : (
+                                  row.entityId
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <pre className="max-w-xl whitespace-pre-wrap break-words text-xs text-slate-600">
+                                {row.metadata ? JSON.stringify(row.metadata, null, 2) : "—"}
+                              </pre>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

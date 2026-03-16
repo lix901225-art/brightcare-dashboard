@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { formatDate as fmtDate } from "@/lib/api-helpers";
 import { invoiceStatusBadge as statusBadge } from "@/lib/badge-styles";
+import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 type BillingSummary = {
   childId: string;
@@ -172,7 +174,10 @@ export default function ParentBillingPage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading billing...</div>
+          <div className="space-y-6">
+            <MetricCardsSkeleton count={3} />
+            <CardListSkeleton count={3} />
+          </div>
         ) : (
           <>
             {/* Summary cards */}
@@ -255,7 +260,7 @@ export default function ParentBillingPage() {
               <CardHeader><CardTitle>Invoices</CardTitle></CardHeader>
               <CardContent>
                 {invoices.length === 0 ? (
-                  <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-500">No invoices yet.</div>
+                  <EmptyState title="No invoices yet" description="Invoices will appear here once they've been issued." />
                 ) : (
                   <div className="space-y-3">
                     {sortedInvoices.map((inv) => {

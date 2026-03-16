@@ -7,6 +7,10 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { formatDate, formatTime } from "@/lib/api-helpers";
+import { severityBadge } from "@/lib/badge-styles";
+import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -25,25 +29,15 @@ type IncidentRow = {
 };
 
 function fmtDate(value: string) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  return formatDate(value);
 }
 
 function fmtTime(value: string) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return formatTime(value) || "";
 }
 
 function severityColor(severity: string) {
-  switch (severity.toLowerCase()) {
-    case "critical": return "border-rose-200 bg-rose-50 text-rose-700";
-    case "high": return "border-rose-200 bg-rose-50 text-rose-700";
-    case "medium": return "border-amber-200 bg-amber-50 text-amber-700";
-    case "low": return "border-slate-200 bg-slate-100 text-slate-600";
-    default: return "border-slate-200 bg-slate-50 text-slate-600";
-  }
+  return severityBadge(severity);
 }
 
 export default function ParentIncidentsPage() {
@@ -123,7 +117,10 @@ export default function ParentIncidentsPage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading incidents...</div>
+          <div className="space-y-6">
+            <MetricCardsSkeleton count={3} />
+            <CardListSkeleton count={3} />
+          </div>
         ) : (
           <>
             {/* Stats */}
@@ -179,9 +176,11 @@ export default function ParentIncidentsPage() {
               <CardHeader><CardTitle>Incident reports</CardTitle></CardHeader>
               <CardContent>
                 {filtered.length === 0 ? (
-                  <div className="rounded-xl border border-slate-200 p-4 text-sm text-slate-500">
-                    {incidents.length === 0 ? "No incidents reported." : "No incidents match this filter."}
-                  </div>
+                  <FilteredEmptyState
+                    totalCount={incidents.length}
+                    filterLabel="filter"
+                    onClear={childFilter ? () => setChildFilter("") : undefined}
+                  />
                 ) : (
                   <div className="space-y-3">
                     {filtered.map((inc) => (

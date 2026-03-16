@@ -7,6 +7,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
 
 type Child = {
   id: string;
@@ -165,8 +166,9 @@ export default function ParentAttendancePage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            Loading attendance...
+          <div className="space-y-6">
+            <MetricCardsSkeleton count={3} />
+            <CardListSkeleton count={3} />
           </div>
         ) : (
           <>
