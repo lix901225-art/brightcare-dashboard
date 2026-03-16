@@ -485,10 +485,10 @@ export default function BcFundingGuidePage() {
           </p>
           <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <Link
-              href="/demo"
+              href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
               className="inline-flex h-12 items-center rounded-xl bg-white px-6 text-sm font-semibold text-slate-900 hover:bg-slate-100"
             >
-              Try the demo — free
+              Book a Demo
             </Link>
             <Link
               href="/contact"

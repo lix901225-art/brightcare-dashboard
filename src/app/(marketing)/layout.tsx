@@ -73,10 +73,10 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               Sign in
             </Link>
             <Link
-              href="/demo"
+              href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
               className="inline-flex h-10 items-center rounded-xl bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
             >
-              Try demo
+              Book a Demo
             </Link>
           </div>
 
@@ -104,10 +104,10 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
                 Sign in
               </Link>
               <Link
-                href="/demo"
+                href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
                 className="mt-1 block rounded-lg bg-emerald-600 px-3 py-2 text-center text-sm font-medium text-white hover:bg-emerald-700"
               >
-                Try demo
+                Book a Demo
               </Link>
             </div>
           </details>
@@ -142,7 +142,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               <div className="space-y-2 text-sm">
                 <Link href="/contact" className="block text-slate-600 hover:text-slate-900">Contact</Link>
                 <Link href="/privacy" className="block text-slate-600 hover:text-slate-900">Privacy policy</Link>
-                <Link href="/demo" className="block text-slate-600 hover:text-slate-900">Try the demo</Link>
+                <Link href="/contact" className="block text-slate-600 hover:text-slate-900">Book a demo</Link>
               </div>
             </div>
           </div>

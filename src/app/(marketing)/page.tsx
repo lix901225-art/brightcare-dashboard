@@ -83,7 +83,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-b from-white to-slate-50 px-4 pb-16 pt-20 text-center sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">
           <span className="mb-4 inline-flex rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-            Free pilot for licensed BC centres
+            Built for licensed BC centres
           </span>
           <h1 className="text-4xl font-bold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl">
             Childcare management,
@@ -97,10 +97,10 @@ export default function HomePage() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/demo"
+              href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
               className="inline-flex h-12 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
-              Try the demo &mdash; free
+              Book a Demo
             </Link>
             <Link
               href="/features/attendance"
@@ -194,7 +194,7 @@ export default function HomePage() {
           {[
             ["Privacy-first", "Child data stays in Canada. No third-party sharing, no ads. Read our privacy policy."],
             ["BC-compliant", "Built around BC licensing requirements, provincial funding programs, and Ministry reporting needs."],
-            ["Free pilot program", "Try BrightCare OS at no cost during our pilot program. No credit card, no commitment."],
+            ["Early access program", "We work directly with licensed BC centres to onboard and customize BrightCare OS. Request a walkthrough to get started."],
           ].map(([title, desc]) => (
             <div key={title} className="text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50">
@@ -216,14 +216,14 @@ export default function HomePage() {
             Ready to simplify your centre?
           </h2>
           <p className="mt-3 text-slate-400">
-            Join our free pilot program. Set up in minutes &mdash; no credit card required.
+            See how BrightCare OS works for your centre. We&rsquo;ll walk you through a live demo.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/demo"
+              href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
               className="inline-flex h-12 items-center rounded-xl bg-emerald-500 px-6 text-sm font-semibold text-white hover:bg-emerald-600"
             >
-              Try BrightCare free
+              Book a Demo
             </Link>
             <Link
               href="/contact"

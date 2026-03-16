@@ -1,47 +1,98 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Contact",
   description:
-    "Get in touch with BrightCare OS. Request a demo, ask about our free pilot program, or learn how BrightCare can help your licensed BC childcare centre.",
+    "Get in touch with BrightCare OS. Book a personalized demo to see how BrightCare helps licensed BC childcare centres manage enrollment, attendance, billing, and parent communication.",
   openGraph: {
     title: "Contact",
-    description: "Get in touch with BrightCare OS for your licensed BC childcare centre.",
+    description: "Book a demo or get in touch with BrightCare OS for your licensed BC childcare centre.",
     type: "website",
     url: "/contact",
   },
   twitter: {
     card: "summary",
     title: "Contact",
-    description: "Get in touch with BrightCare OS for your licensed BC childcare centre.",
+    description: "Book a demo or get in touch with BrightCare OS for your licensed BC childcare centre.",
   },
   robots: { index: true, follow: true },
 };
+
+const CHECK_ICON = (
+  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+  </svg>
+);
 
 export default function ContactPage() {
   return (
     <div className="px-4 py-16 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
+        {/* Hero */}
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Get in touch
+            Book a Demo
           </h1>
           <p className="mt-4 text-lg text-slate-600">
-            Questions about BrightCare OS? Want to see a personalized demo for
-            your centre? We&rsquo;d love to hear from you.
+            See how BrightCare OS can simplify operations at your childcare
+            centre. We&rsquo;ll walk you through the platform and answer your
+            questions &mdash; no commitment required.
           </p>
         </div>
 
         <div className="mt-12 grid gap-8 md:grid-cols-2">
-          {/* Contact info */}
+          {/* Primary CTA — Book a Demo */}
+          <div className="space-y-6">
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">
+                Request a demo
+              </h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Email us to schedule a personalized walkthrough of BrightCare OS.
+                We&rsquo;ll show you how enrollment, attendance, billing, and
+                parent messaging work together for your centre.
+              </p>
+              <a
+                href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
+                className="mt-4 inline-flex h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                Book a Demo
+              </a>
+            </div>
+
+            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-slate-900">
+                What to expect
+              </h2>
+              <ul className="mt-3 space-y-2.5 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  {CHECK_ICON}
+                  A 20-minute walkthrough tailored to your centre
+                </li>
+                <li className="flex items-start gap-2">
+                  {CHECK_ICON}
+                  See real workflows: enrollment, attendance, billing, reports
+                </li>
+                <li className="flex items-start gap-2">
+                  {CHECK_ICON}
+                  Ask about ACCB/CCFRI billing support and compliance features
+                </li>
+                <li className="flex items-start gap-2">
+                  {CHECK_ICON}
+                  No commitment &mdash; just a conversation
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          {/* Contact info + service area */}
           <div className="space-y-6">
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">
-                Email us
+                General inquiries
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                For general inquiries, demo requests, or pilot program questions:
+                Questions about BrightCare OS, partnerships, or anything else:
               </p>
               <a
                 href="mailto:hello@brightcareos.com"
@@ -71,61 +122,10 @@ export default function ContactPage() {
                 Service area
               </h2>
               <p className="mt-2 text-sm text-slate-500">
-                Our free pilot program is currently focused on licensed childcare
-                centres in the Greater Vancouver area — Vancouver, Burnaby,
-                Richmond, Surrey, and the Lower Mainland. Expanding across BC
-                soon.
+                We work directly with licensed childcare centres in the Greater
+                Vancouver area &mdash; Vancouver, Burnaby, Richmond, Surrey, and
+                the Lower Mainland. Expanding across BC soon.
               </p>
-            </div>
-          </div>
-
-          {/* Quick actions */}
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Try the demo
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                See BrightCare OS in action with sample data. No sign-up, no
-                credit card, no commitment.
-              </p>
-              <Link
-                href="/demo"
-                className="mt-4 inline-flex h-11 items-center rounded-xl bg-emerald-600 px-5 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
-              >
-                Try the demo &mdash; free
-              </Link>
-            </div>
-
-            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900">
-                Free pilot program
-              </h2>
-              <p className="mt-2 text-sm text-slate-500">
-                We&rsquo;re offering BrightCare OS at no cost during our pilot
-                phase. If you operate a licensed childcare centre in the Greater
-                Vancouver area, email us to join.
-              </p>
-              <ul className="mt-3 space-y-1.5 text-sm text-slate-500">
-                <li className="flex items-start gap-2">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  No credit card required
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  Set up in under 30 minutes
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  No long-term commitment
-                </li>
-              </ul>
             </div>
 
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
@@ -135,12 +135,12 @@ export default function ContactPage() {
               <p className="mt-2 text-sm text-slate-500">
                 Sign in to your existing BrightCare OS account.
               </p>
-              <Link
+              <a
                 href="/login"
                 className="mt-4 inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50"
               >
                 Sign in
-              </Link>
+              </a>
             </div>
           </div>
         </div>

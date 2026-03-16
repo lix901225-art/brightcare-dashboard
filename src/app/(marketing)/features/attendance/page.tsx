@@ -114,10 +114,10 @@ export default function AttendanceFeaturePage() {
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
-              href="/demo"
+              href="mailto:hello@brightcareos.com?subject=Demo%20Request%20%E2%80%93%20BrightCare%20OS&body=Hi%2C%20I%20operate%20a%20licensed%20childcare%20centre%20in%20BC%20and%20would%20like%20to%20book%20a%20demo."
               className="inline-flex h-12 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
-              Try it in the demo
+              Book a Demo
             </Link>
             <Link
               href="/contact"
@@ -201,14 +201,14 @@ export default function AttendanceFeaturePage() {
             See attendance tracking in action
           </h2>
           <p className="mt-3 text-slate-500">
-            Try the full attendance workflow in our demo &mdash; no sign-up required.
+            See how attendance tracking works for your centre.
           </p>
           <div className="mt-8">
             <Link
-              href="/demo"
+              href="/contact"
               className="inline-flex h-12 items-center rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
-              Try BrightCare free
+              Book a Demo
             </Link>
           </div>
         </div>
