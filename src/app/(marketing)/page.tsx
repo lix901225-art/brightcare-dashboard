@@ -3,7 +3,7 @@ import React from "react";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "BrightCare OS — Childcare Management Software for BC",
+  title: { absolute: "BrightCare OS — Childcare Management Software for BC" },
   description:
     "All-in-one management platform for licensed BC daycare centres. Enrollment, attendance, billing with ACCB & CCFRI, parent messaging, and compliance.",
   openGraph: {

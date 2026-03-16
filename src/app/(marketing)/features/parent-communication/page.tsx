@@ -200,8 +200,8 @@ export default function ParentCommunicationFeaturePage() {
             See the parent experience
           </h2>
           <p className="mt-3 text-slate-500">
-            Try the parent portal with daily reports and messaging &mdash; no
-            sign-up required.
+            Book a walkthrough and see how daily reports and parent messaging
+            work for your centre.
           </p>
           <div className="mt-8">
             <Link
