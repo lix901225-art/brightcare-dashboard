@@ -10,6 +10,9 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { calcAge, formatDate } from "@/lib/api-helpers";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Child = {
   id: string;
@@ -41,26 +44,8 @@ type GuardianLink = {
   isPickupAuthorized?: boolean;
 };
 
-function age(dob?: string | null) {
-  if (!dob) return null;
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return null;
-  const now = new Date();
-  let years = now.getFullYear() - d.getFullYear();
-  const monthDiff = now.getMonth() - d.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < d.getDate())) years--;
-  if (years < 1) {
-    const months = (now.getFullYear() - d.getFullYear()) * 12 + now.getMonth() - d.getMonth();
-    return `${Math.max(0, months)}mo`;
-  }
-  return `${years}y`;
-}
-
 function fmtDate(value?: string | null) {
-  if (!value) return "—";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" });
+  return formatDate(value);
 }
 
 function daysWaiting(createdAt?: string | null) {
@@ -719,159 +704,278 @@ export default function EnrollmentPage() {
           <CardHeader><CardTitle>Enrollment pipeline</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading...</div>
+              <TableSkeleton rows={6} cols={5} />
             ) : filtered.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                {children.length === 0
-                  ? "No children yet. Add your first child to the waitlist above."
-                  : "No children match this filter."}
-              </div>
+              <FilteredEmptyState
+                totalCount={children.length}
+                filterLabel="filter"
+                onClear={query || view !== "ALL" ? () => { setQuery(""); setView("ALL"); } : undefined}
+              />
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-                <table className="w-full min-w-[900px] text-sm">
-                  <thead className="bg-slate-50 text-left text-slate-500">
-                    <tr>
-                      <th className="px-4 py-3 font-medium">Child</th>
-                      <th className="px-4 py-3 font-medium">Age</th>
-                      <th className="px-4 py-3 font-medium">Status</th>
-                      <th className="px-4 py-3 font-medium">Readiness</th>
-                      <th className="px-4 py-3 font-medium">Start / Wait</th>
-                      <th className="px-4 py-3 font-medium">Room</th>
-                      <th className="px-4 py-3 font-medium">Source</th>
-                      <th className="px-4 py-3 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filtered.map((child) => {
-                      const s = (child.status || "").toUpperCase();
-                      const isTransitioning = transitioning === child.id;
-                      const name = child.fullName || "Unnamed";
-                      const checks = readinessChecks(child);
-                      const passed = checks.filter((c) => c.ok).length;
-                      const total = checks.length;
-                      const wPos = waitlistPositionById[child.id];
-                      const dw = daysWaiting(child.createdAt);
+              <>
+                {/* ── Mobile card view ── */}
+                <div className="space-y-3 md:hidden">
+                  {filtered.map((child) => {
+                    const s = (child.status || "").toUpperCase();
+                    const isTransitioning = transitioning === child.id;
+                    const name = child.fullName || "Unnamed";
+                    const checks = readinessChecks(child);
+                    const passed = checks.filter((c) => c.ok).length;
+                    const total = checks.length;
+                    const wPos = waitlistPositionById[child.id];
+                    const dw = daysWaiting(child.createdAt);
+                    const sc = child.specialConsiderations || "";
+                    const sourceMatch = sc.match(/\[Source:\s*(.+?)\]/);
 
-                      return (
-                        <tr key={child.id} className="border-t border-slate-200 hover:bg-slate-50/50">
-                          <td className="px-4 py-3">
-                            <Link href={`/children/${encodeURIComponent(child.id)}`} className="group">
-                              <div className="font-medium text-slate-900 group-hover:text-slate-600">{name}</div>
-                              {child.preferredName ? <div className="text-xs text-slate-500">{child.preferredName}</div> : null}
-                            </Link>
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">{age(child.dob) || "—"}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-1.5">
-                              <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", statusColor(s)].join(" ")}>
-                                {s || "UNKNOWN"}
+                    return (
+                      <div key={child.id} className="rounded-xl border border-slate-200 bg-white p-4">
+                        {/* Row 1: name + status */}
+                        <div className="flex items-start justify-between gap-2">
+                          <Link href={`/children/${encodeURIComponent(child.id)}`} className="group min-w-0">
+                            <div className="font-medium text-slate-900 group-hover:text-slate-600 truncate">{name}</div>
+                            {child.preferredName ? <div className="text-xs text-slate-500 truncate">{child.preferredName}</div> : null}
+                          </Link>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", statusColor(s)].join(" ")}>
+                              {s || "UNKNOWN"}
+                            </span>
+                            {s === "WAITLIST" && wPos ? (
+                              <span className="text-xs font-medium text-amber-600">#{wPos}</span>
+                            ) : null}
+                          </div>
+                        </div>
+
+                        {/* Row 2: metadata pills */}
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                          {calcAge(child.dob) ? <span>{calcAge(child.dob)} old</span> : null}
+                          {child.roomId ? <span>{roomNameById[child.roomId] || "—"}</span> : null}
+                          {passed === total ? (
+                            <span className="inline-flex items-center gap-1 text-emerald-600">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {passed}/{total}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-amber-600">
+                              <AlertTriangle className="h-3 w-3" />
+                              {passed}/{total}
+                            </span>
+                          )}
+                          {sourceMatch ? <span className="text-slate-400">{sourceMatch[1]}</span> : null}
+                        </div>
+
+                        {/* Row 3: date info */}
+                        {(s === "WAITLIST" && (child.startDate || dw !== null)) || (s !== "WAITLIST" && child.startDate) ? (
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                            {s === "WAITLIST" && child.startDate ? (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3 text-slate-400" />
+                                Want {fmtDate(child.startDate)}
                               </span>
-                              {s === "WAITLIST" && wPos ? (
-                                <span className="text-xs font-medium text-amber-600">#{wPos}</span>
-                              ) : null}
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            {passed === total ? (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-                                <CheckCircle2 className="h-3 w-3" />
-                                {passed}/{total}
-                              </span>
-                            ) : (
-                              <Link
-                                href={`/children/${encodeURIComponent(child.id)}`}
-                                className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
-                                title={`Missing: ${checks.filter((c) => !c.ok).map((c) => c.label).join(", ")}`}
-                              >
-                                <AlertTriangle className="h-3 w-3" />
-                                {passed}/{total}
-                              </Link>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {s === "WAITLIST" ? (
-                              <div>
-                                {child.startDate ? (
-                                  <div className="flex items-center gap-1.5 text-xs">
-                                    <Clock className="h-3 w-3 text-slate-400" />
-                                    Want {fmtDate(child.startDate)}
-                                  </div>
-                                ) : null}
-                                {dw !== null ? (
-                                  <div className={`text-xs font-medium ${dw > 30 ? "text-rose-600" : dw > 14 ? "text-amber-600" : "text-slate-500"}`}>
-                                    {dw}d waiting
-                                  </div>
-                                ) : null}
-                              </div>
                             ) : child.startDate ? (
-                              <div className="flex items-center gap-1.5">
+                              <span className="flex items-center gap-1">
                                 <Clock className="h-3 w-3 text-slate-400" />
                                 {fmtDate(child.startDate)}
+                              </span>
+                            ) : null}
+                            {s === "WAITLIST" && dw !== null ? (
+                              <span className={`font-medium ${dw > 30 ? "text-rose-600" : dw > 14 ? "text-amber-600" : "text-slate-500"}`}>
+                                {dw}d waiting
+                              </span>
+                            ) : null}
+                          </div>
+                        ) : null}
+
+                        {/* Row 4: actions */}
+                        <div className="mt-3 flex flex-wrap items-center gap-2">
+                          {s === "WAITLIST" ? (
+                            <button
+                              onClick={() => handleEnrollClick(child)}
+                              disabled={isTransitioning}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                            >
+                              <ArrowRight className="h-3 w-3" />
+                              Enroll
+                            </button>
+                          ) : null}
+                          {s === "ACTIVE" ? (
+                            <button
+                              onClick={() => transitionStatus(child.id, "WITHDRAWN", name)}
+                              disabled={isTransitioning}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                            >
+                              <UserMinus className="h-3 w-3" />
+                              Withdraw
+                            </button>
+                          ) : null}
+                          {s === "WITHDRAWN" ? (
+                            <button
+                              onClick={() => transitionStatus(child.id, "WAITLIST", name)}
+                              disabled={isTransitioning}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                            >
+                              <UserPlus className="h-3 w-3" />
+                              Re-waitlist
+                            </button>
+                          ) : null}
+                          <Link
+                            href={`/children/${encodeURIComponent(child.id)}`}
+                            className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            Profile
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* ── Desktop table ── */}
+                <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                  <table className="w-full min-w-[900px] text-sm">
+                    <thead className="bg-slate-50 text-left text-slate-500">
+                      <tr>
+                        <th className="px-4 py-3 font-medium">Child</th>
+                        <th className="px-4 py-3 font-medium">Age</th>
+                        <th className="px-4 py-3 font-medium">Status</th>
+                        <th className="px-4 py-3 font-medium">Readiness</th>
+                        <th className="px-4 py-3 font-medium">Start / Wait</th>
+                        <th className="px-4 py-3 font-medium">Room</th>
+                        <th className="px-4 py-3 font-medium">Source</th>
+                        <th className="px-4 py-3 font-medium">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtered.map((child) => {
+                        const s = (child.status || "").toUpperCase();
+                        const isTransitioning = transitioning === child.id;
+                        const name = child.fullName || "Unnamed";
+                        const checks = readinessChecks(child);
+                        const passed = checks.filter((c) => c.ok).length;
+                        const total = checks.length;
+                        const wPos = waitlistPositionById[child.id];
+                        const dw = daysWaiting(child.createdAt);
+
+                        return (
+                          <tr key={child.id} className="border-t border-slate-200 hover:bg-slate-50/50">
+                            <td className="px-4 py-3">
+                              <Link href={`/children/${encodeURIComponent(child.id)}`} className="group">
+                                <div className="font-medium text-slate-900 group-hover:text-slate-600">{name}</div>
+                                {child.preferredName ? <div className="text-xs text-slate-500">{child.preferredName}</div> : null}
+                              </Link>
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">{calcAge(child.dob) || "—"}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1.5">
+                                <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", statusColor(s)].join(" ")}>
+                                  {s || "UNKNOWN"}
+                                </span>
+                                {s === "WAITLIST" && wPos ? (
+                                  <span className="text-xs font-medium text-amber-600">#{wPos}</span>
+                                ) : null}
                               </div>
-                            ) : "—"}
-                          </td>
-                          <td className="px-4 py-3 text-slate-600">
-                            {child.roomId ? roomNameById[child.roomId] || "—" : "—"}
-                          </td>
-                          <td className="px-4 py-3">
-                            {(() => {
-                              const sc = child.specialConsiderations || "";
-                              const match = sc.match(/\[Source:\s*(.+?)\]/);
-                              return match ? (
-                                <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
-                                  {match[1]}
+                            </td>
+                            <td className="px-4 py-3">
+                              {passed === total ? (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  {passed}/{total}
                                 </span>
                               ) : (
-                                <span className="text-xs text-slate-400">—</span>
-                              );
-                            })()}
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
+                                <Link
+                                  href={`/children/${encodeURIComponent(child.id)}`}
+                                  className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700 hover:bg-amber-100"
+                                  title={`Missing: ${checks.filter((c) => !c.ok).map((c) => c.label).join(", ")}`}
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                  {passed}/{total}
+                                </Link>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">
                               {s === "WAITLIST" ? (
-                                <button
-                                  onClick={() => handleEnrollClick(child)}
-                                  disabled={isTransitioning}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                                <div>
+                                  {child.startDate ? (
+                                    <div className="flex items-center gap-1.5 text-xs">
+                                      <Clock className="h-3 w-3 text-slate-400" />
+                                      Want {fmtDate(child.startDate)}
+                                    </div>
+                                  ) : null}
+                                  {dw !== null ? (
+                                    <div className={`text-xs font-medium ${dw > 30 ? "text-rose-600" : dw > 14 ? "text-amber-600" : "text-slate-500"}`}>
+                                      {dw}d waiting
+                                    </div>
+                                  ) : null}
+                                </div>
+                              ) : child.startDate ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3 text-slate-400" />
+                                  {fmtDate(child.startDate)}
+                                </div>
+                              ) : "—"}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600">
+                              {child.roomId ? roomNameById[child.roomId] || "—" : "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              {(() => {
+                                const sc = child.specialConsiderations || "";
+                                const match = sc.match(/\[Source:\s*(.+?)\]/);
+                                return match ? (
+                                  <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-600">
+                                    {match[1]}
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-slate-400">—</span>
+                                );
+                              })()}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                {s === "WAITLIST" ? (
+                                  <button
+                                    onClick={() => handleEnrollClick(child)}
+                                    disabled={isTransitioning}
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                                  >
+                                    <ArrowRight className="h-3 w-3" />
+                                    Enroll
+                                  </button>
+                                ) : null}
+                                {s === "ACTIVE" ? (
+                                  <button
+                                    onClick={() => transitionStatus(child.id, "WITHDRAWN", name)}
+                                    disabled={isTransitioning}
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                                  >
+                                    <UserMinus className="h-3 w-3" />
+                                    Withdraw
+                                  </button>
+                                ) : null}
+                                {s === "WITHDRAWN" ? (
+                                  <button
+                                    onClick={() => transitionStatus(child.id, "WAITLIST", name)}
+                                    disabled={isTransitioning}
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                                  >
+                                    <UserPlus className="h-3 w-3" />
+                                    Re-waitlist
+                                  </button>
+                                ) : null}
+                                <Link
+                                  href={`/children/${encodeURIComponent(child.id)}`}
+                                  className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
                                 >
-                                  <ArrowRight className="h-3 w-3" />
-                                  Enroll
-                                </button>
-                              ) : null}
-                              {s === "ACTIVE" ? (
-                                <button
-                                  onClick={() => transitionStatus(child.id, "WITHDRAWN", name)}
-                                  disabled={isTransitioning}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
-                                >
-                                  <UserMinus className="h-3 w-3" />
-                                  Withdraw
-                                </button>
-                              ) : null}
-                              {s === "WITHDRAWN" ? (
-                                <button
-                                  onClick={() => transitionStatus(child.id, "WAITLIST", name)}
-                                  disabled={isTransitioning}
-                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-200 bg-white px-3 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-50"
-                                >
-                                  <UserPlus className="h-3 w-3" />
-                                  Re-waitlist
-                                </button>
-                              ) : null}
-                              <Link
-                                href={`/children/${encodeURIComponent(child.id)}`}
-                                className="inline-flex h-8 items-center rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
-                              >
-                                Profile
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                  Profile
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>
