@@ -422,12 +422,23 @@ export default function GuardiansPage() {
 
                 <div>
                   <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Relation</div>
-                  <input
+                  <select
                     value={relation}
                     onChange={(e) => setRelation(e.target.value)}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                    placeholder="parent, grandparent, aunt..."
-                  />
+                  >
+                    <option value="parent">Parent</option>
+                    <option value="grandparent">Grandparent</option>
+                    <option value="step-parent">Step-parent</option>
+                    <option value="foster-parent">Foster parent</option>
+                    <option value="sibling">Sibling</option>
+                    <option value="aunt">Aunt</option>
+                    <option value="uncle">Uncle</option>
+                    <option value="other-family">Other family member</option>
+                    <option value="family-friend">Family friend</option>
+                    <option value="nanny">Nanny / caregiver</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
 
                 <div>
@@ -499,12 +510,23 @@ export default function GuardiansPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Relation</div>
-                  <input
+                  <select
                     value={relation}
                     onChange={(e) => setRelation(e.target.value)}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                    placeholder="parent, grandparent, aunt..."
-                  />
+                  >
+                    <option value="parent">Parent</option>
+                    <option value="grandparent">Grandparent</option>
+                    <option value="step-parent">Step-parent</option>
+                    <option value="foster-parent">Foster parent</option>
+                    <option value="sibling">Sibling</option>
+                    <option value="aunt">Aunt</option>
+                    <option value="uncle">Uncle</option>
+                    <option value="other-family">Other family member</option>
+                    <option value="family-friend">Family friend</option>
+                    <option value="nanny">Nanny / caregiver</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
 
                 <div>

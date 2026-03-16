@@ -474,15 +474,21 @@ export default function ChildDetailPage() {
                 </label>
                 <label className="grid gap-1">
                   <span className="text-xs uppercase tracking-wide text-slate-400">Preferred name</span>
-                  <input value={form.preferredName} onChange={(e) => setForm({ ...form, preferredName: e.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 outline-none" />
+                  <input value={form.preferredName} maxLength={100} onChange={(e) => setForm({ ...form, preferredName: e.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 outline-none" />
                 </label>
                 <label className="grid gap-1">
                   <span className="text-xs uppercase tracking-wide text-slate-400">DOB</span>
-                  <input type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 outline-none" />
+                  <input type="date" value={form.dob} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setForm({ ...form, dob: e.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 outline-none" />
                 </label>
                 <label className="grid gap-1">
                   <span className="text-xs uppercase tracking-wide text-slate-400">Gender</span>
-                  <input value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 outline-none" />
+                  <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })} className="h-10 rounded-xl border border-slate-200 px-3 outline-none">
+                    <option value="">Not specified</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Non-binary">Non-binary</option>
+                    <option value="Prefer not to say">Prefer not to say</option>
+                  </select>
                 </label>
                 <label className="grid gap-1">
                   <span className="text-xs uppercase tracking-wide text-slate-400">Start date</span>
@@ -520,7 +526,8 @@ export default function ChildDetailPage() {
                     <textarea
                       value={form[key]}
                       onChange={(e) => setForm({ ...form, [key]: e.target.value })}
-                      className="min-h-24 rounded-xl border border-slate-200 px-3 py-2 outline-none"
+                      maxLength={2000}
+                      className="min-h-24 max-h-48 rounded-xl border border-slate-200 px-3 py-2 outline-none"
                     />
                   </label>
                 ))}

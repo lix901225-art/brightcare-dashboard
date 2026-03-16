@@ -262,21 +262,31 @@ export default function MessagesPage() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Child</div>
-                  <select
-                    value={childId}
-                    onChange={(e) => setChildId(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                  >
-                    <option value="">Select child</option>
-                    {children.map((child) => (
-                      <option key={child.id} value={child.id}>
-                        {child.fullName || child.id}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Hide child selector for parents with only 1 child */}
+                {isParent && children.length === 1 ? (
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">About</div>
+                    <div className="flex h-11 items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">
+                      {children[0].fullName || "Your child"}
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">{isParent ? "About" : "Child"}</div>
+                    <select
+                      value={childId}
+                      onChange={(e) => setChildId(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    >
+                      <option value="">Select child</option>
+                      {children.map((child) => (
+                        <option key={child.id} value={child.id}>
+                          {child.fullName || child.id}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               <div className="mt-4">
