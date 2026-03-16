@@ -6,6 +6,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { CardListSkeleton } from "@/components/ui/skeleton";
 
 type Room = {
   id: string;
@@ -358,9 +359,7 @@ export default function RoomsPage() {
         </div>
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            Loading rooms...
-          </div>
+          <CardListSkeleton count={3} />
         ) : filteredRooms.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
             {rooms.length === 0 ? "No rooms yet. Create your first classroom above." : "No rooms match your search."}

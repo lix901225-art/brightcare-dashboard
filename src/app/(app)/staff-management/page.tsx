@@ -6,6 +6,8 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { TableSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type UserRow = {
   id: string;
@@ -294,13 +296,12 @@ export default function StaffManagementPage() {
           <CardHeader><CardTitle>Users</CardTitle></CardHeader>
           <CardContent>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading users...
-              </div>
+              <TableSkeleton rows={5} cols={4} />
             ) : filteredUsers.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                No users found.
-              </div>
+              <FilteredEmptyState
+                totalCount={users.length}
+                filterLabel="search or role filter"
+              />
             ) : (
               <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
                 <table className="w-full min-w-[500px] text-sm">

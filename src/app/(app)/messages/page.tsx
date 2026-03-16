@@ -9,6 +9,8 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { relativeTime } from "@/lib/api-helpers";
+import { CardListSkeleton } from "@/components/ui/skeleton";
+import { FilteredEmptyState } from "@/components/ui/empty-state";
 
 type Thread = {
   id: string;
@@ -308,13 +310,12 @@ export default function MessagesPage() {
 
         <div className="space-y-3">
           {loading ? (
-            <Card className="rounded-2xl border-0 shadow-sm">
-              <CardContent className="p-8 text-sm text-slate-500">Loading threads...</CardContent>
-            </Card>
+            <CardListSkeleton count={4} />
           ) : filteredThreads.length === 0 ? (
-            <Card className="rounded-2xl border-0 shadow-sm">
-              <CardContent className="p-8 text-sm text-slate-500">No conversation threads found.</CardContent>
-            </Card>
+            <FilteredEmptyState
+              totalCount={threads.length}
+              filterLabel="search"
+            />
           ) : (
             filteredThreads.map((thread) => (
               <Link

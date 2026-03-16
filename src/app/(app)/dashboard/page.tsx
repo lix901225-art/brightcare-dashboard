@@ -7,6 +7,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
 
 type Child = { id: string; fullName?: string | null; status?: string | null };
 type AttendanceRow = { id: string; childId: string; status?: string | null; checkinAt?: string | null; checkoutAt?: string | null };
@@ -278,8 +279,9 @@ export default function DashboardPage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            Loading dashboard...
+          <div className="space-y-6">
+            <MetricCardsSkeleton count={6} />
+            <CardListSkeleton count={3} />
           </div>
         ) : (
           <>
