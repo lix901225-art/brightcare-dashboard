@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, X, FileCheck, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
@@ -181,6 +182,14 @@ export default function PoliciesPage() {
   return (
     <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
       <div>
+        {isParent ? (
+          <div className="mb-4">
+            <Link href="/parent" className="text-sm text-slate-500 hover:text-slate-700">
+              &larr; Back to parent home
+            </Link>
+          </div>
+        ) : null}
+
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Policies"

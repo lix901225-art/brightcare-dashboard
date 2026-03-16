@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useCallback } from "react";
 import { Megaphone, Clock } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
@@ -45,10 +46,15 @@ export default function ParentAnnouncementsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div className="mb-2">
+        <Link href="/parent" className="text-sm text-slate-500 hover:text-slate-700">
+          &larr; Back to parent home
+        </Link>
+      </div>
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Announcements</h1>
         <p className="mt-1 text-sm text-slate-500">
-          Updates from your childcare center
+          Updates from your childcare centre
         </p>
       </div>
 
