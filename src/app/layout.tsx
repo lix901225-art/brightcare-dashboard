@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Auth0ProviderClient from "@/lib/auth0-provider";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://brightcareos.com"),
@@ -31,9 +30,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <Auth0ProviderClient>{children}</Auth0ProviderClient>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
