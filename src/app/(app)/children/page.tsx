@@ -302,6 +302,7 @@ export default function ChildrenPage() {
                   <input
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    maxLength={255}
                     className={`h-11 w-full rounded-xl border bg-white px-3 text-sm outline-none ${fullName.trim() ? "border-emerald-300" : "border-slate-200"}`}
                     placeholder="Child full name"
                   />

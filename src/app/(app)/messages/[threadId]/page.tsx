@@ -418,6 +418,7 @@ export default function MessageThreadPage() {
               <textarea
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
+                maxLength={5000}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -450,6 +451,7 @@ export default function MessageThreadPage() {
             <textarea
               value={body}
               onChange={(e) => setBody(e.target.value)}
+              maxLength={5000}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();

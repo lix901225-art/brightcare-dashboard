@@ -446,6 +446,7 @@ export default function GuardiansPage() {
                   <input
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
+                    maxLength={500}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
                     placeholder="Optional"
                   />
@@ -534,6 +535,7 @@ export default function GuardiansPage() {
                   <input
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
+                    maxLength={500}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
                     placeholder="Optional"
                   />

@@ -294,6 +294,7 @@ export default function MessagesPage() {
                 <textarea
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
+                  maxLength={5000}
                   placeholder={isParent ? "Write a message to your child\u2019s centre..." : "Write a message to the family or internal staff group..."}
                   className="min-h-[110px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
                 />
