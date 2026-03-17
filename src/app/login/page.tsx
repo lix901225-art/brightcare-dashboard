@@ -7,12 +7,35 @@ import { apiFetch } from "@/lib/api-client";
 import { getRoleHome } from "@/lib/workspace";
 import { writeSession } from "@/lib/session";
 import { getErrorMessage } from "@/lib/error";
-
-const AUTH0_ENABLED =
-  !!process.env.NEXT_PUBLIC_AUTH0_DOMAIN &&
-  process.env.NEXT_PUBLIC_AUTH0_DOMAIN !== "YOUR_AUTH0_DOMAIN";
+import { AUTH0_ENABLED } from "@/lib/auth0-provider";
 
 type Mode = "login" | "register";
+
+/** Extracted component so useAuth0() is always called (Rules of Hooks). */
+function Auth0LoginButton() {
+  const { loginWithRedirect, isLoading } = useAuth0();
+
+  return (
+    <>
+      <button
+        onClick={() => loginWithRedirect({ appState: { returnTo: "/dashboard" } })}
+        disabled={isLoading}
+        className="mb-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+      >
+        {isLoading ? "Loading..." : "Continue with Auth0"}
+      </button>
+
+      <div className="relative mb-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-slate-200" />
+        </div>
+        <div className="relative flex justify-center text-xs">
+          <span className="bg-white px-3 text-slate-400">or sign in with phone</span>
+        </div>
+      </div>
+    </>
+  );
+}
 
 export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("login");
@@ -22,8 +45,6 @@ export default function LoginPage() {
   const [tenantName, setTenantName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const auth0 = AUTH0_ENABLED ? useAuth0() : null;
 
   const canSubmit = useMemo(() => {
     if (loading) return false;
@@ -104,13 +125,6 @@ export default function LoginPage() {
     }
   }
 
-  function handleAuth0Login() {
-    if (!auth0) return;
-    auth0.loginWithRedirect({
-      appState: { returnTo: "/dashboard" },
-    });
-  }
-
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <Card className="w-full max-w-md rounded-3xl border-0 shadow-sm">
@@ -124,26 +138,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {AUTH0_ENABLED ? (
-            <>
-              <button
-                onClick={handleAuth0Login}
-                disabled={auth0?.isLoading}
-                className="mb-4 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-              >
-                {auth0?.isLoading ? "Loading..." : "Continue with Auth0"}
-              </button>
-
-              <div className="relative mb-4">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200" />
-                </div>
-                <div className="relative flex justify-center text-xs">
-                  <span className="bg-white px-3 text-slate-400">or sign in with phone</span>
-                </div>
-              </div>
-            </>
-          ) : null}
+          {AUTH0_ENABLED ? <Auth0LoginButton /> : null}
 
           <div className="mb-4 grid grid-cols-2 rounded-xl bg-slate-100 p-1 text-sm">
             <button
