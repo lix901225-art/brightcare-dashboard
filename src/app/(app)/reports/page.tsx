@@ -13,7 +13,10 @@ import {
   Shield,
   Landmark,
   Award,
+  ArrowRight,
+  Receipt,
 } from "lucide-react";
+import Link from "next/link";
 import { apiFetch } from "@/lib/api-client";
 
 type ReportType =
@@ -440,6 +443,41 @@ export default function ReportsPage() {
         <p className="mt-1 text-sm text-slate-500">
           Export your centre data as CSV for record-keeping and compliance
         </p>
+      </div>
+
+      {/* Quick links to management pages */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/reports/funding"
+          className="group flex items-center justify-between rounded-2xl border-0 bg-gradient-to-br from-sky-50 to-sky-100 p-4 shadow-sm transition hover:shadow-md"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-600 text-white">
+              <Landmark className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">BC Funding Reports</h3>
+              <p className="text-xs text-slate-600">Manage CCFRI, $10/Day reports</p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-slate-400 transition group-hover:translate-x-1" />
+        </Link>
+
+        <Link
+          href="/reports/tax-receipts"
+          className="group flex items-center justify-between rounded-2xl border-0 bg-gradient-to-br from-emerald-50 to-emerald-100 p-4 shadow-sm transition hover:shadow-md"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
+              <Receipt className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-slate-900">Tax Receipts</h3>
+              <p className="text-xs text-slate-600">Generate Canada tax receipts</p>
+            </div>
+          </div>
+          <ArrowRight className="h-5 w-5 text-slate-400 transition group-hover:translate-x-1" />
+        </Link>
       </div>
 
       {/* Date range filter */}
