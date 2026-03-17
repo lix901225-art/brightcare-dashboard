@@ -27,6 +27,6 @@ export type Auth0SyncResponse = {
   role: "OWNER" | "STAFF" | "PARENT";
   displayName: string;
   tenantName: string;
-  /** Track B: JWT token — backend will return this once JWT signing is added. */
+  /** JWT token issued by the backend after sync. */
   token?: string;
 };
