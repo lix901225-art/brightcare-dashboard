@@ -2,6 +2,7 @@ import { clearSession, readSession } from "@/lib/session";
 import { readToken, writeToken, clearToken } from "@/lib/token-store";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
+const REFRESH_TIMEOUT_MS = 10_000;
 
 type ApiInit = RequestInit & {
   skipAuth?: boolean;
@@ -43,12 +44,16 @@ async function tryRefreshToken(): Promise<string | null> {
   const currentToken = readToken();
   if (!currentToken) return null;
 
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REFRESH_TIMEOUT_MS);
+
   try {
     const res = await fetch("/api/proxy/auth/refresh", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ token: currentToken }),
       cache: "no-store",
+      signal: controller.signal,
     });
 
     if (!res.ok) return null;
@@ -61,6 +66,8 @@ async function tryRefreshToken(): Promise<string | null> {
     return null;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

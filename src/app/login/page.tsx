@@ -88,17 +88,26 @@ function LoginPageInner() {
         throw new Error(data?.message || `Auth failed: ${res.status}`);
       }
 
+      // Track B: store JWT from backend login/register response
+      if (data.token) writeToken(data.token);
+
       let resolvedTenantName = tenantName.trim();
 
       if (!resolvedTenantName) {
         try {
+          const tenantHeaders: Record<string, string> = {
+            "Content-Type": "application/json",
+            "x-user-id": data.userId,
+            "x-tenant-id": data.tenantId,
+          };
+          // Include JWT for Track B consistency
+          if (data.token) {
+            tenantHeaders["Authorization"] = `Bearer ${data.token}`;
+          }
+
           const tenantRes = await fetch("/api/proxy/tenant/current", {
             method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              "x-user-id": data.userId,
-              "x-tenant-id": data.tenantId,
-            },
+            headers: tenantHeaders,
             cache: "no-store",
           });
 
@@ -112,9 +121,6 @@ function LoginPageInner() {
           resolvedTenantName = data.tenantId;
         }
       }
-
-      // Track B: store JWT from backend login/register response
-      if (data.token) writeToken(data.token);
 
       writeSession({
         userId: data.userId,
