@@ -6,7 +6,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, type AppRole } from "@/lib/workspace";
 import { clearSession, readSession } from "@/lib/session";
-import { logout as auth0Logout } from "@/lib/auth0-logout";
+import { useLogout } from "@/lib/use-logout";
 import { StaffMobileNav } from "@/components/app/staff-mobile-nav";
 
 type ShellSession = {
@@ -138,7 +138,6 @@ function SidebarContent({
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-
   const [mounted, setMounted] = useState(false);
   const [session, setSession] = useState<ShellSession>(FALLBACK_SESSION);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -170,11 +169,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navItems = useMemo(() => NAV_BY_ROLE[session.role] || NAV_BY_ROLE.OWNER, [session.role]);
 
-  function logout() {
-    // Track B: auth0Logout handles both Auth0 and non-Auth0 cases —
-    // clears local session, then redirects to Auth0 /v2/logout or /login.
-    auth0Logout();
-  }
+  const logout = useLogout();
 
   const tenantTitle = mounted ? session.tenantName || "Workspace" : "Workspace";
   const tenantSub = mounted ? session.tenantId || "No tenant selected" : "Loading workspace...";
