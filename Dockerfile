@@ -34,7 +34,8 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 
-# Copy standalone server and static assets
+# Copy standalone server — Next.js nests output under the project path
+# when it detects a monorepo structure. Handle both layouts.
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
@@ -45,4 +46,6 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/ || exit 1
 
 # API_BASE_URL is a runtime env var (server-side only, not baked into client bundle)
-CMD ["node", "server.js"]
+# Next.js standalone may place server.js at root or under apps/dashboard/
+# depending on monorepo detection. The entrypoint handles both.
+CMD ["sh", "-c", "if [ -f server.js ]; then node server.js; else node apps/dashboard/server.js; fi"]
