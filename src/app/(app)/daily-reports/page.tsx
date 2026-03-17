@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Plus, Search, X, Utensils, Moon, Smile, Activity } from "lucide-react";
+import { AlertTriangle, Plus, Search, Users, X, Utensils, Moon, Smile, Activity, MessageSquare } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +28,9 @@ type DailyReport = {
   naps?: number | null;
   mood?: string | null;
   activities?: string | null;
+  notes?: string | null;
+  bathroom?: string | null;
+  photoUrls?: string[];
   photosCount?: number;
 };
 
@@ -65,6 +68,9 @@ export default function DailyReportsPage() {
   const [naps, setNaps] = useState("0");
   const [mood, setMood] = useState("");
   const [activities, setActivities] = useState("");
+  const [notes, setNotes] = useState("");
+  const [showBatch, setShowBatch] = useState(false);
+  const [batchChildIds, setBatchChildIds] = useState<string[]>([]);
 
   async function loadAll() {
     try {
@@ -159,7 +165,9 @@ export default function DailyReportsPage() {
     setNaps("0");
     setMood("");
     setActivities("");
+    setNotes("");
     setDate(new Date().toISOString().slice(0, 10));
+    setBatchChildIds([]);
   }
 
   async function createReport() {
@@ -180,6 +188,7 @@ export default function DailyReportsPage() {
           naps: Number(naps) || undefined,
           mood: mood || undefined,
           activities: activities.trim() || undefined,
+          notes: notes.trim() || undefined,
         }),
       });
 
@@ -195,6 +204,42 @@ export default function DailyReportsPage() {
       await loadAll();
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to create daily report."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function batchCreate() {
+    try {
+      setSaving(true);
+      setError("");
+      setOk("");
+      if (batchChildIds.length === 0) throw new Error("Select at least one child.");
+      if (!date) throw new Error("Date is required.");
+
+      const res = await apiFetch("/daily-reports/batch", {
+        method: "POST",
+        body: JSON.stringify({
+          childIds: batchChildIds,
+          date,
+          meals: meals.trim() || undefined,
+          naps: Number(naps) || undefined,
+          mood: mood || undefined,
+          activities: activities.trim() || undefined,
+          notes: notes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Batch create failed: ${res.status}`);
+
+      const count = Array.isArray(data) ? data.length : batchChildIds.length;
+      setOk(`${count} daily report${count !== 1 ? "s" : ""} created.`);
+      setShowBatch(false);
+      resetForm();
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to batch create reports."));
     } finally {
       setSaving(false);
     }
@@ -302,6 +347,18 @@ export default function DailyReportsPage() {
               </div>
             </div>
           ) : null}
+
+          {report.notes ? (
+            <div className="flex items-start gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                <MessageSquare className="h-4 w-4 text-slate-500" />
+              </div>
+              <div>
+                <div className="text-xs font-medium text-slate-500">Notes</div>
+                <div className="mt-0.5 text-sm text-slate-800">{report.notes}</div>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -391,13 +448,22 @@ export default function DailyReportsPage() {
                 description="Daily activity logs shared with families — meals, naps, mood, and activities."
               />
               {canCreate ? (
-                <button
-                  onClick={() => setShowCreate(true)}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
-                >
-                  <Plus className="h-4 w-4" />
-                  New report
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { setShowBatch(true); setShowCreate(false); resetForm(); setBatchChildIds(missingChildren.map((c) => c.id)); }}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    <Users className="h-4 w-4" />
+                    Batch create
+                  </button>
+                  <button
+                    onClick={() => { setShowCreate(true); setShowBatch(false); }}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+                  >
+                    <Plus className="h-4 w-4" />
+                    New report
+                  </button>
+                </div>
               ) : null}
             </div>
 
@@ -535,6 +601,18 @@ export default function DailyReportsPage() {
                     />
                   </div>
 
+                  <div className="mt-4">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Notes for parents
+                    </div>
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Any additional notes for the family..."
+                      className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+                    />
+                  </div>
+
                   <div className="mt-6 flex gap-3">
                     <button
                       onClick={createReport}
@@ -552,6 +630,80 @@ export default function DailyReportsPage() {
                     >
                       Cancel
                     </button>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : null}
+
+            {showBatch && canCreate ? (
+              <Card className="mb-6 rounded-2xl border-0 shadow-sm">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle>Batch daily reports</CardTitle>
+                    <span className="text-xs text-slate-500">{batchChildIds.length} children selected</span>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Date</div>
+                      <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Mood</div>
+                      <select value={mood} onChange={(e) => setMood(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                        <option value="">Select mood</option>
+                        {MOOD_OPTIONS.map((m) => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Naps</div>
+                      <input type="number" min="0" max="5" value={naps} onChange={(e) => setNaps(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                    </div>
+                  </div>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Meals</div>
+                      <textarea value={meals} onChange={(e) => setMeals(e.target.value)} placeholder="Breakfast, snack, lunch..." className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none" />
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Activities</div>
+                      <textarea value={activities} onChange={(e) => setActivities(e.target.value)} placeholder="Circle time, outdoor play..." className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none" />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Notes for parents</div>
+                    <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any additional notes..." className="min-h-[50px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none" />
+                  </div>
+                  <div className="mt-4">
+                    <div className="mb-2 flex items-center justify-between">
+                      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">Select children</div>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => setBatchChildIds(missingChildren.map((c) => c.id))} className="text-xs font-medium text-slate-600 hover:text-slate-900">Missing only</button>
+                        <button type="button" onClick={() => setBatchChildIds(children.map((c) => c.id))} className="text-xs font-medium text-slate-600 hover:text-slate-900">All</button>
+                        <button type="button" onClick={() => setBatchChildIds([])} className="text-xs font-medium text-slate-600 hover:text-slate-900">Clear</button>
+                      </div>
+                    </div>
+                    <div className="grid gap-1.5 md:grid-cols-3 lg:grid-cols-4">
+                      {children.map((child) => {
+                        const selected = batchChildIds.includes(child.id);
+                        return (
+                          <label key={child.id} className={["flex cursor-pointer items-center gap-2 rounded-lg border p-2 text-sm transition-colors", selected ? "border-slate-900 bg-slate-50" : "border-slate-200 hover:bg-slate-50"].join(" ")}>
+                            <input type="checkbox" checked={selected} onChange={(e) => {
+                              if (e.target.checked) setBatchChildIds((prev) => [...prev, child.id]);
+                              else setBatchChildIds((prev) => prev.filter((id) => id !== child.id));
+                            }} className="h-4 w-4 rounded border-slate-300" />
+                            <span className="text-slate-700">{child.fullName || child.id}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div className="mt-4 flex gap-3">
+                    <button onClick={batchCreate} disabled={saving || batchChildIds.length === 0} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                      {saving ? "Creating..." : `Create ${batchChildIds.length} report${batchChildIds.length !== 1 ? "s" : ""}`}
+                    </button>
+                    <button onClick={() => { setShowBatch(false); resetForm(); }} className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                   </div>
                 </CardContent>
               </Card>
