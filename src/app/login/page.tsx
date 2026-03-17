@@ -110,7 +110,7 @@ export default function LoginPage() {
         }
       }
 
-      // Track B: store JWT if backend returns one (future — currently not sent)
+      // Track B: store JWT from backend login/register response
       if (data.token) writeToken(data.token);
 
       writeSession({
