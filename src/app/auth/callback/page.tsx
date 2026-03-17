@@ -65,8 +65,8 @@ function Auth0CallbackInner() {
         });
 
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          const msg = data?.message || `Sync failed: ${res.status}`;
+          const data = await res.json().catch(() => ({ message: null }));
+          const msg = data?.message || `Sync failed (HTTP ${res.status}). Please try again.`;
           // Surface a clearer message when the backend endpoint is not yet available
           if (res.status === 404) {
             throw new Error(
