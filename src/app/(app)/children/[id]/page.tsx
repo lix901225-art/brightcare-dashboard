@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, Check, ChevronLeft, Clock, FileText, Heart, Pencil, Save, Shield, X } from "lucide-react";
+import { AlertTriangle, Check, ChevronLeft, Clock, FileText, Heart, Pencil, Plus, Save, Shield, Syringe, Star, X } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -375,6 +375,7 @@ export default function ChildDetailPage() {
         <Link href={`/attendance?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Attendance</Link>
         <Link href={`/daily-reports?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Daily Reports</Link>
         <Link href={`/messages?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Messages</Link>
+        <Link href={`/documents?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Documents</Link>
         <Link href="/billing" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Billing</Link>
       </div>
 
@@ -676,7 +677,371 @@ export default function ChildDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ─── Immunization tracking (BC guidelines) ─── */}
+      <ImmunizationSection childId={id} />
+
+      {/* ─── Developmental milestones ─── */}
+      <MilestonesSection childId={id} childDob={child.dob} />
     </div>
     </RoleGate>
+  );
+}
+
+/* ─── BC Immunization Record Tracking ─── */
+
+const BC_IMMUNIZATIONS = [
+  { name: "DTaP-IPV-Hib", ages: "2mo, 4mo, 6mo, 18mo" },
+  { name: "Pneumococcal conjugate", ages: "2mo, 4mo, 12mo" },
+  { name: "Rotavirus", ages: "2mo, 4mo" },
+  { name: "MMR", ages: "12mo, 4-6yr" },
+  { name: "Varicella", ages: "12mo, 4-6yr" },
+  { name: "Meningococcal C", ages: "12mo" },
+  { name: "Hepatitis B", ages: "Grade 6 (or infant)" },
+  { name: "DTaP-IPV (booster)", ages: "4-6yr" },
+];
+
+type ImmunizationRecord = {
+  id: string;
+  childId: string;
+  vaccineName: string;
+  dateAdministered?: string | null;
+  provider?: string | null;
+  notes?: string | null;
+};
+
+function ImmunizationSection({ childId }: { childId: string }) {
+  const [records, setRecords] = useState<ImmunizationRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [vaccineName, setVaccineName] = useState(BC_IMMUNIZATIONS[0].name);
+  const [dateAdministered, setDateAdministered] = useState("");
+  const [provider, setProvider] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`/children/${childId}/immunizations`);
+        if (res.ok) {
+          const data = await res.json();
+          setRecords(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        /* endpoint may not exist yet */
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [childId]);
+
+  async function addRecord() {
+    try {
+      setSaving(true);
+      const res = await apiFetch(`/children/${childId}/immunizations`, {
+        method: "POST",
+        body: JSON.stringify({
+          vaccineName,
+          dateAdministered: dateAdministered || undefined,
+          provider: provider.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRecords((prev) => [...prev, data]);
+        setShowAdd(false);
+        setVaccineName(BC_IMMUNIZATIONS[0].name);
+        setDateAdministered("");
+        setProvider("");
+      }
+    } catch {
+      /* silent — backend may not support yet */
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Syringe className="h-4 w-4" />
+            Immunization records
+          </CardTitle>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3 w-3" />
+            Add
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-3 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700">
+          Per BC Community Care and Assisted Living Act — immunization records must be on file for all enrolled children.
+        </div>
+
+        {showAdd ? (
+          <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3">
+            <select
+              value={vaccineName}
+              onChange={(e) => setVaccineName(e.target.value)}
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+            >
+              {BC_IMMUNIZATIONS.map((v) => (
+                <option key={v.name} value={v.name}>
+                  {v.name} ({v.ages})
+                </option>
+              ))}
+              <option value="Other">Other</option>
+            </select>
+            <input
+              type="date"
+              value={dateAdministered}
+              onChange={(e) => setDateAdministered(e.target.value)}
+              placeholder="Date administered"
+              className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+            />
+            <div className="flex gap-2">
+              <input
+                value={provider}
+                onChange={(e) => setProvider(e.target.value)}
+                placeholder="Provider"
+                className="h-10 flex-1 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+              />
+              <button
+                onClick={addRecord}
+                disabled={saving}
+                className="inline-flex h-10 items-center rounded-xl bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {saving ? "..." : "Save"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="text-xs text-slate-400">Loading...</div>
+        ) : records.length === 0 ? (
+          <div className="text-sm text-slate-500">
+            No immunization records on file.{" "}
+            <button onClick={() => setShowAdd(true)} className="font-medium text-slate-700 hover:text-slate-900">
+              Add the first record &rarr;
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2">
+                <div>
+                  <div className="text-sm font-medium text-slate-700">{r.vaccineName}</div>
+                  {r.provider ? <div className="text-xs text-slate-400">{r.provider}</div> : null}
+                </div>
+                <div className="text-xs text-slate-500">
+                  {r.dateAdministered ? String(r.dateAdministered).slice(0, 10) : "Date unknown"}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* BC schedule reference */}
+        <details className="mt-3">
+          <summary className="cursor-pointer text-xs font-medium text-slate-500 hover:text-slate-700">
+            BC immunization schedule reference
+          </summary>
+          <div className="mt-2 grid gap-1 text-xs text-slate-500">
+            {BC_IMMUNIZATIONS.map((v) => (
+              <div key={v.name} className="flex justify-between rounded px-2 py-1 odd:bg-slate-50">
+                <span>{v.name}</span>
+                <span className="text-slate-400">{v.ages}</span>
+              </div>
+            ))}
+          </div>
+        </details>
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Developmental Milestones ─── */
+
+const MILESTONE_CATEGORIES = [
+  "Physical / Motor",
+  "Language / Communication",
+  "Cognitive",
+  "Social / Emotional",
+  "Self-care",
+] as const;
+
+type Milestone = {
+  id: string;
+  childId: string;
+  category: string;
+  description: string;
+  observedAt?: string | null;
+  observedBy?: string | null;
+  notes?: string | null;
+};
+
+function MilestonesSection({ childId, childDob }: { childId: string; childDob?: string | null }) {
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [category, setCategory] = useState<string>(MILESTONE_CATEGORIES[0]);
+  const [description, setDescription] = useState("");
+  const [observedAt, setObservedAt] = useState(new Date().toISOString().slice(0, 10));
+  const [msNotes, setMsNotes] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`/children/${childId}/milestones`);
+        if (res.ok) {
+          const data = await res.json();
+          setMilestones(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        /* endpoint may not exist yet */
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [childId]);
+
+  async function addMilestone() {
+    if (!description.trim()) return;
+    try {
+      setSaving(true);
+      const res = await apiFetch(`/children/${childId}/milestones`, {
+        method: "POST",
+        body: JSON.stringify({
+          category,
+          description: description.trim(),
+          observedAt: observedAt || undefined,
+          notes: msNotes.trim() || undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMilestones((prev) => [...prev, data]);
+        setShowAdd(false);
+        setDescription("");
+        setMsNotes("");
+        setObservedAt(new Date().toISOString().slice(0, 10));
+      }
+    } catch {
+      /* silent */
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const grouped = useMemo(() => {
+    const map: Record<string, Milestone[]> = {};
+    for (const m of milestones) {
+      (map[m.category] ??= []).push(m);
+    }
+    return map;
+  }, [milestones]);
+
+  return (
+    <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Star className="h-4 w-4" />
+            Developmental milestones
+          </CardTitle>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3 w-3" />
+            Record
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {showAdd ? (
+          <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+            <div className="grid gap-3 sm:grid-cols-3">
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+              >
+                {MILESTONE_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <input
+                type="date"
+                value={observedAt}
+                onChange={(e) => setObservedAt(e.target.value)}
+                className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+              />
+              <button
+                onClick={addMilestone}
+                disabled={saving || !description.trim()}
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                {saving ? "..." : "Save milestone"}
+              </button>
+            </div>
+            <input
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the milestone observed (e.g. 'First steps independently', 'Uses 2-word sentences')"
+              className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+            />
+            <textarea
+              value={msNotes}
+              onChange={(e) => setMsNotes(e.target.value)}
+              placeholder="Additional notes (optional)"
+              maxLength={500}
+              className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+            />
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="text-xs text-slate-400">Loading...</div>
+        ) : milestones.length === 0 ? (
+          <div className="text-sm text-slate-500">
+            No milestones recorded yet.{" "}
+            <button onClick={() => setShowAdd(true)} className="font-medium text-slate-700 hover:text-slate-900">
+              Record the first milestone &rarr;
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {MILESTONE_CATEGORIES.filter((c) => grouped[c]?.length).map((cat) => (
+              <div key={cat}>
+                <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {cat}
+                </div>
+                <div className="space-y-1.5">
+                  {grouped[cat]!.map((m) => (
+                    <div key={m.id} className="flex items-start justify-between rounded-lg border border-slate-100 px-3 py-2">
+                      <div>
+                        <div className="text-sm text-slate-700">{m.description}</div>
+                        {m.notes ? <div className="mt-0.5 text-xs text-slate-400">{m.notes}</div> : null}
+                      </div>
+                      <div className="text-xs text-slate-400 whitespace-nowrap ml-3">
+                        {m.observedAt ? String(m.observedAt).slice(0, 10) : ""}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
