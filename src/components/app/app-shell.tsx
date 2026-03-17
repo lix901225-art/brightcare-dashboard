@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, type AppRole } from "@/lib/workspace";
-import { clearSession, readSession } from "@/lib/session";
+import { readSession } from "@/lib/session";
 import { useLogout } from "@/lib/use-logout";
 import { StaffMobileNav } from "@/components/app/staff-mobile-nav";
 
@@ -137,13 +137,12 @@ function SidebarContent({
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [session, setSession] = useState<ShellSession>(FALLBACK_SESSION);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    setMounted(true); // eslint-disable-line react-hooks/set-state-in-effect -- hydration safety
     setSession(readSessionFromStorage());
 
     let timer: ReturnType<typeof setTimeout>;
@@ -164,7 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   // Close mobile menu on route change
   useEffect(() => {
-    setMobileOpen(false);
+    setMobileOpen(false); // eslint-disable-line react-hooks/set-state-in-effect -- intentional: close menu on nav
   }, [pathname]);
 
   const navItems = useMemo(() => NAV_BY_ROLE[session.role] || NAV_BY_ROLE.OWNER, [session.role]);

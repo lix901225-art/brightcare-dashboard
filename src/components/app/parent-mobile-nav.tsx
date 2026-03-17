@@ -45,7 +45,7 @@ export function ParentMobileNav() {
 
   // Close on route change
   useEffect(() => {
-    setMoreOpen(false);
+    setMoreOpen(false); // eslint-disable-line react-hooks/set-state-in-effect -- intentional: close menu on nav
   }, [pathname]);
 
   // Close on outside tap
