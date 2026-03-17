@@ -21,6 +21,14 @@ type UserRow = {
   deactivated?: boolean;
 };
 
+type EceCert = {
+  id: string;
+  userId: string;
+  certNumber?: string | null;
+  level?: string | null;
+  expiresAt?: string | null;
+};
+
 function roleBadge(role?: string | null) {
   switch ((role || "").toUpperCase()) {
     case "OWNER":
@@ -36,6 +44,7 @@ function roleBadge(role?: string | null) {
 
 export default function StaffManagementPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [eceCerts, setEceCerts] = useState<EceCert[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -64,12 +73,20 @@ export default function StaffManagementPage() {
       setLoading(true);
       setError("");
 
-      const res = await apiFetch("/admin/users");
-      const data = await res.json();
+      const [usersRes, certsRes] = await Promise.all([
+        apiFetch("/admin/users"),
+        apiFetch("/compliance/ece-certifications").catch(() => null),
+      ]);
 
-      if (!res.ok) throw new Error(data?.message || `Users failed: ${res.status}`);
+      const userData = await usersRes.json();
+      if (!usersRes.ok) throw new Error(userData?.message || `Users failed: ${usersRes.status}`);
 
-      setUsers(Array.isArray(data) ? data : []);
+      setUsers(Array.isArray(userData) ? userData : []);
+
+      if (certsRes?.ok) {
+        const certData = await certsRes.json();
+        setEceCerts(Array.isArray(certData) ? certData : []);
+      }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load users."));
     } finally {
@@ -497,7 +514,13 @@ export default function StaffManagementPage() {
               <>
                 {/* Mobile card view */}
                 <div className="space-y-2 md:hidden">
-                  {filteredUsers.map((user) => (
+                  {filteredUsers.map((user) => {
+                    const userCert = eceCerts.find((c) => c.userId === user.id);
+                    const certExpired = userCert?.expiresAt && new Date(userCert.expiresAt) < new Date();
+                    const certExpiring = userCert?.expiresAt && !certExpired &&
+                      new Date(userCert.expiresAt).getTime() - Date.now() < 30 * 24 * 60 * 60 * 1000;
+
+                    return (
                     <div key={user.id} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between">
                         <div>
@@ -505,14 +528,30 @@ export default function StaffManagementPage() {
                             {user.displayName || "Unnamed"}
                           </div>
                           {user.phone && <div className="mt-0.5 text-xs text-slate-500">{user.phone}</div>}
+                          {userCert && (user.role?.toUpperCase() === "STAFF" || user.role?.toUpperCase() === "OWNER") && (
+                            <div className="mt-1 text-xs text-slate-500">
+                              ECE: {userCert.level || "Not set"}
+                              {userCert.certNumber && ` • #${userCert.certNumber}`}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center justify-end gap-2">
                           <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
                             {user.role || "—"}
                           </span>
                           {user.deactivated && (
                             <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600">
                               Deactivated
+                            </span>
+                          )}
+                          {certExpired && (
+                            <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700">
+                              Cert Expired
+                            </span>
+                          )}
+                          {certExpiring && (
+                            <span className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">
+                              Cert Expiring
                             </span>
                           )}
                         </div>
@@ -547,7 +586,8 @@ export default function StaffManagementPage() {
                         </div>
                       )}
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
                 {/* Desktop table view */}
                 <div className="hidden md:block overflow-x-auto rounded-xl border border-slate-200 bg-white">
