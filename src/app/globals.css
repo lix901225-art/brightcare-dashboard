@@ -147,3 +147,41 @@
     min-width: 44px;
   }
 }
+
+/* Print styles — used by billing invoice "Print / Save PDF" */
+@media print {
+  /* Hide app shell: sidebar, header, mobile nav, toasts */
+  aside,
+  header,
+  nav,
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+
+  /* Hide elements marked with print:hidden (Tailwind utility) */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Remove background colors and shadows for clean print output */
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Let content flow naturally */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Ensure tables and cards print cleanly */
+  .shadow-sm {
+    box-shadow: none !important;
+  }
+
+  /* Add invoice header for print */
+  .print\:block {
+    display: block !important;
+  }
+}

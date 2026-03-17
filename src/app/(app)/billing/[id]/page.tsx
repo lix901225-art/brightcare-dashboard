@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, Clock, Send } from "lucide-react";
+import { AlertTriangle, Clock, Printer, Send } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -229,23 +229,32 @@ export default function BillingDetailPage() {
           }
         />
 
-        <div className="mb-4">
+        <div className="mb-4 flex items-center gap-3 print:hidden">
           <Link
             href="/billing"
             className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
           >
             &larr; Back to billing
           </Link>
+          {invoice ? (
+            <button
+              onClick={() => window.print()}
+              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Printer className="h-4 w-4" />
+              Print / Save PDF
+            </button>
+          ) : null}
         </div>
 
         {ok ? (
-          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+          <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 print:hidden">
             {ok}
           </div>
         ) : null}
 
         {error ? (
-          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 print:hidden">
             {error}
           </div>
         ) : null}
@@ -254,6 +263,22 @@ export default function BillingDetailPage() {
           <PageLoadingSkeleton />
         ) : (
           <>
+            {/* Print-only invoice header */}
+            <div className="mb-6 hidden print:block">
+              <div className="text-2xl font-bold text-slate-900">BrightCare OS — Invoice</div>
+              <div className="mt-1 text-sm text-slate-600">
+                {invoice.childName} &middot; Invoice {invoice.id.slice(0, 8)} &middot; Issued {invoice.issueDate?.slice(0, 10) || "—"}
+                {invoice.dueDate ? ` · Due ${invoice.dueDate.slice(0, 10)}` : ""} &middot; {invoice.currency}
+              </div>
+              <div className="mt-1 text-sm text-slate-600">
+                Status: {statusLabel(invoice.status, isOverdue)}
+                {isOverdue ? ` (${daysOverdueCount} days overdue)` : ""}
+                &middot; Total: ${invoice.totalAmount.toFixed(2)}
+                &middot; Paid: ${invoice.paidAmount.toFixed(2)}
+                &middot; Balance: ${invoice.balanceAmount.toFixed(2)}
+              </div>
+            </div>
+
             {/* DRAFT banner */}
             {isDraft ? (
               <div className="mb-4 flex items-center justify-between rounded-xl border border-slate-300 bg-slate-50 p-3">
@@ -339,7 +364,7 @@ export default function BillingDetailPage() {
 
             {/* Actions */}
             {!isVoid ? (
-              <div className="mb-6 flex flex-wrap gap-3">
+              <div className="mb-6 flex flex-wrap gap-3 print:hidden">
                 {isDraft ? (
                   <button
                     onClick={issueInvoice}
@@ -392,7 +417,7 @@ export default function BillingDetailPage() {
 
             {/* Partial payment form */}
             {showPayment && !isVoid ? (
-              <Card className="mb-6 rounded-2xl border-0 shadow-sm">
+              <Card className="mb-6 rounded-2xl border-0 shadow-sm print:hidden">
                 <CardHeader><CardTitle>Record payment</CardTitle></CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-2">
