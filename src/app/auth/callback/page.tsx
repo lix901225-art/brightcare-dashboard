@@ -11,9 +11,26 @@ import { AUTH0_ENABLED } from "@/lib/auth0-provider";
  * so the hook is always called within a valid Auth0Provider context.
  */
 function Auth0CallbackInner() {
-  const { isAuthenticated, isLoading, user, getAccessTokenSilently } = useAuth0();
+  const { isAuthenticated, isLoading, user, getAccessTokenSilently, error: auth0Error } = useAuth0();
   const [error, setError] = useState("");
   const syncedRef = useRef(false);
+
+  // Surface Auth0 SDK errors (e.g. user cancelled consent, misconfigured app)
+  useEffect(() => {
+    if (auth0Error) {
+      setError(auth0Error.message || "Authentication failed. Please try again.");
+    }
+  }, [auth0Error]);
+
+  // Timeout: if still loading after 15s, show an error instead of spinning forever
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!syncedRef.current && !error) {
+        setError("Sign-in timed out. Please try again.");
+      }
+    }, 15_000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   useEffect(() => {
     if (isLoading || syncedRef.current) return;
