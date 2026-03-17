@@ -1,12 +1,18 @@
 import { patchSession, readSession, clearSession, type AppSession } from "@/lib/session";
 
 type MeResponse = {
+  id?: string;
+  userId?: string;
   tenantId?: string;
+  displayName?: string | null;
+  phone?: string | null;
+  roles?: string[];
+  role?: string | null;
+  // Also support nested shape from MeController (fallback)
   user?: {
     id?: string;
     displayName?: string | null;
   };
-  roles?: string[];
 };
 
 function pickPrimaryRole(roles?: string[]): "OWNER" | "STAFF" | "PARENT" | null {
@@ -52,10 +58,10 @@ export async function bootstrapSessionFromBackend(): Promise<AppSession | null> 
     const backendRole = pickPrimaryRole(data.roles);
 
     const nextSession: AppSession = {
-      userId: data.user?.id || session.userId,
+      userId: data.userId || data.user?.id || data.id || session.userId,
       tenantId: data.tenantId || session.tenantId,
       role: normalizeRole(backendRole || session.role),
-      displayName: data.user?.displayName || session.displayName || "User",
+      displayName: data.displayName || data.user?.displayName || session.displayName || "User",
       tenantName: session.tenantName || session.tenantId,
     };
 
