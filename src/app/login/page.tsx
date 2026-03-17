@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
@@ -39,6 +40,8 @@ function Auth0LoginButton() {
 }
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const expired = searchParams.get("expired") === "1";
   const [mode, setMode] = useState<Mode>("login");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -141,6 +144,12 @@ export default function LoginPage() {
               Sign in to manage your childcare centre.
             </div>
           </div>
+
+          {expired ? (
+            <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+              Your session expired. Please sign in again.
+            </div>
+          ) : null}
 
           {AUTH0_ENABLED ? <Auth0LoginButton /> : null}
 

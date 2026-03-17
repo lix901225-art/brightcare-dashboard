@@ -60,9 +60,14 @@ export async function bootstrapSessionFromBackend(
       cache: "no-store",
     });
 
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       clearSession();
       return null;
+    }
+
+    // 403 = authenticated but lacks permission — keep session intact
+    if (res.status === 403) {
+      return session;
     }
 
     const data: MeResponse = await res.json();

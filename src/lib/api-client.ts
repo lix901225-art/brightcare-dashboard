@@ -92,8 +92,11 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
         clearTimeout(timeout);
         return apiFetch(path, { ...init, bearerToken: newToken, _skipRefresh: true });
       }
-      // Refresh failed — clear session
+      // Refresh failed — clear session and redirect to login
       clearSession();
+      if (typeof window !== "undefined") {
+        window.location.replace("/login?expired=1");
+      }
     } else if (res.status === 403 && !skipAuth) {
       // 403 = user exists but lacks permission — don't clear session
     }
