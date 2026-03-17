@@ -171,17 +171,20 @@ curl -I https://app.brightcareos.com | grep -iE "x-frame|x-content-type|referrer
 
 ## Post-deploy: Apply database indexes
 
-The schema has `@@index` directives for performance. To apply them:
+The schema has `@@index` directives for performance. Migration history is currently clean (verified 2026-03-17).
 
 ```bash
-# Option A: if migration history is clean
+# Recommended: create a migration for the indexes
 cd ~/apps/api && npx prisma migrate dev --name add_performance_indexes
 
-# Option B: if drift exists, push schema directly (dev/staging only)
-cd ~/apps/api && npx prisma db push
+# Production: deploy the migration
+cd ~/apps/api && npx prisma migrate deploy
 
-# Option C: generate and run SQL manually (production)
-cd ~/apps/api && npx prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema-datasource prisma/schema.prisma --script
+# Alternative (production, manual SQL):
+cd ~/apps/api && npx prisma migrate diff \
+  --from-schema-datamodel prisma/schema.prisma \
+  --to-schema-datasource prisma/schema.prisma \
+  --script
 ```
 
 ## What's NOT in scope for Track B code
