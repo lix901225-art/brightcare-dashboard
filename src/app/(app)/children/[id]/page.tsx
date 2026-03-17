@@ -376,7 +376,7 @@ export default function ChildDetailPage() {
         <Link href={`/daily-reports?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Daily Reports</Link>
         <Link href={`/messages?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Messages</Link>
         <Link href={`/documents?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Documents</Link>
-        <Link href="/billing" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Billing</Link>
+        <Link href={`/billing?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Billing</Link>
       </div>
 
       {/* Enrollment readiness checklist — BC licensing inspection prep */}
