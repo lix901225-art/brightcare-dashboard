@@ -27,6 +27,8 @@ type IncidentRow = {
   description: string;
   actionsTaken?: string | null;
   lockedAt?: string | null;
+  parentReviewedAt?: string | null;
+  parentReviewedBy?: string | null;
 };
 
 function fmtDate(value: string) {
@@ -41,30 +43,13 @@ function severityColor(severity: string) {
   return severityBadge(severity);
 }
 
-const REVIEWED_KEY = "brightcare_reviewed_incidents";
-
-function getReviewedIds(): Set<string> {
-  try {
-    const raw = localStorage.getItem(REVIEWED_KEY);
-    return raw ? new Set(JSON.parse(raw)) : new Set();
-  } catch { return new Set(); }
-}
-
-function markReviewed(id: string) {
-  const ids = getReviewedIds();
-  ids.add(id);
-  localStorage.setItem(REVIEWED_KEY, JSON.stringify([...ids]));
-}
-
 export default function ParentIncidentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [children, setChildren] = useState<Child[]>([]);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [childFilter, setChildFilter] = useState("");
-  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => { setReviewedIds(getReviewedIds()); }, []);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -84,6 +69,29 @@ export default function ParentIncidentsPage() {
       setError(getErrorMessage(e, "Unable to load incidents."));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function markReviewedApi(incidentId: string) {
+    try {
+      setReviewingId(incidentId);
+      const res = await apiFetch(`/incidents/${incidentId}/review`, { method: "PATCH" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.message || `Review failed: ${res.status}`);
+      }
+      // Update local state optimistically
+      setIncidents((prev) =>
+        prev.map((inc) =>
+          inc.id === incidentId
+            ? { ...inc, parentReviewedAt: new Date().toISOString() }
+            : inc
+        )
+      );
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to mark incident as reviewed."));
+    } finally {
+      setReviewingId(null);
     }
   }
 
@@ -173,7 +181,7 @@ export default function ParentIncidentsPage() {
                 </CardContent>
               </Card>
               {(() => {
-                const unreviewed = incidents.filter((i) => !reviewedIds.has(i.id)).length;
+                const unreviewed = incidents.filter((i) => !i.parentReviewedAt).length;
                 return (
                   <Card className={`rounded-2xl border-0 shadow-sm md:col-span-3 ${unreviewed > 0 ? "ring-1 ring-amber-200" : ""}`}>
                     <CardContent className="py-3">
@@ -233,7 +241,7 @@ export default function ParentIncidentsPage() {
                 ) : (
                   <div className="space-y-3">
                     {filtered.map((inc) => {
-                      const isReviewed = reviewedIds.has(inc.id);
+                      const isReviewed = !!inc.parentReviewedAt;
                       return (
                         <div key={inc.id} className={[
                           "rounded-xl border p-4",
@@ -277,14 +285,12 @@ export default function ParentIncidentsPage() {
                                 ) : null}
                                 {!isReviewed ? (
                                   <button
-                                    onClick={() => {
-                                      markReviewed(inc.id);
-                                      setReviewedIds(getReviewedIds());
-                                    }}
-                                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+                                    onClick={() => markReviewedApi(inc.id)}
+                                    disabled={reviewingId === inc.id}
+                                    className="mt-3 inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                                   >
                                     <Eye className="h-3.5 w-3.5" />
-                                    Mark as reviewed
+                                    {reviewingId === inc.id ? "Saving..." : "Mark as reviewed"}
                                   </button>
                                 ) : null}
                               </div>
