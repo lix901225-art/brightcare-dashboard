@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api-client";
 import { getRoleHome } from "@/lib/workspace";
 import { writeSession } from "@/lib/session";
 import { getErrorMessage } from "@/lib/error";
+import { writeToken } from "@/lib/token-store";
 import { AUTH0_ENABLED } from "@/lib/auth0-provider";
 
 type Mode = "login" | "register";
@@ -108,6 +109,9 @@ export default function LoginPage() {
           resolvedTenantName = data.tenantId;
         }
       }
+
+      // Track B: store JWT if backend returns one (future — currently not sent)
+      if (data.token) writeToken(data.token);
 
       writeSession({
         userId: data.userId,

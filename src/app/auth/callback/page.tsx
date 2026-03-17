@@ -5,6 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { writeSession } from "@/lib/session";
 import { getRoleHome } from "@/lib/workspace";
 import { AUTH0_ENABLED } from "@/lib/auth0-provider";
+import { writeToken } from "@/lib/token-store";
 import type { Auth0SyncRequest, Auth0SyncResponse } from "@/lib/auth0-types";
 
 /**
@@ -77,6 +78,9 @@ function Auth0CallbackInner() {
         }
 
         const data: Auth0SyncResponse = await res.json();
+
+        // Track B: store JWT if backend returns one
+        if (data.token) writeToken(data.token);
 
         writeSession({
           userId: data.userId,

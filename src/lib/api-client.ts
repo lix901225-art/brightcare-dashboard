@@ -1,4 +1,5 @@
 import { clearSession, readSession } from "@/lib/session";
+import { readToken } from "@/lib/token-store";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
@@ -23,9 +24,10 @@ function buildHeaders(
     if (session?.tenantId) headers.set("x-tenant-id", session.tenantId);
   }
 
-  // Track B: attach Bearer token when provided (coexists with legacy headers)
-  if (bearerToken) {
-    headers.set("Authorization", `Bearer ${bearerToken}`);
+  // Track B: attach Bearer token (explicit param, or auto-read from store)
+  const token = bearerToken ?? readToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
   return headers;

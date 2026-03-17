@@ -92,5 +92,8 @@ export function clearSession() {
   localStorage.removeItem("displayName");
   localStorage.removeItem("tenantName");
 
+  // Track B: also clear stored JWT token
+  localStorage.removeItem("brightcare.token");
+
   window.dispatchEvent(new Event("storage"));
 }
