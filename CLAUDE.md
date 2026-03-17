@@ -122,7 +122,11 @@ Auth0, multi-tenancy, JWT/RBAC, billing, reports, analytics, audit logs, invite/
 
 - App routes: `src/app/(app)/` — protected by AppAuthGate
 - Marketing routes: `src/app/(marketing)/` — public, server components
-- API client: `src/lib/api-client.ts` (apiFetch), `src/lib/api.ts` (api.get/post/etc)
+- API client: `src/lib/api-client.ts` (apiFetch with auto-refresh on 401)
 - Session: `src/lib/session.ts` (readSession/writeSession/patchSession/clearSession)
+- Token store: `src/lib/token-store.ts` (JWT read/write/clear with format validation)
+- Auth bootstrap: `src/lib/auth-bootstrap.ts` (syncs session with backend on app load)
+- Auth0 provider: `src/lib/auth0-provider.tsx` (conditional Auth0 wrapper with error boundary)
 - Navigation: `src/lib/workspace.ts` (NAV_BY_ROLE, role-based sidebar)
-- Error handling: `src/lib/error.ts` (CN→EN translation layer)
+- Error handling: `src/lib/error.ts` (CN→EN translation + rate-limit message rewrite)
+- Proxy: `src/app/api/proxy/[...path]/route.ts` (forwards to backend with path validation)
