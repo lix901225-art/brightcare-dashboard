@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Clock } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Clock, FileText, ShieldCheck } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +13,15 @@ import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/components/ui/empty-state";
 import { getErrorMessage } from "@/lib/error";
 
-type BillingSummary = {
+type SummaryChild = {
   childId: string;
   childName: string;
-  total: number;
-  paid: number;
+  totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
+  paidAmount: number;
   balance: number;
+  invoiceCount: number;
 };
 
 type InvoiceRow = {
@@ -26,12 +29,16 @@ type InvoiceRow = {
   childId: string;
   childName?: string | null;
   status: string;
+  month?: string | null;
   issueDate?: string | null;
   dueDate?: string | null;
   currency?: string | null;
   totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  isGstExempt: boolean;
   itemsCount: number;
   paymentsCount: number;
 };
@@ -44,8 +51,11 @@ type InvoiceDetail = {
   dueDate?: string | null;
   currency?: string | null;
   totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  isGstExempt: boolean;
   notes?: string | null;
   items: Array<{
     id: string;
@@ -81,7 +91,7 @@ function daysOverdue(dueDate: string): number {
 export default function ParentBillingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [summary, setSummary] = useState<BillingSummary[]>([]);
+  const [summaryChildren, setSummaryChildren] = useState<SummaryChild[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
@@ -101,7 +111,12 @@ export default function ParentBillingPage() {
       if (!summaryRes.ok) throw new Error(summaryData?.message || `Summary failed: ${summaryRes.status}`);
       if (!invoicesRes.ok) throw new Error(invoicesData?.message || `Invoices failed: ${invoicesRes.status}`);
 
-      setSummary(Array.isArray(summaryData) ? summaryData : []);
+      // Handle new summary format { totals, children }
+      if (summaryData && summaryData.children) {
+        setSummaryChildren(Array.isArray(summaryData.children) ? summaryData.children : []);
+      } else {
+        setSummaryChildren(Array.isArray(summaryData) ? summaryData : []);
+      }
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load billing."));
@@ -131,11 +146,13 @@ export default function ParentBillingPage() {
   }
 
   const totals = useMemo(() => {
-    const totalBilled = summary.reduce((sum, s) => sum + Number(s.total || 0), 0);
-    const totalPaid = summary.reduce((sum, s) => sum + Number(s.paid || 0), 0);
-    const totalBalance = summary.reduce((sum, s) => sum + Number(s.balance || 0), 0);
-    return { totalBilled, totalPaid, totalBalance };
-  }, [summary]);
+    const totalBilled = summaryChildren.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
+    const totalSubsidy = summaryChildren.reduce((sum, s) => sum + Number(s.subsidyAmount || 0), 0);
+    const totalNet = summaryChildren.reduce((sum, s) => sum + Number(s.netAmount || s.totalAmount - (s.subsidyAmount || 0) || 0), 0);
+    const totalPaid = summaryChildren.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0);
+    const totalBalance = summaryChildren.reduce((sum, s) => sum + Number(s.balance || 0), 0);
+    return { totalBilled, totalSubsidy, totalNet, totalPaid, totalBalance };
+  }, [summaryChildren]);
 
   const unpaidInvoices = useMemo(() => {
     return invoices.filter((i) => i.status.toUpperCase() !== "PAID" && i.status.toUpperCase() !== "VOID" && i.balanceAmount > 0);
@@ -182,12 +199,19 @@ export default function ParentBillingPage() {
         ) : (
           <>
             {/* Summary cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-4">
               <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total billed</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total fees</CardTitle></CardHeader>
                 <CardContent>
                   <div className="text-3xl font-semibold">{fmtCurrency(totals.totalBilled)}</div>
-                  <div className="mt-1 text-xs text-slate-500">{invoices.length} invoices</div>
+                  <div className="mt-1 text-xs text-slate-500">{invoices.length} invoice{invoices.length !== 1 ? "s" : ""}</div>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl border-0 shadow-sm">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-blue-600">Subsidy applied</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-semibold text-blue-700">{fmtCurrency(totals.totalSubsidy)}</div>
+                  <div className="mt-1 text-xs text-blue-500">CCFRI / ACCB</div>
                 </CardContent>
               </Card>
               <Card className="rounded-2xl border-0 shadow-sm">
@@ -241,17 +265,18 @@ export default function ParentBillingPage() {
             ) : null}
 
             {/* Per-child balances */}
-            {summary.length > 0 ? (
+            {summaryChildren.length > 0 ? (
               <Card className="mt-6 rounded-2xl border-0 shadow-sm">
                 <CardHeader><CardTitle>Balance by child</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {summary.map((s) => (
+                    {summaryChildren.map((s) => (
                       <div key={s.childId} className="flex items-center justify-between rounded-xl border border-slate-200 p-3">
                         <div className="text-sm font-medium text-slate-900">{s.childName}</div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-slate-500">Billed: {fmtCurrency(s.total)}</span>
-                          <span className="text-emerald-600">Paid: {fmtCurrency(s.paid)}</span>
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                          <span className="text-slate-500">Fees: {fmtCurrency(s.totalAmount)}</span>
+                          {s.subsidyAmount > 0 && <span className="text-blue-600">Subsidy: {fmtCurrency(s.subsidyAmount)}</span>}
+                          <span className="text-emerald-600">Paid: {fmtCurrency(s.paidAmount)}</span>
                           <span className={["font-semibold", s.balance > 0 ? "text-rose-700" : "text-emerald-700"].join(" ")}>
                             {s.balance > 0 ? `Due: ${fmtCurrency(s.balance)}` : "Paid"}
                           </span>
@@ -304,6 +329,9 @@ export default function ParentBillingPage() {
                             <div className="flex items-center gap-3">
                               <div className="text-right">
                                 <div className="text-sm font-semibold text-slate-900">{fmtCurrency(inv.totalAmount)}</div>
+                                {inv.subsidyAmount > 0 && (
+                                  <div className="text-xs text-blue-600">Subsidy: {fmtCurrency(inv.subsidyAmount)}</div>
+                                )}
                                 {inv.balanceAmount > 0 ? (
                                   <div className={["text-xs font-medium", overdue ? "text-rose-700" : "text-rose-600"].join(" ")}>
                                     Due: {fmtCurrency(inv.balanceAmount)}
@@ -382,6 +410,34 @@ export default function ParentBillingPage() {
                                     </div>
                                   ) : null}
 
+                                  {/* GST-exempt badge */}
+                                  {detail.isGstExempt && (
+                                    <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+                                      <ShieldCheck className="h-3.5 w-3.5" />
+                                      Licensed childcare in BC — GST-exempt
+                                    </div>
+                                  )}
+
+                                  {/* Subsidy breakdown */}
+                                  {detail.subsidyAmount > 0 && (
+                                    <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3">
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-slate-600">Total fees</span>
+                                        <span className="font-medium">{fmtCurrency(detail.totalAmount)}</span>
+                                      </div>
+                                      <div className="mt-1 flex items-center justify-between text-sm">
+                                        <span className="text-blue-600">Subsidy (CCFRI / ACCB)</span>
+                                        <span className="font-medium text-blue-700">-{fmtCurrency(detail.subsidyAmount)}</span>
+                                      </div>
+                                      <div className="mt-1 border-t border-blue-200 pt-1 flex items-center justify-between text-sm">
+                                        <span className="font-semibold text-slate-900">Parent portion</span>
+                                        <span className="font-semibold text-slate-900">
+                                          {fmtCurrency(detail.netAmount > 0 ? detail.netAmount : detail.totalAmount - detail.subsidyAmount)}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )}
+
                                   {detail.notes ? (
                                     <div>
                                       <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Notes</div>
@@ -401,6 +457,67 @@ export default function ParentBillingPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Tax receipt section */}
+            {(() => {
+              const currentYear = new Date().getFullYear();
+              const paidThisYear = invoices.filter(
+                (inv) =>
+                  inv.status.toUpperCase() === "PAID" &&
+                  inv.issueDate?.slice(0, 4) === String(currentYear)
+              );
+              const yearlyTotal = paidThisYear.reduce((s, inv) => s + Number(inv.totalAmount || 0), 0);
+              const yearlySubsidy = paidThisYear.reduce((s, inv) => s + Number(inv.subsidyAmount || 0), 0);
+              const yearlyPaid = paidThisYear.reduce((s, inv) => s + Number(inv.paidAmount || 0), 0);
+
+              return (
+                <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Tax receipts — {currentYear}</CardTitle>
+                      <Link
+                        href="/billing/tax-receipts"
+                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        View / print receipts
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {paidThisYear.length === 0 ? (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
+                        No paid invoices for {currentYear} yet.
+                      </div>
+                    ) : (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-slate-600">Total childcare fees ({currentYear})</span>
+                          <span className="font-semibold">{fmtCurrency(yearlyTotal)}</span>
+                        </div>
+                        {yearlySubsidy > 0 && (
+                          <div className="mt-1 flex items-center justify-between text-sm">
+                            <span className="text-blue-600">Less: subsidies (CCFRI / ACCB)</span>
+                            <span className="font-medium text-blue-700">-{fmtCurrency(yearlySubsidy)}</span>
+                          </div>
+                        )}
+                        <div className="mt-2 border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
+                          <span className="font-semibold text-slate-900">Amount paid by parent</span>
+                          <span className="font-semibold text-slate-900">{fmtCurrency(yearlyPaid)}</span>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500">
+                          {paidThisYear.length} paid invoice{paidThisYear.length !== 1 ? "s" : ""}. Eligible for CRA Line 21400.
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600">
+                      <ShieldCheck className="h-3.5 w-3.5" />
+                      Licensed childcare in BC is GST-exempt under the Excise Tax Act.
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })()}
           </>
         )}
       </div>
