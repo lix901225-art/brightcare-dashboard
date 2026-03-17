@@ -61,11 +61,13 @@ function statusColor(status: string) {
     case "ACTIVE": return "border-emerald-200 bg-emerald-50 text-emerald-700";
     case "WAITLIST": return "border-amber-200 bg-amber-50 text-amber-700";
     case "WITHDRAWN": return "border-rose-200 bg-rose-50 text-rose-700";
+    case "GRADUATED": return "border-sky-200 bg-sky-50 text-sky-700";
+    case "INACTIVE": return "border-slate-300 bg-slate-100 text-slate-500";
     default: return "border-slate-200 bg-slate-50 text-slate-600";
   }
 }
 
-type PipelineView = "ALL" | "WAITLIST" | "ACTIVE" | "WITHDRAWN";
+type PipelineView = "ALL" | "WAITLIST" | "ACTIVE" | "WITHDRAWN" | "GRADUATED" | "INACTIVE";
 
 export default function EnrollmentPage() {
   const [children, setChildren] = useState<Child[]>([]);
@@ -192,9 +194,11 @@ export default function EnrollmentPage() {
     const active = children.filter((c) => (c.status || "").toUpperCase() === "ACTIVE").length;
     const waitlist = children.filter((c) => (c.status || "").toUpperCase() === "WAITLIST").length;
     const withdrawn = children.filter((c) => (c.status || "").toUpperCase() === "WITHDRAWN").length;
+    const graduated = children.filter((c) => (c.status || "").toUpperCase() === "GRADUATED").length;
+    const inactive = children.filter((c) => (c.status || "").toUpperCase() === "INACTIVE").length;
     const totalCapacity = rooms.reduce((sum, r) => sum + (r.capacity || 0), 0);
     const utilization = totalCapacity > 0 ? Math.round((active / totalCapacity) * 100) : null;
-    return { total: children.length, active, waitlist, withdrawn, totalCapacity, utilization };
+    return { total: children.length, active, waitlist, withdrawn, graduated, inactive, totalCapacity, utilization };
   }, [children, rooms]);
 
   const filtered = useMemo(() => {
@@ -209,7 +213,7 @@ export default function EnrollmentPage() {
       );
     }
     return [...result].sort((a, b) => {
-      const statusOrder: Record<string, number> = { WAITLIST: 0, ACTIVE: 1, WITHDRAWN: 2 };
+      const statusOrder: Record<string, number> = { WAITLIST: 0, ACTIVE: 1, GRADUATED: 2, INACTIVE: 3, WITHDRAWN: 4 };
       const aOrder = statusOrder[(a.status || "").toUpperCase()] ?? 3;
       const bOrder = statusOrder[(b.status || "").toUpperCase()] ?? 3;
       if (aOrder !== bOrder) return aOrder - bOrder;
@@ -373,8 +377,29 @@ export default function EnrollmentPage() {
     }
   }
 
-  async function transitionStatus(childId: string, newStatus: "WAITLIST", childName: string) {
-    if (!confirm(`Move ${childName} to waitlist?`)) return;
+  async function removeFromWaitlist(childId: string, childName: string) {
+    if (!confirm(`Remove ${childName} from waitlist? This will delete the child record.`)) return;
+    try {
+      setTransitioning(childId);
+      setError("");
+      setOk("");
+      const res = await apiFetch(`/children/${childId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.message || `Failed: ${res.status}`);
+      }
+      setOk(`${childName} removed from waitlist.`);
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to remove."));
+    } finally {
+      setTransitioning(null);
+    }
+  }
+
+  async function transitionStatus(childId: string, newStatus: "WAITLIST" | "GRADUATED" | "INACTIVE", childName: string) {
+    const labels: Record<string, string> = { WAITLIST: "waitlist", GRADUATED: "graduated", INACTIVE: "inactive" };
+    if (!confirm(`Move ${childName} to ${labels[newStatus] || newStatus}?`)) return;
 
     try {
       setTransitioning(childId);
@@ -388,7 +413,8 @@ export default function EnrollmentPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
 
-      setOk(`${childName} moved to waitlist.`);
+      const labels: Record<string, string> = { WAITLIST: "waitlist", GRADUATED: "graduated", INACTIVE: "inactive" };
+      setOk(`${childName} moved to ${labels[newStatus] || newStatus}.`);
       await loadAll();
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to update status."));
@@ -585,7 +611,7 @@ export default function EnrollmentPage() {
                     <option value="Aged out of program">Aged out of program</option>
                     <option value="Financial reasons">Financial reasons</option>
                     <option value="Schedule no longer fits">Schedule no longer fits</option>
-                    <option value="Child starting school">Child starting school (K entry)</option>
+                    <option value="Child starting school">Child starting school (K entry / graduated)</option>
                     <option value="Family decision">Family decision</option>
                     <option value="Centre-initiated">Centre-initiated</option>
                     <option value="Other">Other</option>
@@ -1028,17 +1054,36 @@ export default function EnrollmentPage() {
                               Enroll
                             </button>
                           ) : null}
-                          {s === "ACTIVE" ? (
+                          {s === "WAITLIST" ? (
                             <button
-                              onClick={() => handleWithdrawClick(child)}
+                              onClick={() => removeFromWaitlist(child.id, name)}
                               disabled={isTransitioning}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-500 hover:bg-slate-50 disabled:opacity-50"
                             >
-                              <UserMinus className="h-3 w-3" />
-                              Withdraw
+                              <X className="h-3 w-3" />
+                              Remove
                             </button>
                           ) : null}
-                          {s === "WITHDRAWN" ? (
+                          {s === "ACTIVE" ? (
+                            <>
+                              <button
+                                onClick={() => transitionStatus(child.id, "GRADUATED", name)}
+                                disabled={isTransitioning}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-xs font-medium text-sky-700 hover:bg-sky-50 disabled:opacity-50"
+                              >
+                                Graduate
+                              </button>
+                              <button
+                                onClick={() => handleWithdrawClick(child)}
+                                disabled={isTransitioning}
+                                className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                              >
+                                <UserMinus className="h-3 w-3" />
+                                Withdraw
+                              </button>
+                            </>
+                          ) : null}
+                          {(s === "WITHDRAWN" || s === "GRADUATED" || s === "INACTIVE") ? (
                             <button
                               onClick={() => transitionStatus(child.id, "WAITLIST", name)}
                               disabled={isTransitioning}
