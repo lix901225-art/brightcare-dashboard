@@ -69,6 +69,17 @@ Do NOT prioritise any of these before the 4 modules are production-ready:
 - [ ] API returns proper HTTP status codes
 - [ ] No console errors on core flows
 
+### Security (Track B, but required for production)
+- [ ] JWT_SECRET set to a strong random value (not default)
+- [ ] PASSWORD_SALT set to a strong random value (not default)
+- [ ] CORS_ORIGINS set to production domain (not localhost)
+- [ ] Rate limiting active on /auth/* endpoints (verify 429 after rapid requests)
+- [ ] CSP header present in responses (check with `curl -I`)
+- [ ] No stack traces in error responses
+- [ ] Passwords hashed with bcrypt (not SHA256)
+- [ ] Auth0 callback/logout URLs configured if Auth0 is enabled
+- [ ] `npm run typecheck` passes on both dashboard and API
+
 ## Release Rules
 
 - Do NOT ship with mock/fake auth

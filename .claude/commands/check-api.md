@@ -57,11 +57,16 @@ curl -s -o /dev/null -w "%{http_code}" http://localhost:4000/api
 ## Step 6: Test with auth headers
 
 ```bash
+# Legacy header auth (Track A):
 curl -s http://localhost:4000/me -H "x-tenant-id: YOUR_TENANT_ID" -H "x-user-id: YOUR_USER_ID" | head -20
+
+# Bearer token auth (Track B):
+curl -s http://localhost:4000/me -H "Authorization: Bearer YOUR_JWT_TOKEN" | head -20
 ```
 
 - 200 with data → API + auth working
-- 401 → Auth middleware rejecting (user/tenant not in DB)
+- 401 → Auth middleware rejecting (user/tenant not in DB, or JWT invalid/expired)
+- 429 → Rate limited (throttler, wait 60s)
 - 500 → Server error
 
 ## Step 7: Check dashboard proxy layer
@@ -71,9 +76,10 @@ cat ~/apps/dashboard/src/app/api/proxy/\[...path\]/route.ts | head -30
 ```
 
 Verify:
-- Proxy forwards to `http://localhost:4000`
+- Proxy forwards to `API_BASE_URL` (default `http://127.0.0.1:4000`)
 - `x-user-id` and `x-tenant-id` headers are passed through
-- No hardcoded wrong URLs
+- `Authorization` (Bearer) header is forwarded
+- Path traversal check is present (rejects `..` and `//`)
 
 ## Step 8: Check dashboard → API round trip
 
