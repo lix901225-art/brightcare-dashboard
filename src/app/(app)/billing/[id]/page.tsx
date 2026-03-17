@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, Clock, Printer, Send } from "lucide-react";
+import { AlertTriangle, Clock, FileText, Printer, Send } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,8 @@ export default function BillingDetailPage() {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const [showTaxReceipt, setShowTaxReceipt] = useState(false);
 
   // Partial payment form
   const [showPayment, setShowPayment] = useState(false);
@@ -237,13 +239,27 @@ export default function BillingDetailPage() {
             &larr; Back to billing
           </Link>
           {invoice ? (
-            <button
-              onClick={() => window.print()}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
-              <Printer className="h-4 w-4" />
-              Print / Save PDF
-            </button>
+            <>
+              <button
+                onClick={() => window.print()}
+                className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                <Printer className="h-4 w-4" />
+                Print / Save PDF
+              </button>
+              {isPaid ? (
+                <button
+                  onClick={() => {
+                    setShowTaxReceipt(true);
+                    setTimeout(() => window.print(), 300);
+                  }}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <FileText className="h-4 w-4" />
+                  Tax receipt
+                </button>
+              ) : null}
+            </>
           ) : null}
         </div>
 
@@ -590,6 +606,82 @@ export default function BillingDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Tax receipt — print-only section for Canada Child Benefit documentation */}
+            {showTaxReceipt ? (
+              <div className="mb-6 hidden rounded-xl border border-slate-200 bg-white p-6 print:block">
+                <div className="mb-6 border-b border-slate-200 pb-4">
+                  <div className="text-xl font-bold text-slate-900">Official Childcare Tax Receipt</div>
+                  <div className="mt-1 text-sm text-slate-600">
+                    For Canada Revenue Agency (CRA) — Child Care Expenses (Line 21400)
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Childcare Provider
+                    </div>
+                    <div className="mt-1 font-medium text-slate-900">BrightCare Centre</div>
+                    <div className="text-slate-600">Licensed Group Child Care</div>
+                    <div className="text-slate-600">British Columbia, Canada</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Receipt Details
+                    </div>
+                    <div className="mt-1 text-slate-700">
+                      Invoice: {invoice.id.slice(0, 8)}
+                    </div>
+                    <div className="text-slate-700">
+                      Date issued: {new Date().toISOString().slice(0, 10)}
+                    </div>
+                    <div className="text-slate-700">
+                      Tax year: {invoice.issueDate?.slice(0, 4) || new Date().getFullYear()}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Child&apos;s Name
+                    </div>
+                    <div className="mt-1 font-medium text-slate-900">{invoice.childName}</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Period
+                    </div>
+                    <div className="mt-1 text-slate-700">
+                      {invoice.issueDate?.slice(0, 10) || "—"}
+                      {invoice.dueDate ? ` to ${invoice.dueDate.slice(0, 10)}` : ""}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Total childcare fees</span>
+                    <span className="font-semibold text-slate-900">${invoice.totalAmount.toFixed(2)}</span>
+                  </div>
+                  {invoice.items.some((i) => i.amount < 0) ? (
+                    <div className="mt-2 flex items-center justify-between text-sm">
+                      <span className="text-slate-600">Less: government subsidies (ACCB/CCFRI)</span>
+                      <span className="font-medium text-blue-700">
+                        -${Math.abs(invoice.items.filter((i) => i.amount < 0).reduce((sum, i) => sum + i.amount, 0)).toFixed(2)}
+                      </span>
+                    </div>
+                  ) : null}
+                  <div className="mt-2 border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
+                    <span className="font-semibold text-slate-900">Amount paid by parent</span>
+                    <span className="font-semibold text-slate-900">${invoice.paidAmount.toFixed(2)}</span>
+                  </div>
+                </div>
+                <div className="mt-4 text-xs text-slate-500">
+                  <p>This receipt is for income tax purposes under the Income Tax Act (Canada).</p>
+                  <p className="mt-1">Licensed childcare in British Columbia is GST-exempt under the Excise Tax Act.</p>
+                  <p className="mt-1">Retain this receipt for your records. You may claim eligible childcare expenses on Line 21400 of your T1 return.</p>
+                </div>
+              </div>
+            ) : null}
 
             <Card className="rounded-2xl border-0 shadow-sm">
               <CardHeader><CardTitle>Payment history</CardTitle></CardHeader>
