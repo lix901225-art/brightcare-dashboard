@@ -178,12 +178,12 @@ export default function EnrollmentPage() {
   function readinessChecks(child: Child) {
     const guardians = guardiansByChild[child.id] || [];
     const checks = [
-      { label: "Date of birth", ok: !!child.dob },
-      { label: "Room assigned", ok: !!child.roomId },
-      { label: "Guardian linked", ok: guardians.length > 0 },
-      { label: "Emergency contact", ok: guardians.some((g) => g.isEmergencyContact) },
-      { label: "Primary contact", ok: guardians.some((g) => g.isPrimaryContact) },
-      { label: "Allergies / medical documented", ok: child.allergies != null || child.medicalNotes != null },
+      { label: "Date of birth", ok: !!child.dob, required: true },
+      { label: "Room assigned", ok: !!child.roomId, required: true },
+      { label: "Guardian linked", ok: guardians.length > 0, required: true },
+      { label: "Emergency contact", ok: guardians.some((g) => g.isEmergencyContact), required: false },
+      { label: "Primary contact", ok: guardians.some((g) => g.isPrimaryContact), required: false },
+      { label: "Allergies / medical documented", ok: child.allergies != null || child.medicalNotes != null, required: false },
     ];
     return checks;
   }
@@ -426,6 +426,7 @@ export default function EnrollmentPage() {
           const checks = readinessChecks(enrollTarget);
           const passed = checks.filter((c) => c.ok).length;
           const allPassed = passed === checks.length;
+          const requiredPassed = checks.filter((c) => c.required).every((c) => c.ok);
           const roomName = enrollTarget.roomId ? roomNameById[enrollTarget.roomId] || "Unknown" : null;
           const roomObj = rooms.find((r) => r.id === enrollTarget.roomId);
           const roomCount = enrollTarget.roomId ? activeByRoom[enrollTarget.roomId] || 0 : 0;
@@ -451,7 +452,7 @@ export default function EnrollmentPage() {
                       key={check.label}
                       className={[
                         "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
-                        check.ok ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700",
+                        check.ok ? "bg-emerald-50 text-emerald-700" : check.required ? "bg-rose-50 text-rose-700" : "bg-amber-50 text-amber-700",
                       ].join(" ")}
                     >
                       {check.ok ? (
@@ -460,6 +461,7 @@ export default function EnrollmentPage() {
                         <AlertTriangle className="h-4 w-4 shrink-0" />
                       )}
                       {check.label}
+                      {check.required && !check.ok ? <span className="ml-auto text-xs font-medium">Required</span> : null}
                     </div>
                   ))}
                 </div>
@@ -511,16 +513,26 @@ export default function EnrollmentPage() {
                   )}
                 </div>
 
+                {!requiredPassed ? (
+                  <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <div>
+                      Required items must be completed before enrollment.
+                      Please update the child&apos;s profile first.
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="flex items-center gap-3">
                   <button
                     onClick={confirmEnroll}
-                    disabled={transitioning === enrollTarget.id}
+                    disabled={!requiredPassed || transitioning === enrollTarget.id}
                     className="inline-flex h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
                     <ArrowRight className="h-4 w-4" />
-                    {allPassed ? "Enroll now" : "Enroll anyway"}
+                    {allPassed ? "Enroll now" : "Enroll (with warnings)"}
                   </button>
-                  {!allPassed ? (
+                  {!requiredPassed ? (
                     <Link
                       href={`/children/${encodeURIComponent(enrollTarget.id)}`}
                       className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
