@@ -5,6 +5,12 @@ const API_BASE_URL = process.env.API_BASE_URL || "http://127.0.0.1:4000";
 async function proxy(req: NextRequest) {
   try {
     const upstreamPath = req.nextUrl.pathname.replace(/^\/api\/proxy/, "");
+
+    // Reject path traversal and protocol-relative URLs
+    if (upstreamPath.includes("..") || upstreamPath.startsWith("//")) {
+      return NextResponse.json({ message: "Invalid path" }, { status: 400 });
+    }
+
     const upstreamUrl = `${API_BASE_URL}${upstreamPath}${req.nextUrl.search}`;
 
     const headers = new Headers();

@@ -16,9 +16,19 @@ export function readToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
-/** Store a JWT. */
+/** Basic JWT format check: must have exactly 3 dot-separated parts. */
+function isJwtShaped(token: string): boolean {
+  const parts = token.split(".");
+  return parts.length === 3 && parts.every((p) => p.length > 0);
+}
+
+/** Store a JWT. Rejects tokens that don't look like valid JWTs. */
 export function writeToken(token: string): void {
   if (typeof window === "undefined") return;
+  if (!isJwtShaped(token)) {
+    console.warn("[token-store] Rejected malformed token — not stored");
+    return;
+  }
   localStorage.setItem(TOKEN_KEY, token);
 }
 
