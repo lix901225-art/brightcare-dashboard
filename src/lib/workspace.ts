@@ -51,6 +51,7 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/messages", label: "Messages" },
     { href: "/announcements", label: "Announcements" },
     { href: "/billing", label: "Billing" },
+    { href: "/settings", label: "Settings" },
   ],
   PARENT: [
     { href: "/parent", label: "Parent Home" },
@@ -61,5 +62,6 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/messages", label: "Messages" },
     { href: "/parent/announcements", label: "Announcements" },
     { href: "/policies", label: "Policies" },
+    { href: "/settings", label: "Settings" },
   ],
 };

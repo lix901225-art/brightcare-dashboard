@@ -3,11 +3,10 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { RefreshCw, Save, Lock } from "lucide-react";
-import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
-import { patchSession } from "@/lib/session";
+import { patchSession, readSession } from "@/lib/session";
 import { getErrorMessage } from "@/lib/error";
 
 type MeResponse = {
@@ -44,6 +43,8 @@ export default function SettingsPage() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+
+  const isOwner = readSession()?.role === "OWNER";
 
   const [me, setMe] = useState<MeResponse | null>(null);
   const [tenant, setTenant] = useState<TenantResponse | null>(null);
@@ -186,28 +187,30 @@ export default function SettingsPage() {
     !savingPassword;
 
   return (
-    <RoleGate allow={["OWNER"]}>
       <div>
         <PageIntro
           title="Settings"
-          description="Manage your profile and centre settings."
+          description="Manage your profile and account settings."
         />
 
         {ok ? <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{ok}</div> : null}
         {error ? <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
 
-        <div className="mb-4 flex justify-end">
-          <button
-            onClick={() => loadAll(true)}
-            disabled={loading || refreshing}
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw className="h-4 w-4" />
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </button>
-        </div>
+        {isOwner ? (
+          <div className="mb-4 flex justify-end">
+            <button
+              onClick={() => loadAll(true)}
+              disabled={loading || refreshing}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            >
+              <RefreshCw className="h-4 w-4" />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          {isOwner ? (<>
           <Card className={["rounded-2xl shadow-sm", section === "profile" ? "border border-amber-300 bg-amber-50/40" : "border-0"].join(" ")}>
             <CardHeader><CardTitle>Owner profile</CardTitle></CardHeader>
             <CardContent>
@@ -287,6 +290,7 @@ export default function SettingsPage() {
               )}
             </CardContent>
           </Card>
+          </>) : null}
           <Card className={["rounded-2xl shadow-sm", section === "password" ? "border border-amber-300 bg-amber-50/40" : "border-0"].join(" ")}>
             <CardHeader><CardTitle>Change password</CardTitle></CardHeader>
             <CardContent>
@@ -346,6 +350,5 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
-    </RoleGate>
   );
 }
