@@ -162,6 +162,23 @@ curl -I https://app.brightcareos.com | grep -iE "x-frame|x-content-type|referrer
 | Auth0 callback | `dashboard/src/app/auth/callback/page.tsx` |
 | App auth gate | `dashboard/src/components/auth/app-auth-gate.tsx` |
 | Docker deployment | `docker-compose.yml`, `api/Dockerfile` |
+| CI workflows | `dashboard/.github/workflows/ci.yml`, `api/.github/workflows/ci.yml` |
+| Database indexes | `api/prisma/schema.prisma` (@@index directives on 12 tables) |
+
+## Post-deploy: Apply database indexes
+
+The schema has `@@index` directives for performance. To apply them:
+
+```bash
+# Option A: if migration history is clean
+cd ~/apps/api && npx prisma migrate dev --name add_performance_indexes
+
+# Option B: if drift exists, push schema directly (dev/staging only)
+cd ~/apps/api && npx prisma db push
+
+# Option C: generate and run SQL manually (production)
+cd ~/apps/api && npx prisma migrate diff --from-schema-datamodel prisma/schema.prisma --to-schema-datasource prisma/schema.prisma --script
+```
 
 ## What's NOT in scope for Track B code
 
