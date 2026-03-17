@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { AlertTriangle, RotateCcw, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { getErrorMessage } from "@/lib/error";
 
 export default function AppError({
   error,
@@ -29,7 +30,7 @@ export default function AppError({
       </p>
       {error.message && (
         <p className="mt-2 max-w-md rounded-lg bg-slate-100 px-3 py-1.5 font-mono text-xs text-slate-600">
-          {error.message.slice(0, 200)}
+          {getErrorMessage(error).slice(0, 200)}
         </p>
       )}
       <div className="mt-5 flex items-center gap-3">
