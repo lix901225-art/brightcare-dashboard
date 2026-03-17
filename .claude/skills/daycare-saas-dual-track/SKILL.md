@@ -71,6 +71,17 @@ A task is Track B if it improves long-term architecture without being required f
 7. **Web-first**: default to dashboard changes; API changes only when confirmed necessary
 8. **Don't restart API** unless a confirmed change requires it
 
+## Autonomous Continuation
+
+- **Completing a work block is NOT a reason to stop.** After finishing one block, immediately pick the next highest-value in-scope task and continue.
+- **Commits and summaries are checkpoints, not stopping points.** Report progress, then keep working.
+- **Only stop when hitting a true blocker:**
+  1. External operator/dashboard action required
+  2. Real credentials/secrets needed from the user
+  3. Next step would affect Track A stable flow
+  4. Next step is destructive or hard to reverse
+  5. No more meaningful in-scope code/documentation tasks remain
+
 ## Conflict Resolution
 
 If a task spans both tracks:

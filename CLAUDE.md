@@ -47,22 +47,41 @@ Auth0, multi-tenancy, JWT/RBAC, billing, reports, analytics, audit logs, invite/
 - **Permission truth lives in the backend database**: tenant → user → userRole → role.key, plus childGuardian links for parent data isolation.
 - Every API request is validated by `AuthMiddleware` against the database.
 
-### Current State (Track A)
+### Current State (Track A + B coexisting)
 
-- Backend: phone+password login with SHA256+salt, real DB validation.
-- AuthMiddleware: validates `x-user-id` + `x-tenant-id` headers against DB on every request.
-- Roles come from `userRole` table, not from the frontend.
+- Backend: phone+password login with bcrypt (auto-migrates legacy SHA256 on next login).
+- AuthMiddleware: tries Bearer JWT first, falls back to `x-user-id` + `x-tenant-id` headers.
+- JWT signed with HS256, 24h expiry, refreshable within 7 days.
+- Rate limiting on auth endpoints (5-10 req/min via @nestjs/throttler).
+- Roles come from `userRole` table, not from the frontend or JWT.
 - Parent data isolation: `getAllowedChildIds()` pattern across all 6 modules.
+- Auth0 login flow works end-to-end (sync endpoint creates/links users).
+- Structured audit logging on all auth events.
+- CSP, Helmet, security headers all active.
+- Fail-fast in production if JWT_SECRET or PASSWORD_SALT not set.
 
-### Future State (Track B)
+### Future State (Track B complete)
 
 - Auth0 handles: login, logout, session, token, password reset, MFA.
-- JWT Bearer tokens replace `x-user-id` / `x-tenant-id` headers.
-- Backend validates JWT, extracts tenantId/userId from token claims.
+- JWT Bearer tokens fully replace `x-user-id` / `x-tenant-id` headers.
+- Legacy header auth path removed once all clients use JWT.
 
 ---
 
-## Development Rules
+## Autonomous Execution Rules
+
+### Continuous Work Blocks
+
+- **Completing one coherent work block is NOT a reason to stop.** After finishing a block, immediately choose the next highest-value in-scope task and continue.
+- **Commits are checkpoints, not stopping points.** Commit when a unit is complete, then keep going.
+- **Summaries are checkpoints, not stopping points.** Report progress at natural milestones, then continue to the next task.
+- **Prefer longer autonomous execution.** Group related improvements into larger coherent units. Do not stop after one small patch.
+- **Only stop when you hit a true blocker:**
+  1. External operator/dashboard action is required (e.g. Auth0 config, DNS, hosting)
+  2. Real credentials or secrets are needed from the user
+  3. The next step would affect Track A stable flow
+  4. The next step is destructive or hard to reverse
+  5. There are genuinely no more meaningful in-scope code/documentation tasks left
 
 ### Default Behaviour
 
