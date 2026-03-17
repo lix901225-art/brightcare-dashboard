@@ -23,6 +23,7 @@ type IncidentRow = { id: string; childId: string; severity: string; type: string
 type InvoiceRow = { id: string; status: string; dueDate?: string | null; totalAmount: number; paidAmount: number; balanceAmount: number; childName: string };
 type DailyReportRow = { id: string; childId?: string | null; date?: string | null };
 type RoomRow = { id: string; name: string; capacity?: number | null };
+type ExpiringCert = { id: string; userId: string; userName?: string | null; level?: string | null; expiresAt?: string | null; daysUntilExpiry?: number };
 
 export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [dailyReports, setDailyReports] = useState<DailyReportRow[]>([]);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
+  const [expiringCerts, setExpiringCerts] = useState<ExpiringCert[]>([]);
 
   async function loadAll() {
     setLoading(true);
@@ -103,6 +105,15 @@ export default function DashboardPage() {
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
       setDailyReports(Array.isArray(reportsData) ? reportsData : []);
       setRooms(Array.isArray(roomsData) ? roomsData : []);
+
+      // Load expiring ECE certifications (non-blocking)
+      try {
+        const certsRes = await apiFetch("/compliance/ece-certifications/expiring");
+        if (certsRes.ok) {
+          const certsData = await certsRes.json();
+          setExpiringCerts(Array.isArray(certsData) ? certsData : []);
+        }
+      } catch { /* non-blocking */ }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Unable to load dashboard.";
       setError(message);
@@ -349,7 +360,7 @@ export default function DashboardPage() {
               </Card>
             </div>
 
-            {(metrics.missingGuardianCoverage > 0 || metrics.unmarkedToday > 0 || metrics.recentIncidentCount > 0 || metrics.waitlistCount > 0) ? (
+            {(metrics.missingGuardianCoverage > 0 || metrics.unmarkedToday > 0 || metrics.recentIncidentCount > 0 || metrics.waitlistCount > 0 || expiringCerts.length > 0) ? (
               <div className="mt-4 flex flex-wrap gap-3">
                 {metrics.waitlistCount > 0 ? (
                   <Link href="/enrollment" className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800 hover:bg-amber-100">
@@ -369,6 +380,12 @@ export default function DashboardPage() {
                 {metrics.recentIncidentCount > 0 ? (
                   <Link href="/incidents" className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800 hover:bg-amber-100">
                     {metrics.recentIncidentCount} incidents this week
+                  </Link>
+                ) : null}
+                {expiringCerts.length > 0 ? (
+                  <Link href="/compliance/ece-certifications" className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-800 hover:bg-rose-100">
+                    <AlertTriangle className="h-4 w-4" />
+                    {expiringCerts.length} ECE cert{expiringCerts.length !== 1 ? "s" : ""} expiring within 30 days
                   </Link>
                 ) : null}
               </div>
