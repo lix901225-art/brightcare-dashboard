@@ -169,22 +169,24 @@ curl -I https://app.brightcareos.com | grep -iE "x-frame|x-content-type|referrer
 | Local verification | `dashboard/scripts/verify.sh` |
 | Dashboard deploy checklist | `dashboard/docs/dashboard-deploy-checklist.md` |
 
-## Post-deploy: Apply database indexes
+## Database indexes
 
-The schema has `@@index` directives for performance. Migration history is currently clean (verified 2026-03-17).
+22 performance indexes are defined in `@@index` directives across the schema. These have been applied to the local dev database (2026-03-17) and the schema-to-database diff is now empty.
+
+**Local dev:** Indexes already applied via `prisma db execute`.
+
+**Production deployment:** Use the saved SQL script:
 
 ```bash
-# Recommended: create a migration for the indexes
-cd ~/apps/api && npx prisma migrate dev --name add_performance_indexes
+cd ~/apps/api
+npx prisma db execute --schema prisma/schema.prisma --stdin < scripts/add_performance_indexes.sql
+```
 
-# Production: deploy the migration
-cd ~/apps/api && npx prisma migrate deploy
+**Migration drift note:** The local migrations directory is missing `20260315074235_add_billing_models` (applied to DB via a different environment). This means `prisma migrate dev` will request a reset. Do NOT reset — use `prisma db execute` or `prisma db push` for schema changes until migration history is reconciled. To reconcile:
 
-# Alternative (production, manual SQL):
-cd ~/apps/api && npx prisma migrate diff \
-  --from-schema-datamodel prisma/schema.prisma \
-  --to-schema-datasource prisma/schema.prisma \
-  --script
+```bash
+# Mark existing migration as applied without running it
+cd ~/apps/api && npx prisma migrate resolve --applied 20260315074235_add_billing_models
 ```
 
 ## What's NOT in scope for Track B code
