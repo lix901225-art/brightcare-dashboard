@@ -36,6 +36,7 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/messages", label: "Messages" },
     { href: "/announcements", label: "Announcements" },
     { href: "/billing", label: "Billing" },
+    { href: "/compliance", label: "Compliance" },
     { href: "/reports", label: "Reports" },
     { href: "/documents", label: "Documents" },
     { href: "/rooms", label: "Rooms" },

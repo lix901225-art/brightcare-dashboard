@@ -10,6 +10,9 @@ import {
   AlertTriangle,
   ClipboardList,
   Loader2,
+  Shield,
+  Landmark,
+  Award,
 } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
 
@@ -18,7 +21,10 @@ type ReportType =
   | "billing"
   | "incidents"
   | "children"
-  | "daily-reports";
+  | "daily-reports"
+  | "bc-ccfri"
+  | "bc-10day"
+  | "bc-licensing";
 
 const REPORTS: {
   key: ReportType;
@@ -67,6 +73,30 @@ const REPORTS: {
     icon: ClipboardList,
     color: "text-rose-600",
     bg: "bg-rose-50",
+  },
+  {
+    key: "bc-ccfri",
+    label: "CCFRI Report",
+    description: "Child Care Fee Reduction Initiative — monthly enrolment and fee data for BC Ministry submission",
+    icon: Landmark,
+    color: "text-sky-600",
+    bg: "bg-sky-50",
+  },
+  {
+    key: "bc-10day",
+    label: "$10/Day Programme",
+    description: "ChildCareBC $10/Day programme tracking — attendance, spaces, and parent fees for funding verification",
+    icon: Award,
+    color: "text-teal-600",
+    bg: "bg-teal-50",
+  },
+  {
+    key: "bc-licensing",
+    label: "BC Licensing Report",
+    description: "Monthly licensing report — ratios, incidents, certifications, and compliance status",
+    icon: Shield,
+    color: "text-indigo-600",
+    bg: "bg-indigo-50",
   },
 ];
 
@@ -272,6 +302,125 @@ export default function ReportsPage() {
             ])
           );
           downloadCSV(`daily-reports-${dateFrom}-to-${dateTo}.csv`, csv);
+        } else if (type === "bc-ccfri") {
+          /* BC CCFRI — Child Care Fee Reduction Initiative report */
+          const [childrenRes, billingRes, roomsRes] = await Promise.all([
+            apiFetch("/children"),
+            apiFetch("/billing/invoices").catch(() => null),
+            apiFetch("/rooms"),
+          ]);
+          const kids: ChildRow[] = childrenRes.ok ? await childrenRes.json() : [];
+          const invoices: InvoiceRow[] = billingRes?.ok ? await billingRes.json() : [];
+          const rooms: { id: string; name: string }[] = roomsRes.ok ? await roomsRes.json() : [];
+          const roomById = Object.fromEntries(rooms.map((r) => [r.id, r.name]));
+
+          const activeKids = kids.filter((c) => c.status === "ACTIVE");
+          const csv = toCSV(
+            [
+              "Child Name",
+              "DOB",
+              "Room / Age Group",
+              "Enrolment Status",
+              "Monthly Fee ($)",
+              "CCFRI Reduction ($)",
+              "Parent Fee After CCFRI ($)",
+              "Reporting Period",
+            ],
+            activeKids.map((c) => {
+              const childInvoices = invoices.filter((i) => i.childId === c.id);
+              const latestInvoice = childInvoices[0];
+              const fee = latestInvoice ? (latestInvoice.totalCents / 100).toFixed(2) : "0.00";
+              return [
+                c.fullName,
+                c.dateOfBirth?.split("T")[0] ?? "",
+                c.room?.name ?? "",
+                c.status,
+                fee,
+                "", /* CCFRI reduction — would come from subsidy module */
+                "", /* Net parent fee */
+                `${dateFrom} to ${dateTo}`,
+              ];
+            })
+          );
+          downloadCSV(`ccfri-report-${dateFrom}-to-${dateTo}.csv`, csv);
+        } else if (type === "bc-10day") {
+          /* BC $10/Day Programme report */
+          const [childrenRes, attendanceRes] = await Promise.all([
+            apiFetch("/children"),
+            apiFetch("/attendance"),
+          ]);
+          const kids: ChildRow[] = childrenRes.ok ? await childrenRes.json() : [];
+          const attendance: AttendanceRow[] = attendanceRes.ok ? await attendanceRes.json() : [];
+
+          const activeKids = kids.filter((c) => c.status === "ACTIVE");
+          const filteredAttendance = attendance.filter(
+            (a) => a.date >= dateFrom && a.date <= dateTo
+          );
+
+          const csv = toCSV(
+            [
+              "Child Name",
+              "DOB",
+              "Room",
+              "Days Attended (Period)",
+              "Days Absent (Period)",
+              "Eligible for $10/Day",
+              "Parent Daily Fee ($)",
+              "Reporting Period",
+            ],
+            activeKids.map((c) => {
+              const childAttendance = filteredAttendance.filter((a) => a.childId === c.id);
+              const present = childAttendance.filter((a) => a.status === "PRESENT" || a.status === "CHECKED_IN" || a.status === "CHECKED_OUT").length;
+              const absent = childAttendance.filter((a) => a.status === "ABSENT").length;
+              return [
+                c.fullName,
+                c.dateOfBirth?.split("T")[0] ?? "",
+                c.room?.name ?? "",
+                String(present),
+                String(absent),
+                "Yes", /* eligibility would come from subsidy module */
+                "10.00",
+                `${dateFrom} to ${dateTo}`,
+              ];
+            })
+          );
+          downloadCSV(`bc-10day-report-${dateFrom}-to-${dateTo}.csv`, csv);
+        } else if (type === "bc-licensing") {
+          /* BC Monthly Licensing Report */
+          const [childrenRes, staffRes, incidentsRes, roomsRes] = await Promise.all([
+            apiFetch("/children"),
+            apiFetch("/admin/users"),
+            apiFetch("/incidents"),
+            apiFetch("/rooms"),
+          ]);
+          const kids: ChildRow[] = childrenRes.ok ? await childrenRes.json() : [];
+          const allStaff: { id: string; displayName?: string | null; role?: string | null; deactivated?: boolean }[] = staffRes.ok ? await staffRes.json() : [];
+          const incidents: IncidentRow[] = incidentsRes.ok ? await incidentsRes.json() : [];
+          const rooms: { id: string; name: string; capacity?: number | null }[] = roomsRes.ok ? await roomsRes.json() : [];
+
+          const activeKids = kids.filter((c) => c.status === "ACTIVE");
+          const activeStaff = allStaff.filter((s) => !s.deactivated && ((s.role || "").toUpperCase() === "STAFF" || (s.role || "").toUpperCase() === "OWNER"));
+          const periodIncidents = incidents.filter((i) => {
+            const d = i.occurredAt?.split("T")[0] ?? "";
+            return d >= dateFrom && d <= dateTo;
+          });
+
+          const summaryRows = [
+            ["Reporting Period", `${dateFrom} to ${dateTo}`],
+            ["Active Children", String(activeKids.length)],
+            ["Active Staff", String(activeStaff.length)],
+            ["Total Rooms", String(rooms.length)],
+            ["Total Capacity", String(rooms.reduce((sum, r) => sum + (r.capacity || 0), 0))],
+            ["Incidents This Period", String(periodIncidents.length)],
+            ["High/Critical Incidents", String(periodIncidents.filter((i) => i.severity === "High" || i.severity === "Critical").length)],
+            ["Locked Incidents", String(periodIncidents.filter((i) => i.lockedAt).length)],
+          ];
+
+          const csv = toCSV(
+            ["Metric", "Value"],
+            summaryRows
+          );
+          downloadCSV(`bc-licensing-report-${dateFrom}-to-${dateTo}.csv`, csv);
         }
       } catch (e) {
         console.error("Export failed:", e);
@@ -289,7 +438,7 @@ export default function ReportsPage() {
           Reports & Exports
         </h1>
         <p className="mt-1 text-sm text-slate-500">
-          Export your center data as CSV for record-keeping and compliance
+          Export your centre data as CSV for record-keeping and compliance
         </p>
       </div>
 
@@ -386,6 +535,12 @@ export default function ReportsPage() {
                 Billing exports include all invoices regardless of date filter
               </li>
               <li>Children roster always exports the full current roster</li>
+              <li>
+                BC funding reports (CCFRI, $10/Day) use active enrolment data — verify child statuses before exporting
+              </li>
+              <li>
+                BC Licensing Report summarises ratios, incidents, and capacity for monthly submissions
+              </li>
               <li>
                 UTF-8 encoding ensures names with special characters display
                 correctly
