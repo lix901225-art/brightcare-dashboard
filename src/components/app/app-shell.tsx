@@ -6,6 +6,7 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, type AppRole } from "@/lib/workspace";
 import { clearSession, readSession } from "@/lib/session";
+import { logout as auth0Logout } from "@/lib/auth0-logout";
 import { StaffMobileNav } from "@/components/app/staff-mobile-nav";
 
 type ShellSession = {
@@ -170,8 +171,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems = useMemo(() => NAV_BY_ROLE[session.role] || NAV_BY_ROLE.OWNER, [session.role]);
 
   function logout() {
-    clearSession();
-    router.replace("/login");
+    // Track B: auth0Logout handles both Auth0 and non-Auth0 cases —
+    // clears local session, then redirects to Auth0 /v2/logout or /login.
+    auth0Logout();
   }
 
   const tenantTitle = mounted ? session.tenantName || "Workspace" : "Workspace";
