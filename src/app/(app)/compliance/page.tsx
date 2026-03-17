@@ -7,6 +7,7 @@ import {
   Calendar,
   Check,
   ClipboardList,
+  Plus,
   Shield,
   Users,
   X,
@@ -519,7 +520,212 @@ export default function CompliancePage() {
             })()}
           </CardContent>
         </Card>
+        {/* ─── Health Authority Inspection Log ─── */}
+        <InspectionLog />
       </div>
     </RoleGate>
+  );
+}
+
+/* ─── Inspection Log Component ─── */
+
+type InspectionRecord = {
+  id: string;
+  date: string;
+  healthAuthority: string;
+  inspectorName?: string | null;
+  result: string;
+  notes?: string | null;
+  followUpRequired?: boolean;
+  followUpDate?: string | null;
+};
+
+const HA_OPTIONS = [
+  "Fraser Health",
+  "Vancouver Coastal Health",
+  "Interior Health",
+  "Island Health",
+  "Northern Health",
+];
+
+function InspectionLog() {
+  const [records, setRecords] = useState<InspectionRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  /* form */
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [healthAuthority, setHealthAuthority] = useState(HA_OPTIONS[0]);
+  const [inspectorName, setInspectorName] = useState("");
+  const [result, setResult] = useState("Pass");
+  const [notes, setNotes] = useState("");
+  const [followUpRequired, setFollowUpRequired] = useState(false);
+  const [followUpDate, setFollowUpDate] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch("/compliance/inspections");
+        if (res.ok) {
+          const data = await res.json();
+          setRecords(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        /* endpoint may not exist yet */
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  async function addRecord() {
+    try {
+      setSaving(true);
+      const res = await apiFetch("/compliance/inspections", {
+        method: "POST",
+        body: JSON.stringify({
+          date,
+          healthAuthority,
+          inspectorName: inspectorName.trim() || undefined,
+          result,
+          notes: notes.trim() || undefined,
+          followUpRequired,
+          followUpDate: followUpDate || undefined,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRecords((prev) => [data, ...prev]);
+        setShowAdd(false);
+        setInspectorName("");
+        setNotes("");
+        setFollowUpRequired(false);
+        setFollowUpDate("");
+      }
+    } catch {
+      /* silent */
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Health Authority Inspection Log
+          </CardTitle>
+          <button
+            onClick={() => setShowAdd(!showAdd)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Plus className="h-3 w-3" />
+            Log inspection
+          </button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="mb-3 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-700">
+          Record inspections from Fraser Health, Vancouver Coastal Health, Interior Health, Island Health, or Northern Health.
+          Required for BC Community Care and Assisted Living Act compliance.
+        </div>
+
+        {showAdd ? (
+          <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Date</div>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+              </div>
+              <div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Health authority</div>
+                <select value={healthAuthority} onChange={(e) => setHealthAuthority(e.target.value)} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                  {HA_OPTIONS.map((ha) => <option key={ha} value={ha}>{ha}</option>)}
+                </select>
+              </div>
+              <div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Inspector name</div>
+                <input value={inspectorName} onChange={(e) => setInspectorName(e.target.value)} placeholder="Optional" className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+              </div>
+              <div>
+                <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Result</div>
+                <select value={result} onChange={(e) => setResult(e.target.value)} className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                  <option value="Pass">Pass</option>
+                  <option value="Conditional Pass">Conditional Pass</option>
+                  <option value="Fail">Fail</option>
+                  <option value="Follow-up Required">Follow-up Required</option>
+                </select>
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-500">Notes</div>
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Inspection findings, observations, required corrections..." className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none" />
+            </div>
+            <div className="mt-3 flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input type="checkbox" checked={followUpRequired} onChange={(e) => setFollowUpRequired(e.target.checked)} className="h-4 w-4 rounded border-slate-300" />
+                Follow-up required
+              </label>
+              {followUpRequired ? (
+                <input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+              ) : null}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button onClick={addRecord} disabled={saving} className="inline-flex h-10 items-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                {saving ? "..." : "Save"}
+              </button>
+              <button onClick={() => setShowAdd(false)} className="inline-flex h-10 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {loading ? (
+          <div className="text-xs text-slate-400">Loading...</div>
+        ) : records.length === 0 ? (
+          <div className="text-sm text-slate-500">
+            No inspections logged yet.{" "}
+            <button onClick={() => setShowAdd(true)} className="font-medium text-slate-700 hover:text-slate-900">
+              Log your first inspection &rarr;
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {records.map((r) => (
+              <div key={r.id} className={[
+                "rounded-xl border p-3",
+                r.result === "Pass" ? "border-emerald-200 bg-emerald-50" :
+                r.result === "Fail" ? "border-rose-200 bg-rose-50" :
+                "border-amber-200 bg-amber-50",
+              ].join(" ")}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-slate-900">{r.healthAuthority}</span>
+                    <span className={[
+                      "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
+                      r.result === "Pass" ? "border-emerald-200 text-emerald-700" :
+                      r.result === "Fail" ? "border-rose-200 text-rose-700" :
+                      "border-amber-200 text-amber-700",
+                    ].join(" ")}>{r.result}</span>
+                  </div>
+                  <span className="text-xs text-slate-500">{formatDate(r.date)}</span>
+                </div>
+                {r.inspectorName ? <div className="mt-1 text-xs text-slate-500">Inspector: {r.inspectorName}</div> : null}
+                {r.notes ? <div className="mt-1 text-sm text-slate-600">{r.notes}</div> : null}
+                {r.followUpRequired ? (
+                  <div className="mt-1 text-xs font-medium text-amber-700">
+                    Follow-up required{r.followUpDate ? ` by ${formatDate(r.followUpDate)}` : ""}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
