@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, Clock, FileText, Printer, Send } from "lucide-react";
+import { AlertTriangle, Clock, FileText, Printer, Send, ShieldCheck } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,13 +17,18 @@ type InvoiceDetail = {
   id: string;
   childId: string;
   childName: string;
+  guardianId?: string | null;
   status: string;
+  month?: string | null;
   issueDate: string;
   dueDate?: string | null;
   currency: string;
   totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  isGstExempt: boolean;
   notes?: string | null;
   items: Array<{
     id: string;
@@ -338,13 +343,18 @@ export default function BillingDetailPage() {
               </div>
             ) : null}
 
-            <div className="mb-6 grid gap-4 md:grid-cols-4">
+            <div className="mb-6 grid gap-4 md:grid-cols-3 lg:grid-cols-6">
               <Card className="rounded-2xl border-0 shadow-sm">
                 <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Status</CardTitle></CardHeader>
                 <CardContent>
                   <span className={["inline-flex rounded-full border px-3 py-1 text-sm font-medium", statusBadgeClass(invoice.status, isOverdue)].join(" ")}>
                     {statusLabel(invoice.status, isOverdue)}
                   </span>
+                  {invoice.isGstExempt && (
+                    <div className="mt-1.5 flex items-center gap-1 text-xs text-emerald-600">
+                      <ShieldCheck className="h-3.5 w-3.5" /> GST-exempt
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               <Card className="rounded-2xl border-0 shadow-sm">
@@ -352,7 +362,24 @@ export default function BillingDetailPage() {
                 <CardContent><div className="text-2xl font-semibold">${invoice.totalAmount.toFixed(2)}</div></CardContent>
               </Card>
               <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Paid</CardTitle></CardHeader>
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-blue-600">Subsidy</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-semibold text-blue-700">
+                    ${(invoice.subsidyAmount || 0).toFixed(2)}
+                  </div>
+                  <div className="mt-0.5 text-xs text-blue-500">CCFRI / ACCB</div>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl border-0 shadow-sm">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Net (parent owes)</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-semibold">
+                    ${(invoice.netAmount > 0 ? invoice.netAmount : invoice.totalAmount - (invoice.subsidyAmount || 0)).toFixed(2)}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl border-0 shadow-sm">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-emerald-600">Paid</CardTitle></CardHeader>
                 <CardContent><div className="text-2xl font-semibold text-emerald-700">${invoice.paidAmount.toFixed(2)}</div></CardContent>
               </Card>
               <Card className="rounded-2xl border-0 shadow-sm">

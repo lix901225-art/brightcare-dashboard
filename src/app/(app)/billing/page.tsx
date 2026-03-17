@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, FileText, Info, Plus, Search, Send, Users, X } from "lucide-react";
+import { AlertTriangle, Calendar, Check, FileText, Info, Plus, Search, Send, ShieldCheck, Users, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,25 +12,45 @@ import { TableSkeleton } from "@/components/ui/skeleton";
 import { FilteredEmptyState } from "@/components/ui/empty-state";
 import { getErrorMessage } from "@/lib/error";
 
-type SummaryRow = {
+type SummaryTotals = {
+  totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
+  paidAmount: number;
+  balance: number;
+  invoiceCount: number;
+  unpaidCount: number;
+};
+
+type SummaryChild = {
   childId: string;
   childName: string;
-  total: number;
-  paid: number;
+  guardianId?: string | null;
+  totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
+  paidAmount: number;
   balance: number;
+  invoiceCount: number;
+  unpaidCount: number;
 };
 
 type InvoiceRow = {
   id: string;
   childId: string;
   childName: string;
+  guardianId?: string | null;
   status: string;
+  month?: string | null;
   issueDate: string;
   dueDate?: string | null;
   currency: string;
   totalAmount: number;
+  subsidyAmount: number;
+  netAmount: number;
   paidAmount: number;
   balanceAmount: number;
+  isGstExempt: boolean;
   itemsCount: number;
   paymentsCount: number;
 };
@@ -47,8 +67,13 @@ type DraftItem = {
   unitPrice: string;
 };
 
+function currentMonth() {
+  return new Date().toISOString().slice(0, 7);
+}
+
 export default function BillingPage() {
-  const [summary, setSummary] = useState<SummaryRow[]>([]);
+  const [summaryTotals, setSummaryTotals] = useState<SummaryTotals | null>(null);
+  const [summaryChildren, setSummaryChildren] = useState<SummaryChild[]>([]);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +83,8 @@ export default function BillingPage() {
   const [query, setQuery] = useState("");
   const [filterChild, setFilterChild] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const [showCreate, setShowCreate] = useState(false);
   const [showBulk, setShowBulk] = useState(false);
@@ -72,6 +99,7 @@ export default function BillingPage() {
   const [dueDate, setDueDate] = useState("");
   const [currency, setCurrency] = useState("CAD");
   const [notes, setNotes] = useState("");
+  const [subsidyAmount, setSubsidyAmount] = useState("");
   const [items, setItems] = useState<DraftItem[]>([
     { description: "Child care fees", quantity: "1", unitPrice: "" },
   ]);
@@ -81,9 +109,10 @@ export default function BillingPage() {
       setLoading(true);
       setError("");
 
+      const monthParam = selectedMonth ? `?month=${selectedMonth}` : "";
       const [summaryRes, invoicesRes, childrenRes] = await Promise.all([
-        apiFetch("/billing/summary"),
-        apiFetch("/billing/invoices"),
+        apiFetch(`/billing/summary${monthParam}`),
+        apiFetch(`/billing/invoices${monthParam}`),
         apiFetch("/children"),
       ]);
 
@@ -97,9 +126,17 @@ export default function BillingPage() {
 
       const childRows = Array.isArray(childrenData) ? childrenData : [];
 
-      setSummary(Array.isArray(summaryData) ? summaryData : []);
+      // Handle new summary format { totals, children }
+      if (summaryData && summaryData.totals) {
+        setSummaryTotals(summaryData.totals);
+        setSummaryChildren(Array.isArray(summaryData.children) ? summaryData.children : []);
+      } else {
+        setSummaryTotals(null);
+        setSummaryChildren([]);
+      }
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
       setChildren(childRows);
+      setSelectedIds(new Set());
 
       if (!childId && childRows.length > 0) {
         setChildId(childRows[0].id);
@@ -113,15 +150,28 @@ export default function BillingPage() {
 
   useEffect(() => {
     loadAll();
-  }, []);
+  }, [selectedMonth]);
 
   const totals = useMemo(() => {
+    if (summaryTotals) {
+      return {
+        total: summaryTotals.totalAmount,
+        subsidy: summaryTotals.subsidyAmount,
+        net: summaryTotals.netAmount,
+        paid: summaryTotals.paidAmount,
+        balance: summaryTotals.balance,
+        unpaidCount: summaryTotals.unpaidCount,
+      };
+    }
     return {
       total: invoices.reduce((s, x) => s + Number(x.totalAmount || 0), 0),
+      subsidy: invoices.reduce((s, x) => s + Number(x.subsidyAmount || 0), 0),
+      net: invoices.reduce((s, x) => s + Number(x.netAmount || 0), 0),
       paid: invoices.reduce((s, x) => s + Number(x.paidAmount || 0), 0),
       balance: invoices.reduce((s, x) => s + Number(x.balanceAmount || 0), 0),
+      unpaidCount: invoices.filter((x) => x.status !== "PAID" && x.status !== "VOID").length,
     };
-  }, [invoices]);
+  }, [invoices, summaryTotals]);
 
   const filteredInvoices = useMemo(() => {
     let result = invoices;
@@ -263,9 +313,11 @@ export default function BillingPage() {
         method: "POST",
         body: JSON.stringify({
           childId,
+          month: selectedMonth || undefined,
           issueDate,
           dueDate: dueDate || undefined,
           currency,
+          subsidyAmount: subsidyAmount ? Number(subsidyAmount) : undefined,
           notes: notes || undefined,
           status: asDraft ? "DRAFT" : undefined,
           items: payloadItems,
@@ -343,6 +395,40 @@ export default function BillingPage() {
     await loadAll();
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllDrafts() {
+    const draftIds = filteredInvoices
+      .filter((inv) => inv.status.toUpperCase() === "DRAFT")
+      .map((inv) => inv.id);
+    setSelectedIds(new Set(draftIds));
+  }
+
+  async function batchSend() {
+    if (selectedIds.size === 0) return;
+    setSaving(true);
+    setError("");
+    setOk("");
+    let sent = 0;
+    let failed = 0;
+    for (const id of selectedIds) {
+      try {
+        const res = await apiFetch(`/billing/invoices/${id}/send`, { method: "POST" });
+        if (res.ok) sent++; else failed++;
+      } catch { failed++; }
+    }
+    setSaving(false);
+    setOk(`${sent} invoice${sent !== 1 ? "s" : ""} sent${failed > 0 ? ` (${failed} failed)` : ""}.`);
+    setSelectedIds(new Set());
+    await loadAll();
+  }
+
   async function issueInvoice(id: string) {
     try {
       setSaving(true);
@@ -371,7 +457,22 @@ export default function BillingPage() {
             title="Billing"
             description="Invoices, balances, and fee reduction tracking for enrolled families."
           />
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3">
+              <Calendar className="h-4 w-4 text-slate-400" />
+              <input
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                className="h-11 bg-transparent text-sm outline-none"
+              />
+            </div>
+            <button
+              onClick={() => setSelectedMonth("")}
+              className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              All
+            </button>
             <button
               onClick={() => { setShowBulk((v) => !v); setShowCreate(false); }}
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -439,10 +540,14 @@ export default function BillingPage() {
                 </div>
 
                 <div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Currency</div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Subsidy (CCFRI / ACCB)</div>
                   <input
-                    value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={subsidyAmount}
+                    onChange={(e) => setSubsidyAmount(e.target.value)}
+                    placeholder="0.00"
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
                   />
                 </div>
@@ -689,28 +794,32 @@ export default function BillingPage() {
           </Card>
         ) : null}
 
-        <div className="mb-6 grid gap-4 md:grid-cols-5">
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Invoices</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">{invoices.length}</div></CardContent>
-          </Card>
+        <div className="mb-6 grid gap-4 md:grid-cols-6">
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total billed</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">${totals.total.toFixed(2)}</div></CardContent>
+            <CardContent><div className="text-2xl font-semibold">${totals.total.toFixed(2)}</div></CardContent>
           </Card>
           <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Paid</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold text-emerald-700">${totals.paid.toFixed(2)}</div></CardContent>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-blue-600">Subsidy</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-semibold text-blue-700">${totals.subsidy.toFixed(2)}</div></CardContent>
+          </Card>
+          <Card className="rounded-2xl border-0 shadow-sm">
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Net (parent owes)</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-semibold">${totals.net > 0 ? totals.net.toFixed(2) : (totals.total - totals.subsidy).toFixed(2)}</div></CardContent>
+          </Card>
+          <Card className="rounded-2xl border-0 shadow-sm">
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-emerald-600">Collected</CardTitle></CardHeader>
+            <CardContent><div className="text-2xl font-semibold text-emerald-700">${totals.paid.toFixed(2)}</div></CardContent>
           </Card>
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Outstanding</CardTitle></CardHeader>
-            <CardContent><div className="text-3xl font-semibold">${totals.balance.toFixed(2)}</div></CardContent>
+            <CardContent><div className="text-2xl font-semibold">${totals.balance.toFixed(2)}</div></CardContent>
           </Card>
           <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Overdue</CardTitle></CardHeader>
+            <CardHeader className="pb-2"><CardTitle className="text-sm text-rose-600">Unpaid</CardTitle></CardHeader>
             <CardContent>
-              <div className="text-3xl font-semibold text-rose-600">{overdueCount}</div>
-              {overdueCount > 0 ? <div className="mt-1 text-xs text-rose-600">Action needed</div> : null}
+              <div className="text-2xl font-semibold text-rose-600">{totals.unpaidCount}</div>
+              {overdueCount > 0 ? <div className="mt-1 text-xs text-rose-600">{overdueCount} overdue</div> : null}
             </CardContent>
           </Card>
         </div>
@@ -724,11 +833,12 @@ export default function BillingPage() {
               <>
                 {/* Mobile balance cards */}
                 <div className="space-y-2 md:hidden">
-                  {summary.map((row) => (
+                  {summaryChildren.map((row) => (
                     <div key={row.childId} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
                       <div className="font-medium text-slate-900 text-sm">{row.childName}</div>
                       <div className="flex items-center gap-3 text-sm">
-                        <span className="text-emerald-700">${row.paid.toFixed(0)}</span>
+                        {row.subsidyAmount > 0 && <span className="text-blue-600">-${row.subsidyAmount.toFixed(0)}</span>}
+                        <span className="text-emerald-700">${row.paidAmount.toFixed(0)}</span>
                         <span className={`font-semibold ${row.balance > 0 ? "text-rose-700" : "text-slate-500"}`}>${row.balance.toFixed(2)}</span>
                       </div>
                     </div>
@@ -741,16 +851,20 @@ export default function BillingPage() {
                       <tr>
                         <th className="px-4 py-3 font-medium">Child</th>
                         <th className="px-4 py-3 font-medium">Total</th>
+                        <th className="px-4 py-3 font-medium">Subsidy</th>
+                        <th className="px-4 py-3 font-medium">Net</th>
                         <th className="px-4 py-3 font-medium">Paid</th>
                         <th className="px-4 py-3 font-medium">Balance</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {summary.map((row) => (
+                      {summaryChildren.map((row) => (
                         <tr key={row.childId} className="border-t border-slate-200">
                           <td className="px-4 py-3 font-medium text-slate-900">{row.childName}</td>
-                          <td className="px-4 py-3">${row.total.toFixed(2)}</td>
-                          <td className="px-4 py-3 text-emerald-700">${row.paid.toFixed(2)}</td>
+                          <td className="px-4 py-3">${row.totalAmount.toFixed(2)}</td>
+                          <td className="px-4 py-3 text-blue-600">${row.subsidyAmount.toFixed(2)}</td>
+                          <td className="px-4 py-3">${row.netAmount > 0 ? row.netAmount.toFixed(2) : (row.totalAmount - row.subsidyAmount).toFixed(2)}</td>
+                          <td className="px-4 py-3 text-emerald-700">${row.paidAmount.toFixed(2)}</td>
                           <td className={["px-4 py-3 font-medium", row.balance > 0 ? "text-rose-700" : "text-slate-600"].join(" ")}>${row.balance.toFixed(2)}</td>
                         </tr>
                       ))}
@@ -830,7 +944,24 @@ export default function BillingPage() {
               className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none placeholder:text-slate-400"
             />
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            {selectedIds.size > 0 && (
+              <button
+                onClick={batchSend}
+                disabled={saving}
+                className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+                Send {selectedIds.size} selected
+              </button>
+            )}
+            <button
+              onClick={selectAllDrafts}
+              className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Check className="h-4 w-4" />
+              Select drafts
+            </button>
             <select
               value={filterChild}
               onChange={(e) => setFilterChild(e.target.value)}
@@ -892,9 +1023,15 @@ export default function BillingPage() {
                             {row.balanceAmount > 0 ? `$${row.balanceAmount.toFixed(2)} due` : "Paid"}
                           </div>
                         </div>
-                        <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-500">
                           <span>Total: ${row.totalAmount.toFixed(2)}</span>
+                          {row.subsidyAmount > 0 && <span className="text-blue-600">Subsidy: ${row.subsidyAmount.toFixed(2)}</span>}
                           <span>Paid: ${row.paidAmount.toFixed(2)}</span>
+                          {row.isGstExempt && (
+                            <span className="inline-flex items-center gap-0.5 text-emerald-600">
+                              <ShieldCheck className="h-3 w-3" /> GST-exempt
+                            </span>
+                          )}
                         </div>
                         {row.status.toUpperCase() === "DRAFT" && (
                           <div className="mt-3">
@@ -917,11 +1054,13 @@ export default function BillingPage() {
                   <table className="w-full text-sm">
                     <thead className="bg-slate-50 text-left text-slate-500">
                       <tr>
+                        <th className="w-8 px-3 py-3"><span className="sr-only">Select</span></th>
                         <th className="px-4 py-3 font-medium">Child</th>
                         <th className="px-4 py-3 font-medium">Status</th>
-                        <th className="px-4 py-3 font-medium">Issued</th>
                         <th className="px-4 py-3 font-medium">Due</th>
                         <th className="px-4 py-3 font-medium">Total</th>
+                        <th className="px-4 py-3 font-medium">Subsidy</th>
+                        <th className="px-4 py-3 font-medium">Net</th>
                         <th className="px-4 py-3 font-medium">Paid</th>
                         <th className="px-4 py-3 font-medium">Balance</th>
                         <th className="px-4 py-3 font-medium">Action</th>
@@ -932,30 +1071,49 @@ export default function BillingPage() {
                         const todayStr = new Date().toISOString().slice(0, 10);
                         const isOverdue = row.balanceAmount > 0 && row.dueDate && row.dueDate.slice(0, 10) < todayStr && row.status.toUpperCase() !== "VOID" && row.status.toUpperCase() !== "PAID";
                         const displayStatus = isOverdue ? "OVERDUE" : row.status;
+                        const isDraft = row.status.toUpperCase() === "DRAFT";
 
                         return (
                           <tr key={row.id} className={`border-t border-slate-200 ${isOverdue ? "bg-rose-50/50" : ""}`}>
-                            <td className="px-4 py-3 font-medium text-slate-900">{row.childName}</td>
+                            <td className="px-3 py-3">
+                              {isDraft && (
+                                <input
+                                  type="checkbox"
+                                  checked={selectedIds.has(row.id)}
+                                  onChange={() => toggleSelect(row.id)}
+                                  className="h-4 w-4 rounded border-slate-300"
+                                />
+                              )}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-medium text-slate-900">{row.childName}</div>
+                              {row.isGstExempt && (
+                                <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600">
+                                  <ShieldCheck className="h-3 w-3" /> GST-exempt
+                                </span>
+                              )}
+                            </td>
                             <td className="px-4 py-3">
                               <span className={["inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium", statusBadge(displayStatus)].join(" ")}>
                                 {displayStatus}
                               </span>
                             </td>
-                            <td className="px-4 py-3">{row.issueDate?.slice(0, 10) || "—"}</td>
                             <td className={`px-4 py-3 ${isOverdue ? "font-medium text-rose-600" : ""}`}>{row.dueDate?.slice(0, 10) || "—"}</td>
                             <td className="px-4 py-3">${row.totalAmount.toFixed(2)}</td>
+                            <td className="px-4 py-3 text-blue-600">{row.subsidyAmount > 0 ? `$${row.subsidyAmount.toFixed(2)}` : "—"}</td>
+                            <td className="px-4 py-3">${row.netAmount > 0 ? row.netAmount.toFixed(2) : (row.totalAmount - (row.subsidyAmount || 0)).toFixed(2)}</td>
                             <td className="px-4 py-3 text-emerald-700">${row.paidAmount.toFixed(2)}</td>
                             <td className={["px-4 py-3 font-medium", row.balanceAmount > 0 ? "text-rose-700" : "text-slate-600"].join(" ")}>${row.balanceAmount.toFixed(2)}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
-                                {row.status.toUpperCase() === "DRAFT" ? (
+                                {isDraft ? (
                                   <button
                                     onClick={() => issueInvoice(row.id)}
                                     disabled={saving}
                                     className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                                   >
                                     <Send className="h-3 w-3" />
-                                    Issue
+                                    Send
                                   </button>
                                 ) : null}
                                 <Link
