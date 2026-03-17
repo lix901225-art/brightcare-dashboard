@@ -124,11 +124,18 @@ Auth0, multi-tenancy, JWT/RBAC, billing, reports, analytics, audit logs, invite/
 
 - App routes: `src/app/(app)/` — protected by AppAuthGate
 - Marketing routes: `src/app/(marketing)/` — public, server components
-- API client: `src/lib/api-client.ts` (apiFetch with auto-refresh on 401)
+- API client: `src/lib/api-client.ts` (apiFetch with auto-refresh on 401, timeout protection)
 - Session: `src/lib/session.ts` (readSession/writeSession/patchSession/clearSession)
 - Token store: `src/lib/token-store.ts` (JWT read/write/clear with format validation)
 - Auth bootstrap: `src/lib/auth-bootstrap.ts` (syncs session with backend on app load)
 - Auth0 provider: `src/lib/auth0-provider.tsx` (conditional Auth0 wrapper with error boundary)
+- Auth0 token context: `src/lib/auth-token-context.tsx` (React context for Auth0 access token)
+- Auth0 types: `src/lib/auth0-types.ts` (sync request/response contract types)
+- Logout: `src/lib/use-logout.ts` (Track A redirect + Track B Auth0 SDK logout)
 - Navigation: `src/lib/workspace.ts` (NAV_BY_ROLE, role-based sidebar)
 - Error handling: `src/lib/error.ts` (CN→EN translation + rate-limit message rewrite)
-- Proxy: `src/app/api/proxy/[...path]/route.ts` (forwards to backend with path validation)
+- Env validation: `src/lib/env-check.ts` (dev-mode warnings for missing/placeholder env vars)
+- Instrumentation: `src/instrumentation.ts` (Next.js hook runs env check on server start)
+- Proxy: `src/app/api/proxy/[...path]/route.ts` (forwards to backend with path + Accept header)
+- Docs: `docs/` (auth-architecture.md, dashboard-deploy-checklist.md, track-b-backend-handoff.md)
+- Scripts: `scripts/verify.sh` (local pre-deploy verification)
