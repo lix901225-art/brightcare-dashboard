@@ -5,9 +5,15 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 type ApiInit = RequestInit & {
   skipAuth?: boolean;
   timeoutMs?: number;
+  /** Track B: when provided, sends Authorization: Bearer <token> alongside legacy headers. */
+  bearerToken?: string;
 };
 
-function buildHeaders(init?: RequestInit, skipAuth?: boolean): Headers {
+function buildHeaders(
+  init?: RequestInit,
+  skipAuth?: boolean,
+  bearerToken?: string,
+): Headers {
   const headers = new Headers(init?.headers || {});
   headers.set("Content-Type", "application/json");
 
@@ -17,11 +23,21 @@ function buildHeaders(init?: RequestInit, skipAuth?: boolean): Headers {
     if (session?.tenantId) headers.set("x-tenant-id", session.tenantId);
   }
 
+  // Track B: attach Bearer token when provided (coexists with legacy headers)
+  if (bearerToken) {
+    headers.set("Authorization", `Bearer ${bearerToken}`);
+  }
+
   return headers;
 }
 
 export async function apiFetch(path: string, init: ApiInit = {}) {
-  const { skipAuth = false, timeoutMs = DEFAULT_TIMEOUT_MS, ...rest } = init;
+  const {
+    skipAuth = false,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+    bearerToken,
+    ...rest
+  } = init;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -29,7 +45,7 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
   try {
     const res = await fetch(`/api/proxy${path}`, {
       ...rest,
-      headers: buildHeaders(rest, skipAuth),
+      headers: buildHeaders(rest, skipAuth, bearerToken),
       cache: "no-store",
       signal: controller.signal,
     });

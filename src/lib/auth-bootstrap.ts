@@ -29,18 +29,31 @@ function normalizeRole(role: string | null | undefined): "OWNER" | "STAFF" | "PA
   return "STAFF";
 }
 
-export async function bootstrapSessionFromBackend(): Promise<AppSession | null> {
+/**
+ * @param bearerToken Track B: optional Auth0 access token. When provided,
+ *   sends Authorization header alongside legacy x-user-id/x-tenant-id.
+ */
+export async function bootstrapSessionFromBackend(
+  bearerToken?: string | null,
+): Promise<AppSession | null> {
   const session = readSession();
   if (!session?.userId || !session?.tenantId) return null;
 
   try {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "x-user-id": session.userId,
+      "x-tenant-id": session.tenantId,
+    };
+
+    // Track B: attach Bearer token when available (coexists with legacy headers)
+    if (bearerToken) {
+      headers["Authorization"] = `Bearer ${bearerToken}`;
+    }
+
     const res = await fetch("/api/proxy/me", {
       method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "x-user-id": session.userId,
-        "x-tenant-id": session.tenantId,
-      },
+      headers,
       cache: "no-store",
     });
 

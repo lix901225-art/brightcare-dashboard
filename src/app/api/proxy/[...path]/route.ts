@@ -16,6 +16,10 @@ async function proxy(req: NextRequest) {
     if (userId) headers.set("x-user-id", userId);
     if (tenantId) headers.set("x-tenant-id", tenantId);
 
+    // Track B: forward Bearer token when present (coexists with legacy headers)
+    const authorization = req.headers.get("authorization");
+    if (authorization) headers.set("authorization", authorization);
+
     const method = req.method.toUpperCase();
     const body =
       method === "GET" || method === "HEAD"

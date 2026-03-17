@@ -3,11 +3,14 @@
 import { ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { bootstrapSessionFromBackend } from "@/lib/auth-bootstrap";
+import { useAuthToken } from "@/lib/auth-token-context";
 import { readSession } from "@/lib/session";
 
 export function AppAuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+
+  const getToken = useAuthToken();
 
   const [ready, setReady] = useState(false);
   const [allowed, setAllowed] = useState(false);
@@ -25,7 +28,9 @@ export function AppAuthGate({ children }: { children: ReactNode }) {
 
     const boot = async () => {
       try {
-        const bootstrapped = await bootstrapSessionFromBackend();
+        // Track B: pass Auth0 token to bootstrap when available
+        const token = await getToken();
+        const bootstrapped = await bootstrapSessionFromBackend(token);
         const session = bootstrapped || readSession();
 
         if (!alive) return;
@@ -74,7 +79,7 @@ export function AppAuthGate({ children }: { children: ReactNode }) {
       window.removeEventListener("storage", sync);
       window.removeEventListener("focus", sync);
     };
-  }, [pathname, router, redirectToLogin]);
+  }, [pathname, router, redirectToLogin, getToken]);
 
   if (!ready) {
     return (

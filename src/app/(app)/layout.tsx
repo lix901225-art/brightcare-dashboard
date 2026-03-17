@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { AppAuthGate } from "@/components/auth/app-auth-gate";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import Auth0ProviderClient from "@/lib/auth0-provider";
+import { AuthTokenProvider } from "@/lib/auth-token-context";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 export default function ProtectedAppLayout({ children }: { children: ReactNode }) {
   return (
     <Auth0ProviderClient>
+      <AuthTokenProvider>
       <AppAuthGate>
         <AppShell>
           <ErrorBoundary>
@@ -31,6 +33,7 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
           }}
         />
       </AppAuthGate>
+      </AuthTokenProvider>
     </Auth0ProviderClient>
   );
 }
