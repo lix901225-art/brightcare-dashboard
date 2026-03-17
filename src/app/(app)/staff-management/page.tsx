@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { KeyRound, Plus, Search, X } from "lucide-react";
+import { Edit2, KeyRound, Plus, Search, UserX, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +18,7 @@ type UserRow = {
   role?: string | null;
   roles?: Array<{ key: string }>;
   createdAt?: string | null;
+  deactivated?: boolean;
 };
 
 function roleBadge(role?: string | null) {
@@ -52,6 +53,11 @@ export default function StaffManagementPage() {
   const [resetTarget, setResetTarget] = useState<UserRow | null>(null);
   const [resetPassword, setResetPassword] = useState("");
   const [resetting, setResetting] = useState(false);
+
+  // Edit user (role change)
+  const [editTarget, setEditTarget] = useState<UserRow | null>(null);
+  const [editRole, setEditRole] = useState<"STAFF" | "PARENT">("STAFF");
+  const [editSaving, setEditSaving] = useState(false);
 
   async function loadAll() {
     try {
@@ -171,6 +177,53 @@ export default function StaffManagementPage() {
       setError(getErrorMessage(e, "Unable to reset password."));
     } finally {
       setResetting(false);
+    }
+  }
+
+  async function saveRoleChange() {
+    if (!editTarget) return;
+    try {
+      setEditSaving(true);
+      setError("");
+      setOk("");
+
+      const res = await apiFetch(`/admin/users/${editTarget.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ role: editRole }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Update failed: ${res.status}`);
+
+      setOk(`${editTarget.displayName || "User"} role changed to ${editRole}.`);
+      setEditTarget(null);
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to change role."));
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
+  async function deactivateUser(user: UserRow) {
+    if (!confirm(`Deactivate ${user.displayName || "this user"}? They will no longer be able to sign in.`)) return;
+    try {
+      setSaving(true);
+      setError("");
+      setOk("");
+
+      const res = await apiFetch(`/admin/users/${user.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ deactivated: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Deactivate failed: ${res.status}`);
+
+      setOk(`${user.displayName || "User"} deactivated.`);
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to deactivate user."));
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -339,6 +392,56 @@ export default function StaffManagementPage() {
           </Card>
         ) : null}
 
+        {editTarget ? (
+          <Card className="mb-6 rounded-2xl border-0 shadow-sm ring-1 ring-slate-300">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Edit role: {editTarget.displayName || "User"}</CardTitle>
+                <button
+                  onClick={() => setEditTarget(null)}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-slate-500">
+                  Current role: <span className="font-medium text-slate-900">{editTarget.role || "Unknown"}</span>
+                </div>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">New role</span>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as "STAFF" | "PARENT")}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                  >
+                    <option value="STAFF">Staff</option>
+                    <option value="PARENT">Parent</option>
+                  </select>
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={saveRoleChange}
+                    disabled={editSaving}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    {editSaving ? "Saving..." : "Change role"}
+                  </button>
+                  <button
+                    onClick={() => setEditTarget(null)}
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total users</CardTitle></CardHeader>
@@ -398,22 +501,51 @@ export default function StaffManagementPage() {
                     <div key={user.id} className="rounded-xl border border-slate-200 bg-white p-4">
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-medium text-slate-900 text-sm">{user.displayName || "Unnamed"}</div>
+                          <div className={["font-medium text-sm", user.deactivated ? "text-slate-400 line-through" : "text-slate-900"].join(" ")}>
+                            {user.displayName || "Unnamed"}
+                          </div>
                           {user.phone && <div className="mt-0.5 text-xs text-slate-500">{user.phone}</div>}
                         </div>
                         <div className="flex items-center gap-2">
                           <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
                             {user.role || "—"}
                           </span>
+                          {user.deactivated && (
+                            <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600">
+                              Deactivated
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {!user.deactivated && (
+                        <div className="mt-2 flex gap-2">
                           <button
                             onClick={() => setResetTarget(user)}
                             className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600 hover:bg-slate-50"
                             title="Reset password"
                           >
-                            <KeyRound className="h-3 w-3" />
+                            <KeyRound className="h-3 w-3" /> Reset
                           </button>
+                          {(user.role || "").toUpperCase() !== "OWNER" && (
+                            <>
+                              <button
+                                onClick={() => { setEditTarget(user); setEditRole(((user.role || "STAFF").toUpperCase() === "PARENT" ? "PARENT" : "STAFF")); }}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600 hover:bg-slate-50"
+                                title="Edit role"
+                              >
+                                <Edit2 className="h-3 w-3" /> Role
+                              </button>
+                              <button
+                                onClick={() => deactivateUser(user)}
+                                className="inline-flex h-8 items-center gap-1 rounded-lg border border-rose-200 bg-white px-2 text-xs text-rose-600 hover:bg-rose-50"
+                                title="Deactivate user"
+                              >
+                                <UserX className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -431,28 +563,63 @@ export default function StaffManagementPage() {
                     </thead>
                     <tbody>
                       {filteredUsers.map((user) => (
-                        <tr key={user.id} className="border-t border-slate-200">
+                        <tr key={user.id} className={["border-t border-slate-200", user.deactivated ? "opacity-50" : ""].join(" ")}>
                           <td className="px-4 py-3">
-                            <div className="font-medium text-slate-900">{user.displayName || "Unnamed"}</div>
+                            <div className={["font-medium", user.deactivated ? "text-slate-400 line-through" : "text-slate-900"].join(" ")}>
+                              {user.displayName || "Unnamed"}
+                            </div>
                             <div className="text-xs text-slate-500">{user.id.slice(0, 8)}...</div>
                           </td>
                           <td className="px-4 py-3">{user.phone || "—"}</td>
                           <td className="px-4 py-3">
-                            <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
-                              {user.role || "—"}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
+                                {user.role || "—"}
+                              </span>
+                              {user.deactivated && (
+                                <span className="inline-flex rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-600">
+                                  Deactivated
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td className="px-4 py-3 text-slate-500">
                             {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
                           </td>
                           <td className="px-4 py-3">
-                            <button
-                              onClick={() => setResetTarget(user)}
-                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600 hover:bg-slate-50"
-                            >
-                              <KeyRound className="h-3 w-3" />
-                              Reset password
-                            </button>
+                            {user.deactivated ? (
+                              <span className="text-xs text-slate-400">No actions</span>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => setResetTarget(user)}
+                                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600 hover:bg-slate-50"
+                                  title="Reset password"
+                                >
+                                  <KeyRound className="h-3 w-3" />
+                                  Reset
+                                </button>
+                                {(user.role || "").toUpperCase() !== "OWNER" && (
+                                  <>
+                                    <button
+                                      onClick={() => { setEditTarget(user); setEditRole(((user.role || "STAFF").toUpperCase() === "PARENT" ? "PARENT" : "STAFF")); }}
+                                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600 hover:bg-slate-50"
+                                      title="Edit role"
+                                    >
+                                      <Edit2 className="h-3 w-3" />
+                                      Role
+                                    </button>
+                                    <button
+                                      onClick={() => deactivateUser(user)}
+                                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-2.5 text-xs text-rose-600 hover:bg-rose-50"
+                                      title="Deactivate user"
+                                    >
+                                      <UserX className="h-3 w-3" />
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
                           </td>
                         </tr>
                       ))}
