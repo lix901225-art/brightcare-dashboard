@@ -1,7 +1,8 @@
 # Track B — Production Security & Rollout Handoff
 
-> Last updated: 2026-03-16
+> Last updated: 2026-03-17
 > All code work complete. System is production-ready pending operator actions below.
+> See also: [Dashboard Deploy Checklist](./dashboard-deploy-checklist.md)
 
 ## Architecture
 
@@ -164,6 +165,9 @@ curl -I https://app.brightcareos.com | grep -iE "x-frame|x-content-type|referrer
 | Docker deployment | `docker-compose.yml`, `api/Dockerfile` |
 | CI workflows | `dashboard/.github/workflows/ci.yml`, `api/.github/workflows/ci.yml` |
 | Database indexes | `api/prisma/schema.prisma` (@@index directives on 12 tables) |
+| Env validation (dev) | `dashboard/src/lib/env-check.ts` + `dashboard/src/instrumentation.ts` |
+| Local verification | `dashboard/scripts/verify.sh` |
+| Dashboard deploy checklist | `dashboard/docs/dashboard-deploy-checklist.md` |
 
 ## Post-deploy: Apply database indexes
 
