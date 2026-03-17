@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, X } from "lucide-react";
+import { KeyRound, Plus, Search, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,6 +47,11 @@ export default function StaffManagementPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<"STAFF" | "PARENT">("STAFF");
+
+  // Reset password
+  const [resetTarget, setResetTarget] = useState<UserRow | null>(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetting, setResetting] = useState(false);
 
   async function loadAll() {
     try {
@@ -136,6 +141,36 @@ export default function StaffManagementPage() {
       setError(getErrorMessage(e, "Unable to create user."));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function confirmResetPassword() {
+    if (!resetTarget) return;
+    const targetId = resetTarget.id;
+    const targetName = resetTarget.displayName || "User";
+
+    try {
+      setResetting(true);
+      setError("");
+      setOk("");
+
+      if (resetPassword.length < 6) throw new Error("Password must be at least 6 characters.");
+
+      const res = await apiFetch(`/admin/users/${targetId}/reset-password`, {
+        method: "POST",
+        body: JSON.stringify({ newPassword: resetPassword.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Reset failed: ${res.status}`);
+
+      setOk(`Password reset for ${targetName}.`);
+      setResetTarget(null);
+      setResetPassword("");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to reset password."));
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -252,6 +287,58 @@ export default function StaffManagementPage() {
           </Card>
         ) : null}
 
+        {resetTarget ? (
+          <Card className="mb-6 rounded-2xl border-0 shadow-sm ring-1 ring-amber-200">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Reset password: {resetTarget.displayName || "User"}</CardTitle>
+                <button
+                  onClick={() => { setResetTarget(null); setResetPassword(""); }}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="text-sm text-slate-500">
+                  Set a new password for {resetTarget.displayName || "this user"} ({resetTarget.phone || resetTarget.id.slice(0, 8)}).
+                  They will need to use this password on their next login.
+                </div>
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">New password</span>
+                  <input
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                    type="password"
+                    autoComplete="new-password"
+                    maxLength={128}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="At least 6 characters"
+                  />
+                </label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={confirmResetPassword}
+                    disabled={resetting || resetPassword.length < 6}
+                    className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                  >
+                    <KeyRound className="h-4 w-4" />
+                    {resetting ? "Resetting..." : "Reset password"}
+                  </button>
+                  <button
+                    onClick={() => { setResetTarget(null); setResetPassword(""); }}
+                    className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total users</CardTitle></CardHeader>
@@ -314,9 +401,18 @@ export default function StaffManagementPage() {
                           <div className="font-medium text-slate-900 text-sm">{user.displayName || "Unnamed"}</div>
                           {user.phone && <div className="mt-0.5 text-xs text-slate-500">{user.phone}</div>}
                         </div>
-                        <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
-                          {user.role || "—"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
+                            {user.role || "—"}
+                          </span>
+                          <button
+                            onClick={() => setResetTarget(user)}
+                            className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600 hover:bg-slate-50"
+                            title="Reset password"
+                          >
+                            <KeyRound className="h-3 w-3" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -330,6 +426,7 @@ export default function StaffManagementPage() {
                         <th className="px-4 py-3 font-medium">Phone</th>
                         <th className="px-4 py-3 font-medium">Role</th>
                         <th className="px-4 py-3 font-medium">Joined</th>
+                        <th className="px-4 py-3 font-medium">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -347,6 +444,15 @@ export default function StaffManagementPage() {
                           </td>
                           <td className="px-4 py-3 text-slate-500">
                             {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => setResetTarget(user)}
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600 hover:bg-slate-50"
+                            >
+                              <KeyRound className="h-3 w-3" />
+                              Reset password
+                            </button>
                           </td>
                         </tr>
                       ))}
