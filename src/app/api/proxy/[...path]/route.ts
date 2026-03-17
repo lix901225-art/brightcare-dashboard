@@ -43,8 +43,9 @@ async function proxy(req: NextRequest) {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Proxy request failed";
-    const stack = error instanceof Error ? error.stack : String(error);
-    return NextResponse.json({ message, stack }, { status: 500 });
+    // Log full error server-side; return only message to client
+    console.error("[proxy]", error);
+    return NextResponse.json({ message }, { status: 502 });
   }
 }
 
