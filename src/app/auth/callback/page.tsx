@@ -5,6 +5,7 @@ import { useAuth0 } from "@auth0/auth0-react";
 import { writeSession } from "@/lib/session";
 import { getRoleHome } from "@/lib/workspace";
 import { AUTH0_ENABLED } from "@/lib/auth0-provider";
+import type { Auth0SyncRequest, Auth0SyncResponse } from "@/lib/auth0-types";
 
 /**
  * Inner component that calls useAuth0() — only rendered when Auth0 is enabled,
@@ -55,11 +56,11 @@ function Auth0CallbackInner() {
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
           body: JSON.stringify({
-            auth0Id: currentUser.sub,
-            email: currentUser.email,
-            displayName: currentUser.name || currentUser.nickname || currentUser.email,
+            auth0Id: currentUser.sub ?? "",
+            email: currentUser.email ?? "",
+            displayName: currentUser.name || currentUser.nickname || currentUser.email || "User",
             picture: currentUser.picture,
-          }),
+          } satisfies Auth0SyncRequest),
         });
 
         if (!res.ok) {
@@ -75,7 +76,7 @@ function Auth0CallbackInner() {
           throw new Error(msg);
         }
 
-        const data = await res.json();
+        const data: Auth0SyncResponse = await res.json();
 
         writeSession({
           userId: data.userId,
