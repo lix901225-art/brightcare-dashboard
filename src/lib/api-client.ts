@@ -25,9 +25,12 @@ function buildHeaders(
   }
 
   // Track B: attach Bearer token (explicit param, or auto-read from store)
-  const token = bearerToken ?? readToken();
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
+  // Skip when skipAuth is true (login/register calls shouldn't send tokens)
+  if (!skipAuth) {
+    const token = bearerToken ?? readToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
   }
 
   return headers;

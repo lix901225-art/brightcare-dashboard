@@ -92,8 +92,17 @@ export function clearSession() {
   localStorage.removeItem("displayName");
   localStorage.removeItem("tenantName");
 
-  // Track B: also clear stored JWT token
+  // Track B: also clear stored JWT token (import avoided to prevent circular dep)
   localStorage.removeItem("brightcare.token");
+
+  // Clear Auth0 SDK cached tokens (cacheLocation: "localstorage")
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("@@auth0spajs@@"))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch {
+    // localStorage iteration may fail in some environments
+  }
 
   window.dispatchEvent(new Event("storage"));
 }
