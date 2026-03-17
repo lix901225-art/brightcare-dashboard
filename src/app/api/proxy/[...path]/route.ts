@@ -15,18 +15,13 @@ async function proxy(req: NextRequest) {
 
     const headers = new Headers();
     const contentType = req.headers.get("content-type");
-    const userId = req.headers.get("x-user-id");
-    const tenantId = req.headers.get("x-tenant-id");
-
     if (contentType) headers.set("content-type", contentType);
-    if (userId) headers.set("x-user-id", userId);
-    if (tenantId) headers.set("x-tenant-id", tenantId);
 
     // Forward Accept header for correct content negotiation
     const accept = req.headers.get("accept");
     if (accept) headers.set("accept", accept);
 
-    // Track B: forward Bearer token when present (coexists with legacy headers)
+    // Forward Bearer token for authentication
     const authorization = req.headers.get("authorization");
     if (authorization) headers.set("authorization", authorization);
 

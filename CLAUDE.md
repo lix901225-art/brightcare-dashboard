@@ -130,19 +130,20 @@ These are non-negotiable. BrightCare must handle BC-specific requirements that g
 
 ### Current State
 
-- Backend: phone+password login with bcrypt
-- AuthMiddleware: tries Bearer JWT first, falls back to x-user-id + x-tenant-id headers
+- Backend: phone+password login with bcrypt + Auth0 sync flow
+- AuthMiddleware: Bearer JWT only (legacy x-user-id/x-tenant-id headers removed)
 - JWT signed with HS256, 24h expiry, refreshable within 7 days
 - Rate limiting on auth endpoints
 - Auth0 login flow works end-to-end
 - Structured audit logging on all auth events
 - CSP, Helmet, security headers all active
+- All API requests require `Authorization: Bearer <token>` header
 
 ### Future State (Track B)
 
 - Auth0 handles all auth: login, logout, session, token, password reset, MFA
-- JWT Bearer tokens fully replace legacy headers
-- Legacy header auth path removed once all clients use JWT
+- ~~JWT Bearer tokens fully replace legacy headers~~ ✓ Done
+- ~~Legacy header auth path removed once all clients use JWT~~ ✓ Done
 
 ---
 
@@ -201,7 +202,7 @@ These are non-negotiable. BrightCare must handle BC-specific requirements that g
 - Attendance batch: `POST /attendance/batch` expects `{ entries: [...] }`
 - Checkin/checkout: `POST /attendance/checkin|checkout` expects `{ childId, date }`
 - Incidents lock: `POST /incidents/:id/lock` (OWNER only, irreversible)
-- Proxy: `/api/proxy/[...path]` forwards `x-user-id`/`x-tenant-id` to backend at port 4000
+- Proxy: `/api/proxy/[...path]` forwards `Authorization` Bearer token to backend at port 4000
 
 ---
 

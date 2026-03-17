@@ -31,8 +31,7 @@ function normalizeRole(role: string | null | undefined): "OWNER" | "STAFF" | "PA
 }
 
 /**
- * @param bearerToken Track B: optional Auth0 access token. When provided,
- *   sends Authorization header alongside legacy x-user-id/x-tenant-id.
+ * @param bearerToken Optional Auth0 access token override. Falls back to stored JWT.
  */
 export async function bootstrapSessionFromBackend(
   bearerToken?: string | null,
@@ -40,19 +39,17 @@ export async function bootstrapSessionFromBackend(
   const session = readSession();
   if (!session?.userId || !session?.tenantId) return null;
 
+  const token = bearerToken || readToken();
+  if (!token) {
+    clearSession();
+    return null;
+  }
+
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "x-user-id": session.userId,
-      "x-tenant-id": session.tenantId,
+      "Authorization": `Bearer ${token}`,
     };
-
-    // Track B: attach Bearer token when available (coexists with legacy headers)
-    // Priority: explicit param (Auth0 access token) > stored JWT > none
-    const token = bearerToken || readToken();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
 
     const res = await fetch("/api/proxy/me", {
       method: "GET",

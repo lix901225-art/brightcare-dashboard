@@ -1,4 +1,4 @@
-import { clearSession, readSession } from "@/lib/session";
+import { clearSession } from "@/lib/session";
 import { readToken, writeToken } from "@/lib/token-store";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -7,7 +7,7 @@ const REFRESH_TIMEOUT_MS = 10_000;
 type ApiInit = RequestInit & {
   skipAuth?: boolean;
   timeoutMs?: number;
-  /** When provided, sends Authorization: Bearer <token> alongside legacy headers. */
+  /** When provided, overrides the stored Bearer token. */
   bearerToken?: string;
   /** Internal: skip the 401 → refresh → retry logic (prevents infinite loops). */
   _skipRefresh?: boolean;
@@ -22,11 +22,6 @@ function buildHeaders(
   headers.set("Content-Type", "application/json");
 
   if (!skipAuth) {
-    const session = readSession();
-    if (session?.userId) headers.set("x-user-id", session.userId);
-    if (session?.tenantId) headers.set("x-tenant-id", session.tenantId);
-
-    // Attach Bearer token (explicit param, or auto-read from store)
     const token = bearerToken ?? readToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);

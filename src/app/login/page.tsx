@@ -97,13 +97,8 @@ function LoginPageInner() {
         try {
           const tenantHeaders: Record<string, string> = {
             "Content-Type": "application/json",
-            "x-user-id": data.userId,
-            "x-tenant-id": data.tenantId,
+            "Authorization": `Bearer ${data.token}`,
           };
-          // Include JWT for Track B consistency
-          if (data.token) {
-            tenantHeaders["Authorization"] = `Bearer ${data.token}`;
-          }
 
           const tenantRes = await fetch("/api/proxy/tenant/current", {
             method: "GET",
