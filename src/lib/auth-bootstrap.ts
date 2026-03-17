@@ -1,4 +1,5 @@
 import { patchSession, readSession, clearSession, type AppSession } from "@/lib/session";
+import { readToken } from "@/lib/token-store";
 
 type MeResponse = {
   id?: string;
@@ -47,8 +48,10 @@ export async function bootstrapSessionFromBackend(
     };
 
     // Track B: attach Bearer token when available (coexists with legacy headers)
-    if (bearerToken) {
-      headers["Authorization"] = `Bearer ${bearerToken}`;
+    // Priority: explicit param (Auth0 access token) > stored JWT > none
+    const token = bearerToken || readToken();
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
     const res = await fetch("/api/proxy/me", {
