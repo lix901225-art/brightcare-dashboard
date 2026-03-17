@@ -10,6 +10,19 @@ export const AUTH0_ENABLED =
   !!process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID &&
   process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID !== "YOUR_AUTH0_CLIENT_ID";
 
+// Dev-mode validation: warn if domain doesn't look like a valid Auth0 domain
+if (
+  AUTH0_ENABLED &&
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_AUTH0_DOMAIN &&
+  !process.env.NEXT_PUBLIC_AUTH0_DOMAIN.includes(".auth0.com")
+) {
+  console.warn(
+    `[auth0-provider] NEXT_PUBLIC_AUTH0_DOMAIN "${process.env.NEXT_PUBLIC_AUTH0_DOMAIN}" ` +
+    `does not contain ".auth0.com" — is this correct?`
+  );
+}
+
 /**
  * Error boundary that catches Auth0 SDK crashes (bad config, network issues
  * during init, etc.) and falls through to rendering children without Auth0.
