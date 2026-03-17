@@ -1,13 +1,15 @@
 import { clearSession, readSession } from "@/lib/session";
-import { readToken } from "@/lib/token-store";
+import { readToken, writeToken, clearToken } from "@/lib/token-store";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 
 type ApiInit = RequestInit & {
   skipAuth?: boolean;
   timeoutMs?: number;
-  /** Track B: when provided, sends Authorization: Bearer <token> alongside legacy headers. */
+  /** When provided, sends Authorization: Bearer <token> alongside legacy headers. */
   bearerToken?: string;
+  /** Internal: skip the 401 → refresh → retry logic (prevents infinite loops). */
+  _skipRefresh?: boolean;
 };
 
 function buildHeaders(
@@ -22,11 +24,8 @@ function buildHeaders(
     const session = readSession();
     if (session?.userId) headers.set("x-user-id", session.userId);
     if (session?.tenantId) headers.set("x-tenant-id", session.tenantId);
-  }
 
-  // Track B: attach Bearer token (explicit param, or auto-read from store)
-  // Skip when skipAuth is true (login/register calls shouldn't send tokens)
-  if (!skipAuth) {
+    // Attach Bearer token (explicit param, or auto-read from store)
     const token = bearerToken ?? readToken();
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -36,11 +35,41 @@ function buildHeaders(
   return headers;
 }
 
+/**
+ * Try to refresh the stored JWT via POST /auth/refresh.
+ * Returns the new token on success, null on failure.
+ */
+async function tryRefreshToken(): Promise<string | null> {
+  const currentToken = readToken();
+  if (!currentToken) return null;
+
+  try {
+    const res = await fetch("/api/proxy/auth/refresh", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: currentToken }),
+      cache: "no-store",
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    if (data?.token) {
+      writeToken(data.token);
+      return data.token;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function apiFetch(path: string, init: ApiInit = {}) {
   const {
     skipAuth = false,
     timeoutMs = DEFAULT_TIMEOUT_MS,
     bearerToken,
+    _skipRefresh = false,
     ...rest
   } = init;
 
@@ -55,10 +84,18 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
       signal: controller.signal,
     });
 
-    if (res.status === 401 || res.status === 403) {
-      if (!skipAuth) {
-        clearSession();
+    // On 401: try refreshing the token once, then retry the request
+    if (res.status === 401 && !skipAuth && !_skipRefresh) {
+      const newToken = await tryRefreshToken();
+      if (newToken) {
+        // Retry the original request with the new token
+        clearTimeout(timeout);
+        return apiFetch(path, { ...init, bearerToken: newToken, _skipRefresh: true });
       }
+      // Refresh failed — clear session
+      clearSession();
+    } else if (res.status === 403 && !skipAuth) {
+      // 403 = user exists but lacks permission — don't clear session
     }
 
     return res;
