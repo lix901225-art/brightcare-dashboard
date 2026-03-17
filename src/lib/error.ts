@@ -19,8 +19,16 @@ const CN_TO_EN: Record<string, string> = {
   "该孩子尚未签到": "This child has not checked in yet.",
 };
 
+/** Map HTTP/framework error messages to user-friendly English. */
+const ERROR_REWRITES: Record<string, string> = {
+  "ThrottlerException: Too Many Requests":
+    "Too many attempts. Please wait a moment and try again.",
+};
+
 function translateError(msg: string): string {
-  // Exact match
+  // Framework error rewrite (exact match)
+  if (ERROR_REWRITES[msg]) return ERROR_REWRITES[msg];
+  // Exact match (CN→EN)
   if (CN_TO_EN[msg]) return CN_TO_EN[msg];
   // Partial match — check if message contains any known Chinese phrase
   for (const [cn, en] of Object.entries(CN_TO_EN)) {
