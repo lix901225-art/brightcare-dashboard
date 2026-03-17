@@ -1,5 +1,5 @@
 import { clearSession, readSession } from "@/lib/session";
-import { readToken, writeToken, clearToken } from "@/lib/token-store";
+import { readToken, writeToken } from "@/lib/token-store";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
 const REFRESH_TIMEOUT_MS = 10_000;
