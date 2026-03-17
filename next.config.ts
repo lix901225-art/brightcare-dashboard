@@ -12,6 +12,8 @@ const cspDirectives = [
   "font-src 'self'",
   `connect-src 'self'${auth0Src}`,
   `frame-src 'self'${auth0Src}`,
+  "worker-src 'self'",
+  "manifest-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
