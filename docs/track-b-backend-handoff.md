@@ -182,12 +182,7 @@ cd ~/apps/api
 npx prisma db execute --schema prisma/schema.prisma --stdin < scripts/add_performance_indexes.sql
 ```
 
-**Migration drift note:** The local migrations directory is missing `20260315074235_add_billing_models` (applied to DB via a different environment). This means `prisma migrate dev` will request a reset. Do NOT reset — use `prisma db execute` or `prisma db push` for schema changes until migration history is reconciled. To reconcile:
-
-```bash
-# Mark existing migration as applied without running it
-cd ~/apps/api && npx prisma migrate resolve --applied 20260315074235_add_billing_models
-```
+**Migration status (2026-03-17):** Fully reconciled. 3 migrations applied, schema-to-database diff is empty. `prisma migrate dev` works cleanly for new migrations.
 
 ## What's NOT in scope for Track B code
 
