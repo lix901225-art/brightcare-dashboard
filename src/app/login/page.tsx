@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth0 } from "@auth0/auth0-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -39,7 +39,7 @@ function Auth0LoginButton() {
   );
 }
 
-export default function LoginPage() {
+function LoginPageInner() {
   const searchParams = useSearchParams();
   const expired = searchParams.get("expired") === "1";
   const [mode, setMode] = useState<Mode>("login");
@@ -248,5 +248,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginPageInner />
+    </Suspense>
   );
 }
