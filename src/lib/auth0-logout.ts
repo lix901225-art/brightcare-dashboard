@@ -1,10 +1,8 @@
-"use client";
-
 import { clearSession } from "@/lib/session";
 import { AUTH0_ENABLED } from "@/lib/auth0-provider";
 
 /**
- * Returns a logout function that clears the local session and redirects.
+ * Clears the local session and redirects to end the session.
  *
  * When Auth0 is enabled, also calls Auth0's /v2/logout to end the Auth0 session.
  * Uses direct redirect instead of the Auth0 SDK hook to avoid requiring Auth0Provider context.
