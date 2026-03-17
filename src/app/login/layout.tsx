@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Auth0ProviderClient from "@/lib/auth0-provider";
 
 export const metadata: Metadata = {
   title: "Sign In — BrightCare OS",
@@ -6,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  return <Auth0ProviderClient>{children}</Auth0ProviderClient>;
 }
