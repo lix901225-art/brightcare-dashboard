@@ -107,3 +107,20 @@ GitHub Actions CI runs on push to `main` and `track-b/*` branches:
 - Concurrency groups cancel stale runs on the same branch.
 
 See `.github/workflows/ci.yml`.
+
+## Docker
+
+The dashboard has its own `Dockerfile` using Next.js standalone output:
+
+```bash
+# Build
+docker build -t brightcare-dashboard .
+
+# Run
+docker run -p 3000:3000 \
+  -e API_BASE_URL=http://api:4000 \
+  -e NEXT_PUBLIC_APP_URL=https://app.brightcareos.com \
+  brightcare-dashboard
+```
+
+**Note:** The parent `docker-compose.yml` `web` service still points to `./web/Dockerfile` (legacy Vite build). To use the dashboard Dockerfile with docker-compose, update the `web` service context to `./dashboard`.

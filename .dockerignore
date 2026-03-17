@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.github
+.claude
+*.md
+docs
+cold-email
+bc-childcare-data.csv
