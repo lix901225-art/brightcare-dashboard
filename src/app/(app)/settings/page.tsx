@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { RefreshCw, Save } from "lucide-react";
+import { RefreshCw, Save, Lock } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,9 +36,14 @@ export default function SettingsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingTenant, setSavingTenant] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [me, setMe] = useState<MeResponse | null>(null);
   const [tenant, setTenant] = useState<TenantResponse | null>(null);
@@ -142,6 +147,44 @@ export default function SettingsPage() {
     }
   }
 
+  async function changePassword() {
+    try {
+      setSavingPassword(true);
+      setError("");
+      setOk("");
+
+      if (!currentPassword.trim()) throw new Error("Current password is required.");
+      if (newPassword.length < 6) throw new Error("New password must be at least 6 characters.");
+      if (newPassword !== confirmPassword) throw new Error("Passwords do not match.");
+
+      const res = await apiFetch("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          currentPassword: currentPassword.trim(),
+          newPassword: newPassword.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Password change failed (${res.status})`);
+
+      setOk("Password changed successfully.");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to change password."));
+    } finally {
+      setSavingPassword(false);
+    }
+  }
+
+  const canChangePassword =
+    currentPassword.trim().length > 0 &&
+    newPassword.length >= 6 &&
+    newPassword === confirmPassword &&
+    !savingPassword;
+
   return (
     <RoleGate allow={["OWNER"]}>
       <div>
@@ -164,7 +207,7 @@ export default function SettingsPage() {
           </button>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
           <Card className={["rounded-2xl shadow-sm", section === "profile" ? "border border-amber-300 bg-amber-50/40" : "border-0"].join(" ")}>
             <CardHeader><CardTitle>Owner profile</CardTitle></CardHeader>
             <CardContent>
@@ -242,6 +285,63 @@ export default function SettingsPage() {
                   </button>
                 </div>
               )}
+            </CardContent>
+          </Card>
+          <Card className={["rounded-2xl shadow-sm", section === "password" ? "border border-amber-300 bg-amber-50/40" : "border-0"].join(" ")}>
+            <CardHeader><CardTitle>Change password</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Current password</span>
+                  <input
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    type="password"
+                    autoComplete="current-password"
+                    maxLength={128}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="Enter current password"
+                  />
+                </label>
+
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">New password</span>
+                  <input
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    type="password"
+                    autoComplete="new-password"
+                    maxLength={128}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="At least 6 characters"
+                  />
+                </label>
+
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Confirm new password</span>
+                  <input
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    type="password"
+                    autoComplete="new-password"
+                    maxLength={128}
+                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="Re-enter new password"
+                  />
+                  {confirmPassword && newPassword !== confirmPassword ? (
+                    <span className="text-xs text-rose-500">Passwords do not match</span>
+                  ) : null}
+                </label>
+
+                <button
+                  onClick={changePassword}
+                  disabled={!canChangePassword}
+                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  <Lock className="h-4 w-4" />
+                  {savingPassword ? "Changing..." : "Change password"}
+                </button>
+              </div>
             </CardContent>
           </Card>
         </div>
