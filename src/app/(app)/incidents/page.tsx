@@ -34,6 +34,14 @@ type Incident = {
   lockedAt?: string | null;
   childName?: string;
   roomName?: string | null;
+  /* BC licensing office fields */
+  witnesses?: string | null;
+  bodyLocation?: string | null;
+  parentNotifiedAt?: string | null;
+  parentNotifiedBy?: string | null;
+  followUpRequired?: boolean | null;
+  followUpNotes?: string | null;
+  healthAuthorityNotified?: boolean | null;
 };
 
 const SEVERITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
@@ -70,6 +78,13 @@ export default function IncidentsPage() {
   const [occurredAt, setOccurredAt] = useState(
     new Date().toISOString().slice(0, 16)
   );
+  /* BC licensing office fields */
+  const [witnesses, setWitnesses] = useState("");
+  const [bodyLocation, setBodyLocation] = useState("");
+  const [parentNotifiedAt, setParentNotifiedAt] = useState("");
+  const [followUpRequired, setFollowUpRequired] = useState(false);
+  const [followUpNotes, setFollowUpNotes] = useState("");
+  const [healthAuthorityNotified, setHealthAuthorityNotified] = useState(false);
 
   async function loadAll() {
     try {
@@ -213,6 +228,12 @@ export default function IncidentsPage() {
     setActionsTaken("");
     setOccurredAt(new Date().toISOString().slice(0, 16));
     setRoomId("");
+    setWitnesses("");
+    setBodyLocation("");
+    setParentNotifiedAt("");
+    setFollowUpRequired(false);
+    setFollowUpNotes("");
+    setHealthAuthorityNotified(false);
   }
 
   async function createIncident() {
@@ -234,6 +255,13 @@ export default function IncidentsPage() {
           occurredAt: new Date(occurredAt).toISOString(),
           description: description.trim(),
           actionsTaken: actionsTaken.trim() || undefined,
+          /* BC licensing office fields */
+          witnesses: witnesses.trim() || undefined,
+          bodyLocation: bodyLocation.trim() || undefined,
+          parentNotifiedAt: parentNotifiedAt ? new Date(parentNotifiedAt).toISOString() : undefined,
+          followUpRequired: followUpRequired || undefined,
+          followUpNotes: followUpNotes.trim() || undefined,
+          healthAuthorityNotified: healthAuthorityNotified || undefined,
         }),
       });
 
@@ -464,6 +492,82 @@ export default function IncidentsPage() {
                 />
               </div>
 
+              {/* BC Licensing Office — additional required fields */}
+              <div className="mt-6 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-sky-700">
+                  <Shield className="h-3.5 w-3.5" />
+                  BC Licensing Compliance Fields
+                </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Witnesses
+                    </div>
+                    <input
+                      value={witnesses}
+                      onChange={(e) => setWitnesses(e.target.value)}
+                      placeholder="Names of staff or others who witnessed the incident"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Body location (if injury)
+                    </div>
+                    <input
+                      value={bodyLocation}
+                      onChange={(e) => setBodyLocation(e.target.value)}
+                      placeholder="e.g. Left knee, forehead, right hand"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    />
+                  </div>
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Parent / guardian notified at
+                    </div>
+                    <input
+                      type="datetime-local"
+                      value={parentNotifiedAt}
+                      onChange={(e) => setParentNotifiedAt(e.target.value)}
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={followUpRequired}
+                        onChange={(e) => setFollowUpRequired(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="text-sm text-slate-700">Follow-up required</span>
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={healthAuthorityNotified}
+                        onChange={(e) => setHealthAuthorityNotified(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"
+                      />
+                      <span className="text-sm text-slate-700">Health authority notified</span>
+                    </label>
+                  </div>
+                </div>
+                {followUpRequired ? (
+                  <div className="mt-3">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Follow-up notes
+                    </div>
+                    <textarea
+                      value={followUpNotes}
+                      onChange={(e) => setFollowUpNotes(e.target.value)}
+                      placeholder="Describe required follow-up actions, medical appointments, etc."
+                      className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+                    />
+                  </div>
+                ) : null}
+              </div>
+
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={createIncident}
@@ -653,6 +757,27 @@ export default function IncidentsPage() {
                             <div className="mt-1 text-sm text-emerald-800">
                               {inc.actionsTaken}
                             </div>
+                          </div>
+                        ) : null}
+
+                        {/* BC licensing compliance details */}
+                        {(inc.witnesses || inc.bodyLocation || inc.parentNotifiedAt || inc.followUpRequired || inc.healthAuthorityNotified) ? (
+                          <div className="mt-2 grid gap-1.5 rounded-lg border border-sky-100 bg-sky-50 p-2.5 text-xs sm:grid-cols-2">
+                            {inc.witnesses ? (
+                              <div><span className="font-medium text-sky-700">Witnesses:</span> <span className="text-sky-900">{inc.witnesses}</span></div>
+                            ) : null}
+                            {inc.bodyLocation ? (
+                              <div><span className="font-medium text-sky-700">Body location:</span> <span className="text-sky-900">{inc.bodyLocation}</span></div>
+                            ) : null}
+                            {inc.parentNotifiedAt ? (
+                              <div><span className="font-medium text-sky-700">Parent notified:</span> <span className="text-sky-900">{formatDateTime(inc.parentNotifiedAt)}</span></div>
+                            ) : null}
+                            {inc.followUpRequired ? (
+                              <div><span className="font-medium text-amber-700">Follow-up required</span>{inc.followUpNotes ? <span className="text-sky-900">: {inc.followUpNotes}</span> : null}</div>
+                            ) : null}
+                            {inc.healthAuthorityNotified ? (
+                              <div><span className="font-medium text-sky-700">Health authority notified</span></div>
+                            ) : null}
                           </div>
                         ) : null}
                       </div>
