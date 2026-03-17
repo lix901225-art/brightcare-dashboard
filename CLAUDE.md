@@ -70,18 +70,20 @@ Auth0, multi-tenancy, JWT/RBAC, billing, reports, analytics, audit logs, invite/
 
 ## Autonomous Execution Rules
 
-### Continuous Work Blocks
+### Continuous Work — NEVER stop early
 
-- **Completing one coherent work block is NOT a reason to stop.** After finishing a block, immediately choose the next highest-value in-scope task and continue.
-- **Commits are checkpoints, not stopping points.** Commit when a unit is complete, then keep going.
-- **Summaries are checkpoints, not stopping points.** Report progress at natural milestones, then continue to the next task.
-- **Prefer longer autonomous execution.** Group related improvements into larger coherent units. Do not stop after one small patch.
-- **Only stop when you hit a true blocker:**
-  1. External operator/dashboard action is required (e.g. Auth0 config, DNS, hosting)
-  2. Real credentials or secrets are needed from the user
-  3. The next step would affect Track A stable flow
-  4. The next step is destructive or hard to reverse
-  5. There are genuinely no more meaningful in-scope code/documentation tasks left
+- **Completing a block, writing a summary, or making a commit is NEVER a reason to stop.**
+- After each completed unit, **immediately search for the next highest-value in-scope task** and continue automatically. Do not wait for the user unless a true blocker exists.
+- **"No more tasks remain" must be interpreted strictly.** Before concluding, actively search for remaining work across: code hardening, documentation, scripts, checklists, rollout prep, type safety, dead code, test coverage, config clarity, error handling, UX polish, and any other in-scope category.
+- **Summaries are inline checkpoints** — report progress, then keep working.
+- **Commits are save points** — commit completed work, then keep working.
+- **Prefer longer autonomous execution.** Group related improvements into larger coherent units.
+- **Only stop when one of these is true:**
+  1. The next step requires an external human/operator action (Auth0 dashboard, DNS, hosting)
+  2. The next step requires secrets or credentials not available in code
+  3. The next step is destructive or hard to reverse
+  4. The next step would weaken or remove Track A fallback
+  5. There are truly no remaining code, docs, scripts, checklists, rollout-prep, or hardening tasks in scope — and you have actively searched to confirm this
 
 ### Default Behaviour
 
