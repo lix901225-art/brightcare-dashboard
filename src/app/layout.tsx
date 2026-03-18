@@ -21,6 +21,19 @@ export const metadata: Metadata = {
     "licensed capacity tracking",
     "CCFRI childcare",
   ],
+  openGraph: {
+    type: "website",
+    locale: "en_CA",
+    url: "https://brightcareos.com",
+    siteName: "BrightCare OS",
+    title: "BrightCare OS — Childcare Management Software for BC",
+    description: "All-in-one childcare management platform for licensed BC daycare centres and preschools.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "BrightCare OS — Childcare Management for BC",
+    description: "Enrollment, attendance, billing, ACCB & CCFRI, parent messaging, and licensing compliance.",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
