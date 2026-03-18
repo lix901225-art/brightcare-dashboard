@@ -11,6 +11,7 @@ import { apiFetch } from "@/lib/api-client";
 import { readSession } from "@/lib/session";
 import { formatDateTime } from "@/lib/api-helpers";
 import { getErrorMessage } from "@/lib/error";
+import { useSocket } from "@/lib/use-socket";
 
 type Thread = {
   id: string;
@@ -87,6 +88,21 @@ export default function MessageThreadPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const { on: onSocket } = useSocket();
+
+  // Real-time: listen for new messages via WebSocket
+  useEffect(() => {
+    const unsub = onSocket("new-message", (data: { threadId: string; message: any }) => {
+      if (data.threadId === threadId && data.message) {
+        setMessages((prev) => {
+          // Avoid duplicates
+          if (prev.some((m) => m.id === data.message.id)) return prev;
+          return [...prev, data.message];
+        });
+      }
+    });
+    return unsub;
+  }, [threadId, onSocket]);
 
   async function loadAll() {
     try {
@@ -129,7 +145,7 @@ export default function MessageThreadPage() {
     }
   }, [messages.length]);
 
-  // Auto-refresh every 5s for near-realtime messaging (all roles)
+  // Fallback polling every 15s (WebSocket handles real-time, polling is backup)
   useEffect(() => {
     if (!threadId) return;
     const interval = setInterval(async () => {
@@ -143,7 +159,7 @@ export default function MessageThreadPage() {
           }
         }
       } catch { /* silent background refresh */ }
-    }, 5000);
+    }, 15000);
     return () => clearInterval(interval);
   }, [threadId, messages.length]);
 
