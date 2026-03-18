@@ -23,6 +23,7 @@ import { apiFetch } from "@/lib/api-client";
 
 type ReportType =
   | "attendance"
+  | "monthly-attendance"
   | "billing"
   | "incidents"
   | "children"
@@ -46,6 +47,14 @@ const REPORTS: {
     icon: Calendar,
     color: "text-blue-600",
     bg: "bg-blue-50",
+  },
+  {
+    key: "monthly-attendance",
+    label: "Monthly Attendance",
+    description: "Per-child attendance summary with present/absent/sick/excused breakdown and CSV export",
+    icon: Users,
+    color: "text-violet-600",
+    bg: "bg-violet-50",
   },
   {
     key: "billing",
@@ -194,7 +203,17 @@ export default function ReportsPage() {
       try {
         const today = new Date().toISOString().split("T")[0];
 
-        if (type === "attendance") {
+        if (type === "monthly-attendance") {
+          const month = dateFrom.slice(0, 7); // YYYY-MM
+          const res = await apiFetch(`/attendance/monthly-report?month=${month}`);
+          const data = res.ok ? await res.json() : { children: [] };
+          const rows = (data.children || []) as { childName: string; present: number; absent: number; sick: number; excused: number; attendanceRate: number }[];
+          const csv = toCSV(
+            ["Child Name", "Present", "Absent", "Sick", "Excused", "Attendance Rate (%)"],
+            rows.map((r) => [r.childName, String(r.present), String(r.absent), String(r.sick), String(r.excused), String(r.attendanceRate)])
+          );
+          downloadCSV(`monthly-attendance-${month}.csv`, csv);
+        } else if (type === "attendance") {
           const res0 = await apiFetch("/attendance");
           const data: AttendanceRow[] = res0.ok ? await res0.json() : [];
           const filtered = data.filter(
