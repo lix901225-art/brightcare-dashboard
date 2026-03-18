@@ -21,6 +21,7 @@ type Child = {
   preferredName?: string | null;
   status?: string | null;
   roomId?: string | null;
+  className?: string | null;
   dob?: string | null;
   startDate?: string | null;
   gender?: string | null;
