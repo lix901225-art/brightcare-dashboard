@@ -184,4 +184,49 @@
   .print\:block {
     display: block !important;
   }
+
+  /* Hide interactive elements */
+  button:not(.print\:block),
+  select,
+  input,
+  textarea,
+  [role="dialog"],
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  /* Remove rounded corners and borders for cleaner print */
+  .rounded-2xl,
+  .rounded-xl,
+  .rounded-lg {
+    border-radius: 0 !important;
+  }
+
+  /* Ensure cards don't break across pages */
+  .shadow-sm,
+  [class*="Card"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Table print styles */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  th, td {
+    border: 1px solid #ccc !important;
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+
+  /* Print page margins */
+  @page {
+    margin: 1.5cm;
+  }
+
+  /* Show print-only elements */
+  .print\:visible {
+    visibility: visible !important;
+  }
 }
