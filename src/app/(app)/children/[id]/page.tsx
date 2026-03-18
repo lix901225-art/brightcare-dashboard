@@ -131,11 +131,8 @@ export default function ChildDetailPage() {
         setError("");
         setOk("");
 
-        // Fetch child directly by ID + supporting data in parallel
-        // Attendance & incidents use child-filtered endpoints when available,
-        // with fallback to fetching all and filtering client-side
         const [childRes, guardiansRes, roomsRes, attendanceRes, incidentsRes, reportsRes] = await Promise.all([
-          apiFetch(`/children/${id}`).catch(() => apiFetch("/children")),
+          apiFetch(`/children/${id}`),
           apiFetch(`/children/${id}/guardians`),
           apiFetch("/rooms"),
           apiFetch(`/attendance?childId=${id}`).catch(() => apiFetch("/attendance")),
@@ -147,14 +144,11 @@ export default function ChildDetailPage() {
         const guardiansData = await guardiansRes.json();
         const roomsData = await roomsRes.json();
 
-        if (!childRes.ok && !Array.isArray(childData)) throw new Error(childData?.message || `Child load failed: ${childRes.status}`);
+        if (!childRes.ok) throw new Error(childData?.message || `Child load failed: ${childRes.status}`);
         if (!guardiansRes.ok) throw new Error(guardiansData?.message || `Guardians load failed: ${guardiansRes.status}`);
         if (!roomsRes.ok) throw new Error(roomsData?.message || `Rooms load failed: ${roomsRes.status}`);
 
-        // Handle both direct child response and array-of-all-children fallback
-        const found = Array.isArray(childData)
-          ? childData.find((x: Child) => x.id === id) || null
-          : (childData?.id ? childData as Child : null);
+        const found = childData?.id ? childData as Child : null;
 
         const attendanceData = attendanceRes.ok ? await attendanceRes.json() : [];
         const incidentsData = incidentsRes.ok ? await incidentsRes.json() : [];

@@ -70,9 +70,10 @@ export default function StaffManagementPage() {
   const [resetPassword, setResetPassword] = useState("");
   const [resetting, setResetting] = useState(false);
 
-  // Edit user (role change)
+  // Edit user (role + email)
   const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [editRole, setEditRole] = useState<"STAFF" | "PARENT">("STAFF");
+  const [editEmail, setEditEmail] = useState("");
   const [editSaving, setEditSaving] = useState(false);
 
   async function loadAll() {
@@ -238,25 +239,39 @@ export default function StaffManagementPage() {
     }
   }
 
-  async function saveRoleChange() {
+  async function saveUserEdit() {
     if (!editTarget) return;
     try {
       setEditSaving(true);
       setError("");
       setOk("");
 
+      const changes: Record<string, string> = {};
+      if (editRole !== (editTarget.role || "").toUpperCase()) changes.role = editRole;
+      if (editEmail.trim() && editEmail.trim().toLowerCase() !== (editTarget.email || "").toLowerCase()) {
+        changes.email = editEmail.trim();
+      }
+
+      if (Object.keys(changes).length === 0) {
+        setEditTarget(null);
+        return;
+      }
+
       const res = await apiFetch(`/admin/users/${editTarget.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ role: editRole }),
+        body: JSON.stringify(changes),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Update failed: ${res.status}`);
 
-      setOk(`${editTarget.displayName || "User"} role changed to ${editRole}.`);
+      const parts: string[] = [];
+      if (changes.role) parts.push(`role changed to ${changes.role}`);
+      if (changes.email) parts.push(`email set to ${changes.email}`);
+      setOk(`${editTarget.displayName || "User"}: ${parts.join(", ")}.`);
       setEditTarget(null);
       await loadAll();
     } catch (e: unknown) {
-      setError(getErrorMessage(e, "Unable to change role."));
+      setError(getErrorMessage(e, "Unable to update user."));
     } finally {
       setEditSaving(false);
     }
@@ -531,7 +546,7 @@ export default function StaffManagementPage() {
           <Card className="mb-6 rounded-2xl border-0 shadow-sm ring-1 ring-slate-300">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Edit role: {editTarget.displayName || "User"}</CardTitle>
+                <CardTitle>Edit user: {editTarget.displayName || "User"}</CardTitle>
                 <button
                   onClick={() => setEditTarget(null)}
                   className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
@@ -544,26 +559,48 @@ export default function StaffManagementPage() {
               <div className="space-y-4">
                 <div className="text-sm text-slate-500">
                   Current role: <span className="font-medium text-slate-900">{editTarget.role || "Unknown"}</span>
+                  {editTarget.auth0Linked ? (
+                    <span className="ml-2 inline-flex items-center gap-1 text-emerald-600"><Check className="inline h-3 w-3" /> Auth0 linked</span>
+                  ) : (
+                    <span className="ml-2 text-amber-600">Not linked to Auth0</span>
+                  )}
                 </div>
-                <label className="grid gap-1">
-                  <span className="text-xs font-medium uppercase tracking-wide text-slate-500">New role</span>
-                  <select
-                    value={editRole}
-                    onChange={(e) => setEditRole(e.target.value as "STAFF" | "PARENT")}
-                    className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                  >
-                    <option value="STAFF">Staff</option>
-                    <option value="PARENT">Parent</option>
-                  </select>
-                </label>
+                {!editTarget.auth0Linked && (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/50 p-3 text-sm text-amber-800">
+                    <strong>Auth0 migration:</strong> Set this user&apos;s email below. When they sign in via Auth0 with the same email, their account will be automatically linked.
+                  </div>
+                )}
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="grid gap-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Role</span>
+                    <select
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value as "STAFF" | "PARENT")}
+                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    >
+                      <option value="STAFF">Staff</option>
+                      <option value="PARENT">Parent</option>
+                    </select>
+                  </label>
+                  <label className="grid gap-1">
+                    <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Email (for Auth0 linking)</span>
+                    <input
+                      type="email"
+                      value={editEmail}
+                      onChange={(e) => setEditEmail(e.target.value)}
+                      className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                      placeholder={editTarget.email || "user@example.com"}
+                    />
+                  </label>
+                </div>
                 <div className="flex gap-3">
                   <button
-                    onClick={saveRoleChange}
+                    onClick={saveUserEdit}
                     disabled={editSaving}
                     className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                   >
                     <Edit2 className="h-4 w-4" />
-                    {editSaving ? "Saving..." : "Change role"}
+                    {editSaving ? "Saving..." : "Save changes"}
                   </button>
                   <button
                     onClick={() => setEditTarget(null)}
@@ -692,7 +729,7 @@ export default function StaffManagementPage() {
                           {(user.role || "").toUpperCase() !== "OWNER" && (
                             <>
                               <button
-                                onClick={() => { setEditTarget(user); setEditRole(((user.role || "STAFF").toUpperCase() === "PARENT" ? "PARENT" : "STAFF")); }}
+                                onClick={() => { setEditTarget(user); setEditRole(((user.role || "STAFF").toUpperCase() === "PARENT" ? "PARENT" : "STAFF")); setEditEmail(user.email || ""); }}
                                 className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600 hover:bg-slate-50"
                                 title="Edit role"
                               >
@@ -719,8 +756,9 @@ export default function StaffManagementPage() {
                     <thead className="bg-slate-50 text-left text-slate-500">
                       <tr>
                         <th className="px-4 py-3 font-medium">Name</th>
-                        <th className="px-4 py-3 font-medium">Phone</th>
+                        <th className="px-4 py-3 font-medium">Contact</th>
                         <th className="px-4 py-3 font-medium">Role</th>
+                        <th className="px-4 py-3 font-medium">Auth0</th>
                         <th className="px-4 py-3 font-medium">Joined</th>
                         <th className="px-4 py-3 font-medium">Actions</th>
                       </tr>
@@ -734,7 +772,11 @@ export default function StaffManagementPage() {
                             </div>
                             <div className="text-xs text-slate-500">{user.id.slice(0, 8)}...</div>
                           </td>
-                          <td className="px-4 py-3">{user.phone || "—"}</td>
+                          <td className="px-4 py-3">
+                            {user.email && <div className="text-sm text-slate-700">{user.email}</div>}
+                            {user.phone && <div className="text-xs text-slate-500">{user.phone}</div>}
+                            {!user.email && !user.phone && <span className="text-slate-400">—</span>}
+                          </td>
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-1.5">
                               <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", roleBadge(user.role)].join(" ")}>
@@ -746,6 +788,15 @@ export default function StaffManagementPage() {
                                 </span>
                               )}
                             </div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {user.auth0Linked ? (
+                              <span className="inline-flex items-center gap-1 text-xs text-emerald-600"><Check className="h-3 w-3" /> Linked</span>
+                            ) : user.email ? (
+                              <span className="text-xs text-amber-600">Pending</span>
+                            ) : (
+                              <span className="text-xs text-slate-400">No email</span>
+                            )}
                           </td>
                           <td className="px-4 py-3 text-slate-500">
                             {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "—"}
@@ -766,7 +817,7 @@ export default function StaffManagementPage() {
                                 {(user.role || "").toUpperCase() !== "OWNER" && (
                                   <>
                                     <button
-                                      onClick={() => { setEditTarget(user); setEditRole(((user.role || "STAFF").toUpperCase() === "PARENT" ? "PARENT" : "STAFF")); }}
+                                      onClick={() => { setEditTarget(user); setEditRole(((user.role || "STAFF").toUpperCase() === "PARENT" ? "PARENT" : "STAFF")); setEditEmail(user.email || ""); }}
                                       className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs text-slate-600 hover:bg-slate-50"
                                       title="Edit role"
                                     >
