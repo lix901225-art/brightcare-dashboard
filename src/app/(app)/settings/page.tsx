@@ -75,6 +75,9 @@ export default function SettingsPage() {
   const [tenantCapacity, setTenantCapacity] = useState("");
   const [tenantLicenceNumber, setTenantLicenceNumber] = useState("");
   const [tenantHealthAuthority, setTenantHealthAuthority] = useState("");
+  const [defaultMonthlyFee, setDefaultMonthlyFee] = useState("");
+  const [defaultCcfriAmount, setDefaultCcfriAmount] = useState("");
+  const [defaultAccbAmount, setDefaultAccbAmount] = useState("");
 
   async function loadAll(showRefreshState = false) {
     if (showRefreshState) setRefreshing(true);
@@ -109,6 +112,9 @@ export default function SettingsPage() {
       setTenantCapacity(tenantData?.capacity != null ? String(tenantData.capacity) : "");
       setTenantLicenceNumber(tenantData?.licenceNumber || "");
       setTenantHealthAuthority(tenantData?.healthAuthority || "");
+      setDefaultMonthlyFee(tenantData?.defaultMonthlyFee != null ? String(tenantData.defaultMonthlyFee) : "");
+      setDefaultCcfriAmount(tenantData?.defaultCcfriAmount != null ? String(tenantData.defaultCcfriAmount) : "");
+      setDefaultAccbAmount(tenantData?.defaultAccbAmount != null ? String(tenantData.defaultAccbAmount) : "");
 
       patchSession({
         displayName: meData?.displayName || "User",
@@ -180,6 +186,9 @@ export default function SettingsPage() {
           capacity: tenantCapacity ? Number(tenantCapacity) : undefined,
           licenceNumber: tenantLicenceNumber.trim() || undefined,
           healthAuthority: tenantHealthAuthority || undefined,
+          defaultMonthlyFee: defaultMonthlyFee ? Number(defaultMonthlyFee) : undefined,
+          defaultCcfriAmount: defaultCcfriAmount ? Number(defaultCcfriAmount) : undefined,
+          defaultAccbAmount: defaultAccbAmount ? Number(defaultAccbAmount) : undefined,
         }),
       });
 
@@ -379,6 +388,27 @@ export default function SettingsPage() {
                         <option value="Northern Health">Northern Health</option>
                       </select>
                     </label>
+                  </div>
+
+                  <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Billing defaults</div>
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <label className="grid gap-1">
+                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Monthly fee ($)</span>
+                        <input type="number" min="0" step="0.01" value={defaultMonthlyFee} onChange={(e) => setDefaultMonthlyFee(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. 1100.00" />
+                      </label>
+                      <label className="grid gap-1">
+                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">CCFRI amount ($)</span>
+                        <input type="number" min="0" step="0.01" value={defaultCcfriAmount} onChange={(e) => setDefaultCcfriAmount(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. 350.00" />
+                      </label>
+                      <label className="grid gap-1">
+                        <span className="text-xs font-medium uppercase tracking-wide text-slate-500">ACCB amount ($)</span>
+                        <input type="number" min="0" step="0.01" value={defaultAccbAmount} onChange={(e) => setDefaultAccbAmount(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. 200.00" />
+                      </label>
+                    </div>
+                    <div className="mt-2 text-xs text-slate-400">
+                      These defaults are used when auto-generating monthly invoices. Individual invoices can override these values.
+                    </div>
                   </div>
 
                   <button
