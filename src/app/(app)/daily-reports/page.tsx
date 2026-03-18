@@ -476,6 +476,12 @@ export default function DailyReportsPage() {
               />
               {canCreate ? (
                 <div className="flex gap-2">
+                  <Link
+                    href="/daily-reports/templates"
+                    className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  >
+                    Templates
+                  </Link>
                   <button
                     onClick={() => { setShowBatch(true); setShowCreate(false); resetForm(); setBatchChildIds(missingChildren.map((c) => c.id)); }}
                     className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
