@@ -252,6 +252,33 @@ export default function CompliancePage() {
         </Card>
 
         {/* Stats row */}
+        {eceStats.expired > 0 && (
+          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-600" />
+            <div>
+              <div className="text-sm font-semibold text-rose-800">
+                {eceStats.expired} staff ECE certification{eceStats.expired > 1 ? "s" : ""} expired
+              </div>
+              <div className="mt-0.5 text-xs text-rose-600">
+                Expired certifications violate BC Community Care and Assisted Living Act requirements. Update immediately.
+              </div>
+            </div>
+          </div>
+        )}
+        {eceStats.expiring > 0 && eceStats.expired === 0 && (
+          <div className="mb-4 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
+            <div>
+              <div className="text-sm font-semibold text-amber-800">
+                {eceStats.expiring} staff ECE certification{eceStats.expiring > 1 ? "s" : ""} expiring within 30 days
+              </div>
+              <div className="mt-0.5 text-xs text-amber-600">
+                Renew before expiry to maintain BC licensing compliance.
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <Card className="rounded-2xl border-0 shadow-sm">
             <CardHeader className="pb-2">
