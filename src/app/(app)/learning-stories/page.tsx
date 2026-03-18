@@ -35,6 +35,7 @@ export default function LearningStoriesPage() {
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [query, setQuery] = useState("");
+  const [childFilter, setChildFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -102,12 +103,14 @@ export default function LearningStoriesPage() {
   }
 
   const filtered = useMemo(() => {
+    let result = stories;
+    if (childFilter) result = result.filter((s) => s.childId === childFilter);
     const q = query.trim().toLowerCase();
-    if (!q) return stories;
-    return stories.filter((s) =>
+    if (q) result = result.filter((s) =>
       [s.title, s.childName, s.observation, s.developmentArea].filter(Boolean).join(" ").toLowerCase().includes(q)
     );
-  }, [stories, query]);
+    return result;
+  }, [stories, query, childFilter]);
 
   return (
     <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
@@ -173,11 +176,15 @@ export default function LearningStoriesPage() {
           </Card>
         )}
 
-        <div className="mb-4">
-          <div className="relative max-w-sm">
+        <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative flex-1 md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search stories..." className="h-11 w-full rounded-xl border border-slate-200 bg-white pl-10 pr-4 text-sm outline-none" />
           </div>
+          <select value={childFilter} onChange={(e) => setChildFilter(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+            <option value="">All children</option>
+            {children.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+          </select>
         </div>
 
         {loading ? (
