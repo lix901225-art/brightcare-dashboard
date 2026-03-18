@@ -89,6 +89,7 @@ export default function CompliancePage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [staff, setStaff] = useState<StaffUser[]>([]);
   const [immSummary, setImmSummary] = useState<Array<{ childId: string; childName: string; totalRecords: number; completedCount: number; requiredCount: number; missingVaccines: string[]; isComplete: boolean }>>([]);
+  const [firstAidCerts, setFirstAidCerts] = useState<Array<{ id: string; userId: string; staffName?: string | null; level?: string | null; expiresAt?: string | null; status: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -111,6 +112,12 @@ export default function CompliancePage() {
         if (immRes?.ok) {
           const immData = await immRes.json();
           setImmSummary(Array.isArray(immData) ? immData : []);
+        }
+
+        const faRes = await apiFetch("/compliance/first-aid-certs").catch(() => null);
+        if (faRes?.ok) {
+          const faData = await faRes.json();
+          setFirstAidCerts(Array.isArray(faData) ? faData : []);
         }
 
         setChildren(Array.isArray(childrenData) ? childrenData.filter((c: Child) => c.status !== "WITHDRAWN") : []);
@@ -369,6 +376,54 @@ export default function CompliancePage() {
                       ) : (
                         <AlertTriangle className="h-4 w-4 text-amber-500" />
                       )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ─── First Aid Certifications ─── */}
+        {firstAidCerts.length > 0 && (
+          <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>First aid certifications</CardTitle>
+                <span className={[
+                  "inline-flex rounded-full border px-2.5 py-1 text-xs font-medium",
+                  firstAidCerts.some((c) => c.status === "expired")
+                    ? "border-rose-200 bg-rose-50 text-rose-700"
+                    : firstAidCerts.some((c) => c.status === "expiring")
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                ].join(" ")}>
+                  {firstAidCerts.filter((c) => c.status === "valid").length}/{firstAidCerts.length} valid
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-2 text-xs text-slate-500">BC requires all staff to hold valid first aid certification (renewal every 2 years).</div>
+              <div className="space-y-2">
+                {firstAidCerts.map((cert) => (
+                  <div key={cert.id} className={[
+                    "flex items-center justify-between rounded-xl border p-3",
+                    cert.status === "expired" ? "border-rose-200 bg-rose-50/30" : cert.status === "expiring" ? "border-amber-200 bg-amber-50/30" : "border-slate-200",
+                  ].join(" ")}>
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{cert.staffName || "Staff"}</div>
+                      <div className="text-xs text-slate-500">{cert.level || "First Aid"}</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {cert.expiresAt && <span className="text-xs text-slate-500">Exp: {cert.expiresAt.slice(0, 10)}</span>}
+                      <span className={[
+                        "inline-flex rounded-full border px-2 py-0.5 text-xs font-medium",
+                        cert.status === "expired" ? "border-rose-200 bg-rose-50 text-rose-700"
+                          : cert.status === "expiring" ? "border-amber-200 bg-amber-50 text-amber-700"
+                          : "border-emerald-200 bg-emerald-50 text-emerald-700",
+                      ].join(" ")}>
+                        {cert.status}
+                      </span>
                     </div>
                   </div>
                 ))}
