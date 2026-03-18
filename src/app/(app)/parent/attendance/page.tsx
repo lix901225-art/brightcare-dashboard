@@ -143,8 +143,25 @@ export default function ParentAttendancePage() {
       return s === "PRESENT" || s === "CHECKED_IN" || s === "CHECKED_OUT";
     }).length;
     const checkedIn = todayRows.filter(({ row }) => (row?.status || "").toUpperCase() === "CHECKED_IN").length;
-    return { total: children.length, present, checkedIn };
-  }, [todayRows, children.length]);
+
+    // Monthly attendance rate
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthDays: string[] = [];
+    for (let d = new Date(monthStart); d <= now; d.setDate(d.getDate() + 1)) {
+      const dow = d.getDay();
+      if (dow !== 0 && dow !== 6) monthDays.push(d.toISOString().slice(0, 10));
+    }
+    const possibleDays = monthDays.length * children.length;
+    const presentDays = attendance.filter((a) => {
+      const s = (a.status || "").toUpperCase();
+      const dateStr = a.date ? String(a.date).slice(0, 10) : "";
+      return (s === "PRESENT" || s === "CHECKED_IN" || s === "CHECKED_OUT") && monthDays.includes(dateStr);
+    }).length;
+    const attendanceRate = possibleDays > 0 ? Math.round((presentDays / possibleDays) * 100) : 0;
+
+    return { total: children.length, present, checkedIn, attendanceRate, presentDays, possibleDays };
+  }, [todayRows, children.length, attendance]);
 
   return (
     <RoleGate allow={["PARENT", "OWNER"]}>
@@ -174,7 +191,7 @@ export default function ParentAttendancePage() {
         ) : (
           <>
             {/* Stat cards */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
               <Card className="rounded-2xl border-0 shadow-sm">
                 <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">My children</CardTitle></CardHeader>
                 <CardContent><div className="text-3xl font-semibold">{stats.total}</div></CardContent>
@@ -191,6 +208,17 @@ export default function ParentAttendancePage() {
                 <CardContent>
                   <div className="text-3xl font-semibold">{stats.checkedIn}</div>
                   <div className="mt-1 text-xs text-slate-500">at the centre now</div>
+                </CardContent>
+              </Card>
+              <Card className="rounded-2xl border-0 shadow-sm">
+                <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">This month</CardTitle></CardHeader>
+                <CardContent>
+                  <div className={`text-3xl font-semibold ${stats.attendanceRate >= 90 ? "text-emerald-600" : stats.attendanceRate >= 70 ? "text-amber-600" : "text-rose-600"}`}>
+                    {stats.attendanceRate}%
+                  </div>
+                  <div className="mt-1 text-xs text-slate-500">
+                    {stats.presentDays} of {stats.possibleDays} days
+                  </div>
                 </CardContent>
               </Card>
             </div>
