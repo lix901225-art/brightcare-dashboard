@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
-  Plus, Search, X, ArrowRight, UserPlus, UserMinus, Clock,
+  Download, Plus, Search, X, ArrowRight, UserPlus, UserMinus, Clock,
   AlertTriangle, CheckCircle2, Shield,
 } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
@@ -272,6 +272,35 @@ export default function EnrollmentPage() {
     }
   }
 
+  function exportWaitlistCsv() {
+    const today = new Date();
+    const rows = [
+      ["Position", "Name", "DOB", "Age", "Added Date", "Days Waiting", "Preferred Room", "Source", "Notes"],
+      ...waitlistOrdered.map((c, i) => {
+        const daysWaiting = c.createdAt ? Math.floor((today.getTime() - new Date(c.createdAt).getTime()) / 86_400_000) : 0;
+        return [
+          String(i + 1),
+          c.fullName || "",
+          c.dob ? String(c.dob).slice(0, 10) : "",
+          c.dob ? calcAge(c.dob) : "",
+          c.createdAt ? String(c.createdAt).slice(0, 10) : "",
+          String(daysWaiting),
+          c.className || c.roomId || "",
+          (c as any).source || "",
+          `"${((c as any).notes || "").replace(/"/g, '""')}"`,
+        ];
+      }),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function handleEnrollClick(child: Child) {
     setEnrollTarget(child);
   }
@@ -431,6 +460,13 @@ export default function EnrollmentPage() {
             title="Enrollment"
             description="Manage your centre&rsquo;s enrollment pipeline — waitlist, admissions, and licensed capacity."
           />
+          <button
+            onClick={exportWaitlistCsv}
+            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Download className="h-4 w-4" />
+            Export waitlist
+          </button>
           <button
             onClick={() => { resetForm(); setShowAdd(true); }}
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
