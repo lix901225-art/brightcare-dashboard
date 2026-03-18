@@ -87,6 +87,7 @@ export default function ParentHomePage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [billingBalance, setBillingBalance] = useState<number>(0);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
+  const [todayMenu, setTodayMenu] = useState<{ breakfast?: string; morningSnack?: string; lunch?: string; afternoonSnack?: string } | null>(null);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
@@ -95,7 +96,7 @@ export default function ParentHomePage() {
     setError("");
 
     try {
-      const [threadsRes, attendanceRes, childrenRes, roomsRes, reportsRes, policiesRes, billingRes, invoicesRes] = await Promise.all([
+      const [threadsRes, attendanceRes, childrenRes, roomsRes, reportsRes, policiesRes, billingRes, invoicesRes, menuRes] = await Promise.all([
         apiFetch("/messages/threads"),
         apiFetch("/attendance"),
         apiFetch("/children"),
@@ -104,6 +105,7 @@ export default function ParentHomePage() {
         apiFetch("/policies"),
         apiFetch("/billing/summary"),
         apiFetch("/billing/invoices"),
+        apiFetch(`/meal-menus?date=${today}`).catch(() => null),
       ]);
 
       const threadsData = await threadsRes.json();
@@ -136,6 +138,13 @@ export default function ParentHomePage() {
 
       const invoicesData = invoicesRes.ok ? await invoicesRes.json() : [];
       setInvoices(Array.isArray(invoicesData) ? invoicesData : []);
+
+      if (menuRes && menuRes.ok) {
+        const menuData = await menuRes.json();
+        if (menuData && (menuData.breakfast || menuData.lunch || menuData.morningSnack || menuData.afternoonSnack)) {
+          setTodayMenu(menuData);
+        }
+      }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load parent workspace."));
     } finally {
@@ -616,6 +625,22 @@ export default function ParentHomePage() {
                       <div>
                         <div className="text-sm font-medium text-slate-500">Daily reports</div>
                         <div className="mt-0.5 text-xs text-slate-400">No reports filed yet today — check back later</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Today's menu */}
+                  {todayMenu && (
+                    <div className="rounded-xl border border-slate-100 p-3">
+                      <div className="mb-1.5 flex items-center gap-2">
+                        <Utensils className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-medium text-slate-900">Today&apos;s menu</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1 text-xs">
+                        {todayMenu.breakfast && <div><span className="text-slate-400">Breakfast:</span> <span className="text-slate-700">{todayMenu.breakfast}</span></div>}
+                        {todayMenu.morningSnack && <div><span className="text-slate-400">AM Snack:</span> <span className="text-slate-700">{todayMenu.morningSnack}</span></div>}
+                        {todayMenu.lunch && <div><span className="text-slate-400">Lunch:</span> <span className="text-slate-700">{todayMenu.lunch}</span></div>}
+                        {todayMenu.afternoonSnack && <div><span className="text-slate-400">PM Snack:</span> <span className="text-slate-700">{todayMenu.afternoonSnack}</span></div>}
                       </div>
                     </div>
                   )}
