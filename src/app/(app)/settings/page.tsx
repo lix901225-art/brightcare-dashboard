@@ -531,17 +531,26 @@ export default function SettingsPage() {
             <CardContent>
               <div className="space-y-3">
                 {(isParent ? [
-                  { key: "attendance", label: "Check-in / check-out notifications" },
-                  { key: "reports", label: "Daily report notifications" },
-                  { key: "messages", label: "New message notifications" },
-                  { key: "billing", label: "Invoice notifications" },
-                ] : [
-                  { key: "attendance", label: "Attendance updates" },
+                  { key: "checkinOut", label: "Check-in / check-out alerts" },
+                  { key: "reports", label: "New daily report" },
+                  { key: "photos", label: "New photos / videos" },
                   { key: "messages", label: "New messages" },
+                  { key: "billing", label: "New invoices & payments" },
+                  { key: "announcements", label: "Centre announcements" },
+                  { key: "healthFailed", label: "Health check not passed" },
+                  { key: "milestones", label: "Milestone updates" },
+                  { key: "mealMenu", label: "Weekly meal menu" },
+                ] : [
+                  { key: "checkinOut", label: "Attendance check-in / check-out" },
+                  { key: "messages", label: "New parent messages" },
                   { key: "incidents", label: "Incident reports" },
+                  { key: "healthFailed", label: "Health check failures" },
                   { key: "eceCerts", label: "ECE certification expiry" },
                   { key: "firstAid", label: "First aid certification expiry" },
-                  { key: "billing", label: "Billing updates" },
+                  { key: "billing", label: "Billing & payment updates" },
+                  { key: "enrollment", label: "New enrollment applications" },
+                  { key: "updateRequests", label: "Parent info update requests" },
+                  { key: "surveys", label: "New survey responses" },
                 ]).map(({ key, label }) => (
                   <label key={key} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
                     <span className="text-sm text-slate-700">{label}</span>
@@ -560,6 +569,28 @@ export default function SettingsPage() {
                     />
                   </label>
                 ))}
+              </div>
+              <div className="mt-4 rounded-xl border border-slate-200 p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Delivery method</div>
+                <div className="flex gap-2">
+                  {[
+                    { value: "push", label: "App push" },
+                    { value: "email", label: "Email" },
+                    { value: "both", label: "Both" },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => {
+                        const next = { ...notifPrefs, deliveryMethod: value };
+                        setNotifPrefs(next);
+                        apiFetch("/me/notification-preferences", { method: "PATCH", body: JSON.stringify(next) }).catch(() => {});
+                      }}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-xs font-medium ${(notifPrefs.deliveryMethod || "both") === value ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="mt-2 text-xs text-slate-400">Changes save automatically.</div>
             </CardContent>
