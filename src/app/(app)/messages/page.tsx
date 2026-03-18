@@ -98,6 +98,12 @@ export default function MessagesPage() {
     loadAll();
   }, []);
 
+  // Auto-refresh thread list every 10s for unread badge updates
+  useEffect(() => {
+    const interval = setInterval(loadAll, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const selected = searchParams.get("childId");
     if (selected && selected !== childId) setChildId(selected);

@@ -129,14 +129,23 @@ export default function MessageThreadPage() {
     }
   }, [messages.length]);
 
-  // Auto-refresh for parents every 15s for near-realtime feel
+  // Auto-refresh every 5s for near-realtime messaging (all roles)
   useEffect(() => {
-    if (!isParent || !threadId) return;
-    const interval = setInterval(() => {
-      loadAll();
-    }, 15000);
+    if (!threadId) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiFetch(`/messages/threads/${threadId}/messages`);
+        if (res.ok) {
+          const data = await res.json();
+          const newMessages = Array.isArray(data) ? data : [];
+          if (newMessages.length !== messages.length) {
+            setMessages(newMessages);
+          }
+        }
+      } catch { /* silent background refresh */ }
+    }, 5000);
     return () => clearInterval(interval);
-  }, [isParent, threadId]);
+  }, [threadId, messages.length]);
 
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) return messages;
