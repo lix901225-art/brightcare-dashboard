@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Megaphone, Trash2, X, Send, Clock } from "lucide-react";
+import { PageIntro } from "@/components/app/app-shell";
 import { apiFetch } from "@/lib/api-client";
 import { CardListSkeleton } from "@/components/ui/skeleton";
 import { readSession } from "@/lib/session";
@@ -88,12 +89,10 @@ export default function AnnouncementsPage() {
     <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Announcements</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Broadcast messages to all parents and staff
-          </p>
-        </div>
+        <PageIntro
+          title="Announcements"
+          description="Broadcast messages to all parents and staff."
+        />
         {canCreate && (
           <button
             onClick={() => setShowCreate(true)}
