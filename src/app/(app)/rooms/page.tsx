@@ -20,7 +20,42 @@ type Child = {
   id: string;
   fullName?: string | null;
   roomId?: string | null;
+  dob?: string | null;
+  status?: string | null;
 };
+
+// BC Community Care and Assisted Living Act ratios
+const BC_RATIOS = [
+  { label: "Infant (0–18 mo)", maxAge: 1.5, ratio: 4 },
+  { label: "Toddler (18 mo–3 yr)", maxAge: 3, ratio: 4 },
+  { label: "Preschool (3–5 yr)", maxAge: 5, ratio: 8 },
+  { label: "School-age (5+ yr)", maxAge: 99, ratio: 10 },
+] as const;
+
+function childAgeYears(dob?: string | null): number | null {
+  if (!dob) return null;
+  const d = new Date(dob);
+  if (Number.isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const m = now.getMonth() - d.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < d.getDate())) age--;
+  return age + (m < 0 ? 12 + m : m) / 12;
+}
+
+function ageGroupLabel(ageYears: number): string {
+  if (ageYears < 1.5) return "Infant";
+  if (ageYears < 3) return "Toddler";
+  if (ageYears < 5) return "Preschool";
+  return "School-age";
+}
+
+function requiredRatio(ageYears: number): number {
+  for (const r of BC_RATIOS) {
+    if (ageYears < r.maxAge) return r.ratio;
+  }
+  return 10;
+}
 
 export default function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -429,6 +464,39 @@ export default function RoomsPage() {
                       </div>
                     ) : null}
 
+                    {/* BC age-group ratio compliance */}
+                    {count > 0 ? (() => {
+                      const roomChildren = children.filter((c) => c.roomId === room.id);
+                      const groups: Record<string, number> = {};
+                      for (const c of roomChildren) {
+                        const age = childAgeYears(c.dob);
+                        const group = age !== null ? ageGroupLabel(age) : "Unknown";
+                        groups[group] = (groups[group] || 0) + 1;
+                      }
+                      // Compute minimum staff needed based on youngest child's ratio
+                      const ages = roomChildren.map((c) => childAgeYears(c.dob)).filter((a): a is number => a !== null);
+                      const minRatio = ages.length > 0 ? Math.min(...ages.map(requiredRatio)) : 8;
+                      const staffNeeded = Math.ceil(count / minRatio);
+
+                      return (
+                        <div className="mt-3 rounded-lg border border-slate-100 bg-slate-50/50 p-2.5">
+                          <div className="mb-1.5 text-[10px] font-medium uppercase tracking-wide text-slate-500">BC Ratio Compliance</div>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1">
+                            {Object.entries(groups).map(([group, cnt]) => (
+                              <span key={group} className="text-xs text-slate-600">
+                                {group}: <span className="font-medium">{cnt}</span>
+                              </span>
+                            ))}
+                          </div>
+                          <div className="mt-1.5 flex items-center gap-2 text-xs">
+                            <span className="text-slate-500">Staff required:</span>
+                            <span className="font-semibold text-slate-900">{staffNeeded}</span>
+                            <span className="text-slate-400">({count} children ÷ {minRatio}:1 ratio)</span>
+                          </div>
+                        </div>
+                      );
+                    })() : null}
+
                     {room.createdAt ? (
                       <div className="mt-3 text-xs text-slate-400">
                         Created {new Date(room.createdAt).toLocaleDateString()}
@@ -440,6 +508,22 @@ export default function RoomsPage() {
             })}
           </div>
         )}
+
+        {/* BC ratio reference */}
+        <div className="mt-6 rounded-2xl border border-sky-100 bg-sky-50/50 p-4">
+          <div className="mb-2 text-xs font-semibold text-sky-800">BC Child Care Licensing — Required Child-to-Staff Ratios</div>
+          <div className="grid gap-2 md:grid-cols-4">
+            {BC_RATIOS.map((r) => (
+              <div key={r.label} className="rounded-xl border border-sky-200 bg-white px-3 py-2">
+                <div className="text-xs font-medium text-slate-700">{r.label}</div>
+                <div className="text-sm font-semibold text-sky-800">{r.ratio}:1</div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 text-[10px] text-sky-600">
+            Per BC Community Care and Assisted Living Act — Child Care Licensing Regulation. Ratios are based on the youngest child in a group setting.
+          </div>
+        </div>
       </div>
     </RoleGate>
   );
