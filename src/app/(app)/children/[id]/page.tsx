@@ -1064,6 +1064,28 @@ function MilestonesSection({ childId, childDob }: { childId: string; childDob?: 
           </div>
         ) : (
           <div className="space-y-4">
+            {/* Progress summary */}
+            <div className="grid gap-2 sm:grid-cols-5">
+              {MILESTONE_CATEGORIES.map((cat) => {
+                const count = grouped[cat]?.length || 0;
+                const colors: Record<string, string> = {
+                  "Physical / Motor": "bg-emerald-500",
+                  "Language / Communication": "bg-sky-500",
+                  "Cognitive": "bg-violet-500",
+                  "Social / Emotional": "bg-amber-500",
+                  "Self-care": "bg-rose-500",
+                };
+                return (
+                  <div key={cat} className="rounded-lg border border-slate-100 p-2 text-center">
+                    <div className="text-lg font-bold text-slate-900">{count}</div>
+                    <div className="text-[10px] text-slate-500 leading-tight">{cat}</div>
+                    <div className="mt-1 h-1 w-full rounded-full bg-slate-100">
+                      <div className={`h-full rounded-full ${colors[cat] || "bg-slate-400"}`} style={{ width: `${Math.min(100, count * 20)}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
             {MILESTONE_CATEGORIES.filter((c) => grouped[c]?.length).map((cat) => (
               <div key={cat}>
                 <div className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">
