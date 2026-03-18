@@ -728,6 +728,9 @@ export default function ChildDetailPage() {
 
       {/* ─── Developmental milestones ─── */}
       <MilestonesSection childId={id} childDob={child.dob} />
+
+      {/* ─── Photo Gallery ─── */}
+      <PhotoGallerySection childId={id} />
     </div>
     </RoleGate>
   );
@@ -1105,6 +1108,92 @@ function MilestonesSection({ childId, childDob }: { childId: string; childDob?: 
                   ))}
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ─── Photo Gallery ─── */
+
+type ChildPhotoRow = {
+  id: string;
+  url: string;
+  caption?: string | null;
+  takenAt: string;
+};
+
+function PhotoGallerySection({ childId }: { childId: string }) {
+  const [photos, setPhotos] = useState<ChildPhotoRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`/children/${childId}/photos`);
+        if (res.ok) setPhotos(await res.json());
+      } catch { /* silent */ }
+      finally { setLoading(false); }
+    })();
+  }, [childId]);
+
+  async function handleUpload(files: FileList) {
+    setUploading(true);
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const uploadRes = await fetch("/api/proxy/files/upload", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${(await import("@/lib/token-store")).readToken() || ""}` },
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const result = await uploadRes.json();
+          if (result.url) {
+            const photoRes = await apiFetch(`/children/${childId}/photos`, {
+              method: "POST",
+              body: JSON.stringify({ url: `/api/proxy${result.url}` }),
+            });
+            if (photoRes.ok) {
+              const photo = await photoRes.json();
+              setPhotos((prev) => [photo, ...prev]);
+            }
+          }
+        }
+      } catch { /* silent */ }
+    }
+    setUploading(false);
+  }
+
+  return (
+    <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            Photos
+          </CardTitle>
+          <label className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+            <Plus className="h-3 w-3" />
+            {uploading ? "Uploading..." : "Upload"}
+            <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => e.target.files && handleUpload(e.target.files)} />
+          </label>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="text-xs text-slate-400">Loading photos...</div>
+        ) : photos.length === 0 ? (
+          <div className="text-sm text-slate-500">No photos yet. Upload photos to build this child&apos;s gallery.</div>
+        ) : (
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+            {photos.map((p) => (
+              <a key={p.id} href={p.url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-xl border border-slate-200">
+                <img src={p.url} alt={p.caption || "Photo"} className="aspect-square w-full object-cover transition group-hover:scale-105" loading="lazy" />
+              </a>
             ))}
           </div>
         )}
