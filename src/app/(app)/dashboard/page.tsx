@@ -19,7 +19,7 @@ type GuardianRow = {
   isPickupAuthorized?: boolean;
 };
 type BillingSummary = { childId: string; childName: string; total: number; paid: number; balance: number };
-type IncidentRow = { id: string; childId: string; severity: string; type: string; occurredAt: string; description: string; lockedAt?: string | null };
+type IncidentRow = { id: string; childId: string; severity: string; type: string; occurredAt: string; description: string; lockedAt?: string | null; followUpRequired?: boolean; followUpCompletedAt?: string | null };
 type InvoiceRow = { id: string; status: string; dueDate?: string | null; totalAmount: number; paidAmount: number; balanceAmount: number; childName: string };
 type DailyReportRow = { id: string; childId?: string | null; date?: string | null };
 type RoomRow = { id: string; name: string; capacity?: number | null };
@@ -180,6 +180,7 @@ export default function DashboardPage() {
       overdueAmount,
       collectionRate,
       recentIncidentCount: recentIncidents.length,
+      pendingFollowUps: incidents.filter((i) => i.followUpRequired && !i.followUpCompletedAt && !i.lockedAt).length,
     };
   }, [attendance, children, guardianMap, threads, billingSummary, incidents, invoices]);
 
@@ -380,6 +381,12 @@ export default function DashboardPage() {
                 {metrics.recentIncidentCount > 0 ? (
                   <Link href="/incidents" className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-800 hover:bg-amber-100">
                     {metrics.recentIncidentCount} incidents this week
+                  </Link>
+                ) : null}
+                {metrics.pendingFollowUps > 0 ? (
+                  <Link href="/incidents" className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-medium text-rose-800 hover:bg-rose-100">
+                    <AlertTriangle className="h-4 w-4" />
+                    {metrics.pendingFollowUps} pending follow-up{metrics.pendingFollowUps !== 1 ? "s" : ""}
                   </Link>
                 ) : null}
                 {expiringCerts.length > 0 ? (
