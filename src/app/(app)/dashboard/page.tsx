@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [dailyReports, setDailyReports] = useState<DailyReportRow[]>([]);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [expiringCerts, setExpiringCerts] = useState<ExpiringCert[]>([]);
+  const [pendingUpdateRequests, setPendingUpdateRequests] = useState(0);
 
   async function loadAll() {
     setLoading(true);
@@ -112,6 +113,15 @@ export default function DashboardPage() {
         if (certsRes.ok) {
           const certsData = await certsRes.json();
           setExpiringCerts(Array.isArray(certsData) ? certsData : []);
+        }
+      } catch { /* non-blocking */ }
+
+      // Load pending update requests count
+      try {
+        const urRes = await apiFetch("/update-requests/pending");
+        if (urRes.ok) {
+          const urData = await urRes.json();
+          setPendingUpdateRequests(Array.isArray(urData) ? urData.length : 0);
         }
       } catch { /* non-blocking */ }
     } catch (e: unknown) {
@@ -394,6 +404,12 @@ export default function DashboardPage() {
                     <AlertTriangle className="h-4 w-4" />
                     {expiringCerts.length} ECE cert{expiringCerts.length !== 1 ? "s" : ""} expiring within 30 days
                   </Link>
+                ) : null}
+                {pendingUpdateRequests > 0 ? (
+                  <div className="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-800">
+                    <AlertTriangle className="h-4 w-4" />
+                    {pendingUpdateRequests} pending parent update request{pendingUpdateRequests !== 1 ? "s" : ""}
+                  </div>
                 ) : null}
               </div>
             ) : null}
