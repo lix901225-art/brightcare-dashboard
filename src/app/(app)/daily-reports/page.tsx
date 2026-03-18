@@ -69,6 +69,7 @@ export default function DailyReportsPage() {
   const [mood, setMood] = useState("");
   const [activities, setActivities] = useState("");
   const [notes, setNotes] = useState("");
+  const [bathroom, setBathroom] = useState("");
   const [showBatch, setShowBatch] = useState(false);
   const [batchChildIds, setBatchChildIds] = useState<string[]>([]);
 
@@ -166,6 +167,7 @@ export default function DailyReportsPage() {
     setMood("");
     setActivities("");
     setNotes("");
+    setBathroom("");
     setDate(new Date().toISOString().slice(0, 10));
     setBatchChildIds([]);
   }
@@ -189,6 +191,7 @@ export default function DailyReportsPage() {
           mood: mood || undefined,
           activities: activities.trim() || undefined,
           notes: notes.trim() || undefined,
+          bathroom: bathroom.trim() || undefined,
         }),
       });
 
@@ -601,16 +604,29 @@ export default function DailyReportsPage() {
                     />
                   </div>
 
-                  <div className="mt-4">
-                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Notes for parents
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Bathroom
+                      </div>
+                      <input
+                        value={bathroom}
+                        onChange={(e) => setBathroom(e.target.value)}
+                        placeholder="e.g. 2 diaper changes, used potty once"
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                      />
                     </div>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Any additional notes for the family..."
-                      className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
-                    />
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                        Notes for parents
+                      </div>
+                      <textarea
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        placeholder="Any additional notes for the family..."
+                        className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+                      />
+                    </div>
                   </div>
 
                   <div className="mt-6 flex gap-3">
