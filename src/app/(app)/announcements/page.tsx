@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Plus, Megaphone, Trash2, X, Send, Clock } from "lucide-react";
 import { apiFetch } from "@/lib/api-client";
+import { CardListSkeleton } from "@/components/ui/skeleton";
 import { readSession } from "@/lib/session";
 
 type Announcement = {
@@ -164,9 +165,7 @@ export default function AnnouncementsPage() {
 
       {/* Announcements list */}
       {loading ? (
-        <div className="py-20 text-center text-sm text-slate-400">
-          Loading announcements…
-        </div>
+        <CardListSkeleton count={3} />
       ) : announcements.length === 0 ? (
         <div className="rounded-2xl border-0 bg-white p-12 text-center shadow-sm">
           <Megaphone className="mx-auto mb-3 h-10 w-10 text-slate-300" />
