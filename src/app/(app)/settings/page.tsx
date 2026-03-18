@@ -56,7 +56,11 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({});
+  const [savingNotifs, setSavingNotifs] = useState(false);
+
   const isOwner = readSession()?.role === "OWNER";
+  const isParent = readSession()?.role === "PARENT";
 
   const [me, setMe] = useState<MeResponse | null>(null);
   const [tenant, setTenant] = useState<TenantResponse | null>(null);
@@ -132,6 +136,10 @@ export default function SettingsPage() {
   useEffect(() => {
     loadAll();
     setLocaleState(getLocale());
+    // Load notification preferences
+    apiFetch("/me/notification-preferences").then(async (res) => {
+      if (res.ok) setNotifPrefs(await res.json());
+    }).catch(() => {});
   }, []);
 
   async function saveProfile() {
@@ -514,6 +522,46 @@ export default function SettingsPage() {
                   </button>
                 ))}
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Notification preferences */}
+          <Card className="rounded-2xl border-0 shadow-sm">
+            <CardHeader><CardTitle>Notification preferences</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {(isParent ? [
+                  { key: "attendance", label: "Check-in / check-out notifications" },
+                  { key: "reports", label: "Daily report notifications" },
+                  { key: "messages", label: "New message notifications" },
+                  { key: "billing", label: "Invoice notifications" },
+                ] : [
+                  { key: "attendance", label: "Attendance updates" },
+                  { key: "messages", label: "New messages" },
+                  { key: "incidents", label: "Incident reports" },
+                  { key: "eceCerts", label: "ECE certification expiry" },
+                  { key: "firstAid", label: "First aid certification expiry" },
+                  { key: "billing", label: "Billing updates" },
+                ]).map(({ key, label }) => (
+                  <label key={key} className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3">
+                    <span className="text-sm text-slate-700">{label}</span>
+                    <input
+                      type="checkbox"
+                      checked={notifPrefs[key] !== false}
+                      onChange={(e) => {
+                        const next = { ...notifPrefs, [key]: e.target.checked };
+                        setNotifPrefs(next);
+                        apiFetch("/me/notification-preferences", {
+                          method: "PATCH",
+                          body: JSON.stringify(next),
+                        }).catch(() => {});
+                      }}
+                      className="h-5 w-5 rounded border-slate-300"
+                    />
+                  </label>
+                ))}
+              </div>
+              <div className="mt-2 text-xs text-slate-400">Changes save automatically.</div>
             </CardContent>
           </Card>
         </div>
