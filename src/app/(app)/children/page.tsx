@@ -323,6 +323,7 @@ export default function ChildrenPage() {
                   <input
                     type="date"
                     value={dob}
+                    max={new Date().toISOString().slice(0, 10)}
                     onChange={(e) => setDob(e.target.value)}
                     className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
                   />
