@@ -1,5 +1,39 @@
 # Changelog — BrightCare OS Dashboard
 
+## [1.0.1] — 2026-03-18
+
+### Bug Fixes
+- Fix: sign-pickup route was doubled (children/:childId/guardians path duplication)
+- Fix: API restart loop (EADDRINUSE + CORS_ORIGINS) — graceful shutdown + ecosystem config
+- Fix: auto-billing cron now uses tenant default fees (CCFRI/ACCB)
+- Fix: missing nav translation keys (records, learningStories, management, more)
+
+### New Features
+- Playwright E2E test suite (26 smoke tests across all routes)
+- Notification preferences (toggles for attendance, reports, messages, billing)
+- First aid certification tracking on compliance page
+- OpenGraph + Twitter Card SEO metadata
+- Push notification device token registration endpoint
+- Calendar CRUD with BC holiday seeding
+- Public enrollment form (/enroll)
+- Learning Stories (Lillio parity)
+- Announcements with priority, audience, expiry
+- Child profile PDF export
+- Staff scheduling
+- Automated monthly billing
+- Database backup script
+
+### Mobile App (~/apps/brightcare-app)
+- v0.5.0: Expo React Native with 13+ screens
+- Parent: Home timeline, My Child, Messages, Reports, Billing, Settings
+- Staff: Attendance check-in/out, Daily report creation, Messages
+- Auth0 login + phone/password fallback
+- Push notifications + WebSocket real-time messaging
+- i18n: English + Simplified Chinese
+- EAS Build configuration + App Store submission guide
+
+---
+
 ## [1.0.0] — 2026-03-18 — Production Pilot Ready
 
 ### Core Modules (Track A — Locked)
