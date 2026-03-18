@@ -79,6 +79,21 @@ const LOG_CATEGORIES = [
   "Other",
 ] as const;
 
+const CARE_PLAN_TYPES = ["Asthma", "Allergy", "Diabetes", "Seizure", "Other"] as const;
+
+const ASTHMA_TRIGGERS = [
+  "Change in temperature",
+  "Colds / respiratory infections",
+  "Dust mites",
+  "Emotion / stress",
+  "Mould",
+  "Physical activity",
+  "Pollen",
+  "Animals",
+  "Foods",
+  "Strong smells / fumes",
+] as const;
+
 const TABS = ["log", "incidents", "medical"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -122,6 +137,27 @@ export default function RecordsPage() {
   const [carePlans, setCarePlans] = useState<CarePlanRow[]>([]);
   const [medications, setMedications] = useState<MedicationRow[]>([]);
   const [medicalLoading, setMedicalLoading] = useState(true);
+
+  /* Care plan form */
+  const [showCarePlanForm, setShowCarePlanForm] = useState(false);
+  const [cpSaving, setCpSaving] = useState(false);
+  const [cpChildId, setCpChildId] = useState("");
+  const [cpType, setCpType] = useState("Asthma");
+  const [cpTriggers, setCpTriggers] = useState<string[]>([]);
+  const [cpSymptoms, setCpSymptoms] = useState("");
+  const [cpEmergency, setCpEmergency] = useState("");
+  const [cpMedName, setCpMedName] = useState("");
+  const [cpMedStorage, setCpMedStorage] = useState("");
+  const [cpReviewDate, setCpReviewDate] = useState("");
+  const [cpNotes, setCpNotes] = useState("");
+
+  /* Medication form */
+  const [showMedForm, setShowMedForm] = useState(false);
+  const [medSaving, setMedSaving] = useState(false);
+  const [medChildId, setMedChildId] = useState("");
+  const [medName, setMedName] = useState("");
+  const [medDosage, setMedDosage] = useState("");
+  const [medReason, setMedReason] = useState("");
 
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
@@ -268,6 +304,78 @@ export default function RecordsPage() {
     a.download = `daily-log-${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  /* ─── Create care plan ─── */
+  async function createCarePlan() {
+    try {
+      setCpSaving(true);
+      setError("");
+      setOk("");
+      if (!cpChildId) throw new Error("Select a child.");
+      const res = await apiFetch("/records/care-plans", {
+        method: "POST",
+        body: JSON.stringify({
+          childId: cpChildId,
+          planType: cpType,
+          triggers: cpTriggers.join(", "),
+          symptoms: cpSymptoms.trim() || undefined,
+          emergencyTreatment: cpEmergency.trim() || undefined,
+          medicationName: cpMedName.trim() || undefined,
+          storageLocation: cpMedStorage.trim() || undefined,
+          reviewDate: cpReviewDate || undefined,
+          notes: cpNotes.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Create failed: ${res.status}`);
+      setOk("Care plan created.");
+      setShowCarePlanForm(false);
+      setCpTriggers([]);
+      setCpSymptoms("");
+      setCpEmergency("");
+      setCpMedName("");
+      setCpMedStorage("");
+      setCpReviewDate("");
+      setCpNotes("");
+      await loadMedical();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create care plan."));
+    } finally {
+      setCpSaving(false);
+    }
+  }
+
+  /* ─── Create medication record ─── */
+  async function createMedication() {
+    try {
+      setMedSaving(true);
+      setError("");
+      setOk("");
+      if (!medChildId) throw new Error("Select a child.");
+      if (!medName.trim()) throw new Error("Medication name is required.");
+      const res = await apiFetch("/records/medications", {
+        method: "POST",
+        body: JSON.stringify({
+          childId: medChildId,
+          medicationName: medName.trim(),
+          dosage: medDosage.trim() || undefined,
+          reason: medReason.trim() || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Create failed: ${res.status}`);
+      setOk("Medication administered — record saved.");
+      setShowMedForm(false);
+      setMedName("");
+      setMedDosage("");
+      setMedReason("");
+      await loadMedical();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to record medication."));
+    } finally {
+      setMedSaving(false);
+    }
   }
 
   /* ─── Filtered lists ─── */
@@ -535,11 +643,79 @@ export default function RecordsPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>Care Plans</CardTitle>
-                      <span className="text-xs text-slate-400">{carePlans.length} plan{carePlans.length !== 1 ? "s" : ""}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">{carePlans.length} plan{carePlans.length !== 1 ? "s" : ""}</span>
+                        <button onClick={() => setShowCarePlanForm(!showCarePlanForm)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                          <Plus className="h-3 w-3" /> Add plan
+                        </button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {carePlans.length === 0 ? (
+                    {showCarePlanForm && (
+                      <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Child</div>
+                            <select value={cpChildId} onChange={(e) => setCpChildId(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                              <option value="">Select child...</option>
+                              {children.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Plan type</div>
+                            <select value={cpType} onChange={(e) => setCpType(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                              {CARE_PLAN_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                            </select>
+                          </div>
+                        </div>
+                        {cpType === "Asthma" && (
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Triggers (VCH template)</div>
+                            <div className="grid gap-1.5 sm:grid-cols-2">
+                              {ASTHMA_TRIGGERS.map((trigger) => (
+                                <label key={trigger} className="flex items-center gap-2 text-xs text-slate-700">
+                                  <input type="checkbox" checked={cpTriggers.includes(trigger)} onChange={(e) => {
+                                    if (e.target.checked) setCpTriggers((p) => [...p, trigger]);
+                                    else setCpTriggers((p) => p.filter((t) => t !== trigger));
+                                  }} className="h-3.5 w-3.5 rounded border-slate-300" />
+                                  {trigger}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Symptoms</div>
+                          <textarea value={cpSymptoms} onChange={(e) => setCpSymptoms(e.target.value)} className="min-h-16 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none" placeholder="Describe symptoms..." />
+                        </div>
+                        <div>
+                          <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Emergency treatment steps</div>
+                          <textarea value={cpEmergency} onChange={(e) => setCpEmergency(e.target.value)} className="min-h-16 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none" placeholder="1. Give rescue inhaler... 2. Call 911 if..." />
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Medication name</div>
+                            <input value={cpMedName} onChange={(e) => setCpMedName(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. Ventolin" />
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Storage location</div>
+                            <input value={cpMedStorage} onChange={(e) => setCpMedStorage(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. Child's cubby" />
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Annual review date</div>
+                            <input type="date" value={cpReviewDate} onChange={(e) => setCpReviewDate(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <button onClick={createCarePlan} disabled={cpSaving} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                            {cpSaving ? "Saving..." : "Create care plan"}
+                          </button>
+                          <button onClick={() => setShowCarePlanForm(false)} className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                    {carePlans.length === 0 && !showCarePlanForm ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
                         No care plans on file. Care plans track asthma, allergy, diabetes, and seizure management for enrolled children.
                       </div>
@@ -572,11 +748,50 @@ export default function RecordsPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <CardTitle>Medication Administration</CardTitle>
-                      <span className="text-xs text-slate-400">{medications.length} record{medications.length !== 1 ? "s" : ""}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-400">{medications.length} record{medications.length !== 1 ? "s" : ""}</span>
+                        <button onClick={() => setShowMedForm(!showMedForm)} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                          <Plus className="h-3 w-3" /> Record
+                        </button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    {medications.length === 0 ? (
+                    {showMedForm && (
+                      <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-4">
+                        <div className="rounded-lg border border-amber-100 bg-amber-50 p-2 text-xs text-amber-800">
+                          <strong>BC licensing requirement:</strong> Parent written authorisation must be obtained before administering any medication.
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Child</div>
+                            <select value={medChildId} onChange={(e) => setMedChildId(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                              <option value="">Select child...</option>
+                              {children.map((c) => <option key={c.id} value={c.id}>{c.fullName}</option>)}
+                            </select>
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Medication name</div>
+                            <input value={medName} onChange={(e) => setMedName(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. Children's Tylenol" />
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Dosage</div>
+                            <input value={medDosage} onChange={(e) => setMedDosage(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. 5ml" />
+                          </div>
+                          <div>
+                            <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Reason</div>
+                            <input value={medReason} onChange={(e) => setMedReason(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. Fever" />
+                          </div>
+                        </div>
+                        <div className="flex gap-3">
+                          <button onClick={createMedication} disabled={medSaving} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                            {medSaving ? "Recording..." : "Record administration"}
+                          </button>
+                          <button onClick={() => setShowMedForm(false)} className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                        </div>
+                      </div>
+                    )}
+                    {medications.length === 0 && !showMedForm ? (
                       <div className="rounded-xl border border-dashed border-slate-200 p-6 text-center text-sm text-slate-500">
                         No medication records. All medication administration requires written parent authorisation per BC licensing.
                       </div>
