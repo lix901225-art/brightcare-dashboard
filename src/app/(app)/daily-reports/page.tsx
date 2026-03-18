@@ -70,6 +70,7 @@ export default function DailyReportsPage() {
   const [activities, setActivities] = useState("");
   const [notes, setNotes] = useState("");
   const [bathroom, setBathroom] = useState("");
+  const [toileting, setToileting] = useState<{ time: string; type: string; notes: string }[]>([]);
   const [photoFiles, setPhotoFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [showBatch, setShowBatch] = useState(false);
@@ -170,6 +171,7 @@ export default function DailyReportsPage() {
     setActivities("");
     setNotes("");
     setBathroom("");
+    setToileting([]);
     setPhotoFiles([]);
     setDate(new Date().toISOString().slice(0, 10));
     setBatchChildIds([]);
@@ -215,6 +217,7 @@ export default function DailyReportsPage() {
           activities: activities.trim() || undefined,
           notes: notes.trim() || undefined,
           bathroom: bathroom.trim() || undefined,
+          toileting: toileting.length > 0 ? toileting : undefined,
           photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         }),
       });
@@ -645,6 +648,25 @@ export default function DailyReportsPage() {
                         placeholder="e.g. 2 diaper changes, used potty once"
                         className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
                       />
+
+                      {/* Toileting log (BC licensing) */}
+                      <div className="mt-3">
+                        <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Toileting log</div>
+                        {toileting.map((t, i) => (
+                          <div key={i} className="mb-2 flex items-center gap-2">
+                            <input type="time" value={t.time} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], time: e.target.value }; setToileting(arr); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs" />
+                            <select value={t.type} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], type: e.target.value }; setToileting(arr); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs">
+                              <option value="wet">Wet</option>
+                              <option value="bm">BM</option>
+                              <option value="both">Both</option>
+                              <option value="dry">Dry</option>
+                            </select>
+                            <input value={t.notes} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], notes: e.target.value }; setToileting(arr); }} placeholder="Notes" className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-xs" />
+                            <button onClick={() => setToileting(toileting.filter((_, j) => j !== i))} className="text-xs text-slate-400 hover:text-rose-500">&times;</button>
+                          </div>
+                        ))}
+                        <button onClick={() => setToileting([...toileting, { time: new Date().toTimeString().slice(0, 5), type: "wet", notes: "" }])} className="text-xs font-medium text-slate-500 hover:text-slate-700">+ Add entry</button>
+                      </div>
                     </div>
                     <div>
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">

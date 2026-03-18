@@ -23,6 +23,7 @@ type ReportDetail = {
   activities?: string | null;
   notes?: string | null;
   bathroom?: string | null;
+  toileting?: { time: string; type: string; notes?: string }[] | null;
   photosCount?: number;
   photoUrls?: string[];
 };
@@ -223,18 +224,34 @@ export default function DailyReportDetailPage() {
                 </CardContent>
               </Card>
 
-              {report.bathroom ? (
+              {(report.bathroom || (report.toileting && report.toileting.length > 0)) ? (
                 <Card className="rounded-2xl border-0 shadow-sm">
                   <CardHeader>
                     <div className="flex items-center gap-2">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
                         <Calendar className="h-4 w-4 text-violet-600" />
                       </div>
-                      <CardTitle className="text-base">Bathroom</CardTitle>
+                      <CardTitle className="text-base">Bathroom / Toileting</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-sm leading-relaxed text-slate-700">{report.bathroom}</div>
+                    {report.bathroom && <div className="mb-2 text-sm leading-relaxed text-slate-700">{report.bathroom}</div>}
+                    {report.toileting && report.toileting.length > 0 && (
+                      <div className="space-y-1.5">
+                        {report.toileting.map((t, i) => (
+                          <div key={i} className="flex items-center gap-2 text-sm">
+                            <span className="font-medium text-slate-600">{t.time}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                              t.type === 'bm' ? 'bg-amber-100 text-amber-700' :
+                              t.type === 'both' ? 'bg-orange-100 text-orange-700' :
+                              t.type === 'dry' ? 'bg-emerald-100 text-emerald-700' :
+                              'bg-sky-100 text-sky-700'
+                            }`}>{t.type === 'bm' ? 'BM' : t.type === 'both' ? 'Wet + BM' : t.type === 'dry' ? 'Dry' : 'Wet'}</span>
+                            {t.notes && <span className="text-slate-500">{t.notes}</span>}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ) : null}
