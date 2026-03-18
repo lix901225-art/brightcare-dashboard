@@ -3,15 +3,17 @@
 import { ReactNode, useEffect } from "react";
 import { ParentMobileNav } from "@/components/app/parent-mobile-nav";
 import { PwaInstallPrompt } from "@/components/app/pwa-install-prompt";
+import { setupOfflineSync } from "@/lib/offline-queue";
 
 export default function ParentLayout({ children }: { children: ReactNode }) {
-  // Register service worker for PWA installability
+  // Register service worker for PWA + offline caching
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {
         // SW registration failed — non-critical, app works without it
       });
     }
+    setupOfflineSync();
   }, []);
 
   return (
