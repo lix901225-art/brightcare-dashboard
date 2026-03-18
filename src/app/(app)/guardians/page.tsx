@@ -43,6 +43,7 @@ type GuardianLink = {
   isEmergencyContact?: boolean;
   isPickupAuthorized?: boolean;
   hasPortalAccess?: boolean;
+  pickupSignedAt?: string | null;
   notes?: string | null;
 };
 
@@ -306,6 +307,29 @@ export default function GuardiansPage() {
       await loadAll();
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to update guardian."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function signPickup(childIdValue: string, guardianId: string, guardianName: string) {
+    if (!confirm(`Confirm pickup authorisation for "${guardianName}"? This will record a digital signature with timestamp.`)) return;
+    try {
+      setSaving(true);
+      setError("");
+      setOk("");
+      const res = await apiFetch(`/children/${childIdValue}/guardians/${guardianId}/sign-pickup`, {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data?.message || `Sign failed: ${res.status}`);
+      }
+      setOk(`Pickup authorisation signed for ${guardianName}.`);
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to sign pickup authorisation."));
     } finally {
       setSaving(false);
     }
@@ -692,14 +716,25 @@ export default function GuardiansPage() {
                                   <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", chipClass("emergency")].join(" ")}>Emergency</span>
                                 ) : null}
                                 {g.isPickupAuthorized ? (
-                                  <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", chipClass("pickup")].join(" ")}>Pickup</span>
+                                  <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", chipClass("pickup")].join(" ")}>
+                                    Pickup {g.pickupSignedAt ? "✓ signed" : ""}
+                                  </span>
                                 ) : null}
                                 {g.hasPortalAccess ? (
                                   <span className={["inline-flex rounded-full border px-2.5 py-1 text-xs font-medium", chipClass("portal")].join(" ")}>Portal access</span>
                                 ) : null}
                               </div>
 
-                              <div className="flex gap-2">
+                              <div className="flex flex-wrap gap-2">
+                                {!g.pickupSignedAt && (
+                                  <button
+                                    onClick={() => signPickup(row.id, g.id, g.guardianName || "this guardian")}
+                                    disabled={saving}
+                                    className="inline-flex h-9 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50"
+                                  >
+                                    Sign pickup
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => loadGuardianIntoEditor(row.id, g)}
                                   className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
