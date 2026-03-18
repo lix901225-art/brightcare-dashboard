@@ -88,6 +88,7 @@ export default function CompliancePage() {
   const [children, setChildren] = useState<Child[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [staff, setStaff] = useState<StaffUser[]>([]);
+  const [immSummary, setImmSummary] = useState<Array<{ childId: string; childName: string; totalRecords: number; completedCount: number; requiredCount: number; missingVaccines: string[]; isComplete: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -97,15 +98,20 @@ export default function CompliancePage() {
         setLoading(true);
         setError("");
 
-        const [childrenRes, roomsRes, staffRes] = await Promise.all([
+        const [childrenRes, roomsRes, staffRes, immRes] = await Promise.all([
           apiFetch("/children"),
           apiFetch("/rooms"),
           apiFetch("/admin/users"),
+          apiFetch("/compliance/immunization-summary").catch(() => null),
         ]);
 
         const childrenData = childrenRes.ok ? await childrenRes.json() : [];
         const roomsData = roomsRes.ok ? await roomsRes.json() : [];
         const staffData = staffRes.ok ? await staffRes.json() : [];
+        if (immRes?.ok) {
+          const immData = await immRes.json();
+          setImmSummary(Array.isArray(immData) ? immData : []);
+        }
 
         setChildren(Array.isArray(childrenData) ? childrenData.filter((c: Child) => c.status !== "WITHDRAWN") : []);
         setRooms(Array.isArray(roomsData) ? roomsData : []);
@@ -325,6 +331,52 @@ export default function CompliancePage() {
           </Card>
         </div>
 
+        {/* ─── Immunization Completeness ─── */}
+        {immSummary.length > 0 && (
+          <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Immunization records</CardTitle>
+                <span className={[
+                  "inline-flex rounded-full border px-2.5 py-1 text-xs font-medium",
+                  immSummary.every((c) => c.isComplete)
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                    : "border-amber-200 bg-amber-50 text-amber-700",
+                ].join(" ")}>
+                  {immSummary.filter((c) => c.isComplete).length}/{immSummary.length} complete
+                </span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {immSummary.map((child) => (
+                  <div key={child.childId} className={[
+                    "flex items-center justify-between rounded-xl border p-3",
+                    child.isComplete ? "border-slate-200" : "border-amber-200 bg-amber-50/30",
+                  ].join(" ")}>
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{child.childName}</div>
+                      {child.missingVaccines.length > 0 && (
+                        <div className="mt-0.5 text-xs text-amber-600">
+                          Missing: {child.missingVaccines.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-500">{child.completedCount}/{child.requiredCount}</span>
+                      {child.isComplete ? (
+                        <Check className="h-4 w-4 text-emerald-500" />
+                      ) : (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* ─── Child-to-Staff Ratio Dashboard ─── */}
         <Card className="mb-6 rounded-2xl border-0 shadow-sm">
           <CardHeader>
@@ -495,13 +547,10 @@ export default function CompliancePage() {
                 },
                 {
                   label: "All children have immunization records",
-                  ok: true, /* would need backend data to verify */
-                  fix: "Check each child profile for immunization records",
-                },
-                {
-                  label: "Emergency contacts documented for all children",
-                  ok: true, /* would need guardian data to verify */
-                  fix: "Ensure every child has at least one emergency contact guardian",
+                  ok: immSummary.length > 0 && immSummary.every((c) => c.isComplete),
+                  fix: immSummary.filter((c) => !c.isComplete).length > 0
+                    ? `${immSummary.filter((c) => !c.isComplete).length} child(ren) missing vaccines`
+                    : "Check each child profile for immunization records",
                 },
               ];
               const passed = checks.filter((c) => c.ok).length;
