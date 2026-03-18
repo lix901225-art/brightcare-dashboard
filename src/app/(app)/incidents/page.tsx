@@ -42,6 +42,7 @@ type Incident = {
   followUpRequired?: boolean | null;
   followUpNotes?: string | null;
   healthAuthorityNotified?: boolean | null;
+  followUpCompletedAt?: string | null;
   // VCH fields
   incidentTypes?: string | null;
   staffPresentCount?: number | null;
@@ -337,6 +338,23 @@ export default function IncidentsPage() {
       await loadAll();
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to create incident report."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function completeFollowUp(incidentId: string) {
+    try {
+      setSaving(true);
+      setError("");
+      setOk("");
+      const res = await apiFetch(`/incidents/${incidentId}/complete-follow-up`, { method: "PATCH" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
+      setOk("Follow-up completed.");
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to complete follow-up."));
     } finally {
       setSaving(false);
     }
@@ -875,7 +893,21 @@ export default function IncidentsPage() {
                               <div><span className="font-medium text-sky-700">Parent notified:</span> <span className="text-sky-900">{formatDateTime(inc.parentNotifiedAt)}</span></div>
                             ) : null}
                             {inc.followUpRequired ? (
-                              <div><span className="font-medium text-amber-700">Follow-up required</span>{inc.followUpNotes ? <span className="text-sky-900">: {inc.followUpNotes}</span> : null}</div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-amber-700">
+                                  {inc.followUpCompletedAt ? "Follow-up completed" : "Follow-up required"}
+                                </span>
+                                {inc.followUpNotes ? <span className="text-sky-900">: {inc.followUpNotes}</span> : null}
+                                {!inc.followUpCompletedAt && !inc.lockedAt && (
+                                  <button
+                                    onClick={() => completeFollowUp(inc.id)}
+                                    disabled={saving}
+                                    className="ml-auto inline-flex h-6 items-center rounded border border-emerald-200 bg-emerald-50 px-2 text-[10px] font-medium text-emerald-700 hover:bg-emerald-100"
+                                  >
+                                    Complete
+                                  </button>
+                                )}
+                              </div>
                             ) : null}
                             {inc.healthAuthorityNotified ? (
                               <div><span className="font-medium text-sky-700">Health authority notified</span></div>
