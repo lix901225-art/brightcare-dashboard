@@ -11,6 +11,9 @@ type Announcement = {
   id: string;
   title: string;
   body: string;
+  priority?: string | null;
+  audience?: string | null;
+  expiresAt?: string | null;
   createdAt: string;
   authorName: string | null;
   authorId: string | null;
@@ -22,6 +25,9 @@ export default function AnnouncementsPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [priority, setPriority] = useState("NORMAL");
+  const [audience, setAudience] = useState("ALL");
+  const [expiresAt, setExpiresAt] = useState("");
   const [sending, setSending] = useState(false);
 
   const session = readSession();
@@ -30,7 +36,7 @@ export default function AnnouncementsPage() {
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch("/messages/announcements");
+      const res = await apiFetch("/announcements");
       if (res.ok) setAnnouncements(await res.json());
     } catch {
       /* empty */
@@ -47,13 +53,22 @@ export default function AnnouncementsPage() {
     if (!title.trim() || !body.trim()) return;
     setSending(true);
     try {
-      await apiFetch("/messages/announcements", {
+      await apiFetch("/announcements", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), body: body.trim() }),
+        body: JSON.stringify({
+          title: title.trim(),
+          body: body.trim(),
+          priority,
+          audience,
+          expiresAt: expiresAt || undefined,
+        }),
       });
       setTitle("");
       setBody("");
+      setPriority("NORMAL");
+      setAudience("ALL");
+      setExpiresAt("");
       setShowCreate(false);
       await load();
     } catch {
@@ -66,7 +81,7 @@ export default function AnnouncementsPage() {
   async function handleDelete(id: string) {
     if (!confirm("Delete this announcement? This cannot be undone.")) return;
     try {
-      await apiFetch(`/messages/announcements/${id}`, { method: "DELETE" });
+      await apiFetch(`/announcements/${id}`, { method: "DELETE" });
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
     } catch {
       /* empty */
@@ -142,6 +157,27 @@ export default function AnnouncementsPage() {
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-slate-400"
               />
             </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Priority</label>
+                <select value={priority} onChange={(e) => setPriority(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                  <option value="NORMAL">Normal</option>
+                  <option value="HIGH">High (pinned, red highlight)</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Audience</label>
+                <select value={audience} onChange={(e) => setAudience(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                  <option value="ALL">Everyone</option>
+                  <option value="PARENTS">Parents only</option>
+                  <option value="STAFF">Staff only</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Expires (optional)</label>
+                <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+              </div>
+            </div>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setShowCreate(false)}
@@ -182,17 +218,21 @@ export default function AnnouncementsPage() {
           {announcements.map((a) => (
             <div
               key={a.id}
-              className="rounded-2xl border-0 bg-white p-5 shadow-sm"
+              className={["rounded-2xl border-0 p-5 shadow-sm", a.priority === "HIGH" ? "bg-rose-50 ring-1 ring-rose-200" : "bg-white"].join(" ")}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50">
-                    <Megaphone className="h-4 w-4 text-blue-600" />
+                  <div className={["mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl", a.priority === "HIGH" ? "bg-rose-100" : "bg-blue-50"].join(" ")}>
+                    <Megaphone className={["h-4 w-4", a.priority === "HIGH" ? "text-rose-600" : "text-blue-600"].join(" ")} />
                   </div>
                   <div>
-                    <h3 className="text-sm font-semibold text-slate-900">
-                      {a.title}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        {a.title}
+                      </h3>
+                      {a.priority === "HIGH" && <span className="inline-flex rounded-full border border-rose-200 bg-rose-100 px-2 py-0.5 text-[10px] font-bold text-rose-700">URGENT</span>}
+                      {a.audience && a.audience !== "ALL" && <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600">{a.audience === "PARENTS" ? "Parents only" : "Staff only"}</span>}
+                    </div>
                     <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">
                       {a.body}
                     </p>
