@@ -61,6 +61,7 @@ export default function DailyReportsPage() {
   const [filterChild, setFilterChild] = useState("");
   const [filterDate, setFilterDate] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [templates, setTemplates] = useState<{ id: string; name: string; meals?: string | null; activities?: string | null; notes?: string | null }[]>([]);
 
   const [childId, setChildId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -105,6 +106,12 @@ export default function DailyReportsPage() {
       if (!childId && childRows.length > 0) {
         setChildId(childRows[0].id);
       }
+
+      // Load templates (non-blocking)
+      apiFetch("/daily-reports/templates")
+        .then((r) => r.ok ? r.json() : [])
+        .then((data) => setTemplates(Array.isArray(data) ? data : []))
+        .catch(() => {});
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load daily reports."));
     } finally {
@@ -520,15 +527,37 @@ export default function DailyReportsPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>New daily report</CardTitle>
-                    <button
-                      onClick={() => {
-                        setShowCreate(false);
-                        resetForm();
-                      }}
-                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {templates.length > 0 && (
+                        <select
+                          onChange={(e) => {
+                            const t = templates.find((tpl) => tpl.id === e.target.value);
+                            if (t) {
+                              if (t.meals) setMeals(t.meals);
+                              if (t.activities) setActivities(t.activities);
+                              if (t.notes) setNotes(t.notes);
+                            }
+                            e.target.value = "";
+                          }}
+                          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs text-slate-600"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>Use template...</option>
+                          {templates.map((t) => (
+                            <option key={t.id} value={t.id}>{t.name}</option>
+                          ))}
+                        </select>
+                      )}
+                      <button
+                        onClick={() => {
+                          setShowCreate(false);
+                          resetForm();
+                        }}
+                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
