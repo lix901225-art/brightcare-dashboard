@@ -76,9 +76,78 @@ const ICON_MAP: Record<string, React.ReactNode> = {
   shield: <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />,
 };
 
+const JSON_LD_ORG = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "BrightCare OS",
+  url: "https://brightcareos.com",
+  logo: "https://brightcareos.com/icons/icon-512.png",
+  description: "All-in-one childcare management software for licensed BC daycare centres and preschools.",
+  areaServed: { "@type": "AdministrativeArea", name: "British Columbia, Canada" },
+  sameAs: [],
+};
+
+const JSON_LD_SOFTWARE = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "BrightCare OS",
+  operatingSystem: "Web",
+  applicationCategory: "BusinessApplication",
+  description: "Childcare management platform with enrollment, attendance, billing (ACCB/CCFRI), parent communication, and BC licensing compliance.",
+  offers: {
+    "@type": "AggregateOffer",
+    priceCurrency: "CAD",
+    lowPrice: "0",
+    highPrice: "299",
+    offerCount: "3",
+  },
+  featureList: [
+    "Enrollment pipeline with waitlist",
+    "Attendance tracking with check-in/out",
+    "Billing with ACCB & CCFRI support",
+    "Daily reports for parents",
+    "Parent messaging",
+    "BC licensing compliance",
+    "Staff scheduling",
+    "Multi-location management",
+  ],
+};
+
+const JSON_LD_FAQ = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is BrightCare OS?",
+      acceptedAnswer: { "@type": "Answer", text: "BrightCare OS is an all-in-one childcare management platform designed specifically for licensed BC daycare centres and preschools. It handles enrollment, attendance, billing with ACCB & CCFRI support, parent communication, and compliance." },
+    },
+    {
+      "@type": "Question",
+      name: "Does BrightCare support ACCB and CCFRI?",
+      acceptedAnswer: { "@type": "Answer", text: "Yes. BrightCare OS includes built-in ACCB (Affordable Child Care Benefit) offset line items and CCFRI (Child Care Fee Reduction Initiative) fee reduction banners on invoices, making government funding integration seamless." },
+    },
+    {
+      "@type": "Question",
+      name: "Is BrightCare OS only for BC childcare centres?",
+      acceptedAnswer: { "@type": "Answer", text: "BrightCare OS is built specifically for British Columbia's regulatory requirements, including health authority reporting, BC immunization schedules, and licensed capacity tracking. While it can be used elsewhere, its compliance features are tailored for BC." },
+    },
+    {
+      "@type": "Question",
+      name: "Do parents need to download an app?",
+      acceptedAnswer: { "@type": "Answer", text: "No app download is required. Parents access daily reports, messaging, billing, and attendance through a mobile-friendly web portal that can be installed as a PWA (Progressive Web App) on any phone." },
+    },
+  ],
+};
+
 export default function HomePage() {
   return (
     <div>
+      {/* JSON-LD structured data */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_ORG) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_SOFTWARE) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD_FAQ) }} />
+
       {/* ── Hero ── */}
       <section className="bg-gradient-to-b from-white to-slate-50 px-4 pb-16 pt-20 text-center sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl">

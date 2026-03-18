@@ -2,8 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Pricing",
-  description: "BrightCare OS pricing plans for BC childcare centres. Free pilot, Professional, and Enterprise options.",
+  title: "Pricing — Childcare Software Plans for BC Centres",
+  description: "BrightCare OS pricing plans for BC childcare centres. Free Starter, Professional at $149/mo, and Enterprise options with ACCB, CCFRI, and compliance built in.",
+  alternates: { canonical: "https://brightcareos.com/pricing" },
+  openGraph: {
+    title: "BrightCare OS Pricing — Plans for BC Childcare Centres",
+    description: "Free Starter plan, Professional at $149/mo, Enterprise custom pricing. All plans include parent portal, attendance, and daily reports.",
+    type: "website",
+    url: "/pricing",
+  },
 };
 
 const PLANS = [
