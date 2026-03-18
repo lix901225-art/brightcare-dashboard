@@ -276,7 +276,7 @@ export default function ChildrenPage() {
   }
 
   return (
-    <RoleGate allow={["OWNER", "STAFF"]}>
+    <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
       <div>
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro

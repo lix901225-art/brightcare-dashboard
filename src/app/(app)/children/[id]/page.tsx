@@ -298,7 +298,7 @@ export default function ChildDetailPage() {
   }
 
   return (
-    <RoleGate allow={["OWNER", "STAFF"]}>
+    <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
     <div>
       <div className="mb-4">
         <Link href="/children" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900">
