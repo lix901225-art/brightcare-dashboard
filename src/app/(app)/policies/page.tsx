@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, X, FileCheck, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { CardListSkeleton } from "@/components/ui/skeleton";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -346,9 +347,7 @@ export default function PoliciesPage() {
         </div>
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            Loading policies...
-          </div>
+          <CardListSkeleton count={3} />
         ) : filteredPolicies.length === 0 ? (
           <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
             {policies.length === 0
