@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Search, Send, X } from "lucide-react";
+import { Check, CheckCheck, Search, Send, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,8 @@ type MessageRow = {
   senderName?: string | null;
   senderRole?: string | null;
   senderUserId?: string | null;
+  readAt?: string | null;
+  readBy?: string | null;
 };
 
 function fmt(value?: string | null) {
@@ -99,6 +101,8 @@ export default function MessageThreadPage() {
           if (prev.some((m) => m.id === data.message.id)) return prev;
           return [...prev, data.message];
         });
+        // Auto mark-read since user is viewing this thread
+        apiFetch(`/messages/threads/${threadId}/mark-read`, { method: "POST" }).catch(() => {});
       }
     });
     return unsub;
@@ -127,6 +131,9 @@ export default function MessageThreadPage() {
 
       setThread(current);
       setMessages(messageRows);
+
+      // Mark messages as read
+      apiFetch(`/messages/threads/${threadId}/mark-read`, { method: "POST" }).catch(() => {});
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load thread."));
     } finally {
@@ -398,8 +405,13 @@ export default function MessageThreadPage() {
                             <div className="whitespace-pre-wrap text-sm leading-relaxed">
                               {m.body || "—"}
                             </div>
-                            <div className={["mt-1 text-right text-[10px]", own ? "text-slate-400" : "text-slate-400"].join(" ")}>
-                              {timeOnly(m.createdAt)}
+                            <div className={["mt-1 flex items-center justify-end gap-1 text-[10px]", own ? "text-slate-400" : "text-slate-400"].join(" ")}>
+                              <span>{timeOnly(m.createdAt)}</span>
+                              {own && (
+                                m.readAt
+                                  ? <CheckCheck className="h-3 w-3 text-sky-400" />
+                                  : <Check className="h-3 w-3" />
+                              )}
                             </div>
                           </div>
                         </div>
@@ -432,7 +444,14 @@ export default function MessageThreadPage() {
                             <span className="text-[10px] text-slate-400">(you)</span>
                           ) : null}
                         </div>
-                        <div className="text-xs text-slate-500">{fmt(m.createdAt)}</div>
+                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                          <span>{fmt(m.createdAt)}</span>
+                          {own && (
+                            m.readAt
+                              ? <span className="inline-flex items-center gap-0.5 text-sky-500"><CheckCheck className="h-3 w-3" /> Read</span>
+                              : <span className="inline-flex items-center gap-0.5 text-slate-400"><Check className="h-3 w-3" /> Sent</span>
+                          )}
+                        </div>
                       </div>
                       <div className="mt-2 whitespace-pre-wrap text-sm text-slate-700">
                         {highlight && bodyText.toLowerCase().includes(highlight) ? (
