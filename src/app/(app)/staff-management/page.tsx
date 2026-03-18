@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Edit2, KeyRound, Plus, Search, UserX, X } from "lucide-react";
+import { Check, Edit2, KeyRound, Mail, Plus, Search, UserX, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +15,7 @@ type UserRow = {
   displayName?: string | null;
   phone?: string | null;
   email?: string | null;
+  auth0Linked?: boolean;
   role?: string | null;
   roles?: Array<{ key: string }>;
   createdAt?: string | null;
@@ -57,6 +58,12 @@ export default function StaffManagementPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [role, setRole] = useState<"STAFF" | "PARENT">("STAFF");
+
+  // Invite by email (Auth0 flow)
+  const [showInvite, setShowInvite] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteName, setInviteName] = useState("");
+  const [inviteRole, setInviteRole] = useState<"STAFF" | "PARENT">("PARENT");
 
   // Reset password
   const [resetTarget, setResetTarget] = useState<UserRow | null>(null);
@@ -167,6 +174,40 @@ export default function StaffManagementPage() {
     }
   }
 
+  async function inviteUser() {
+    try {
+      setSaving(true);
+      setError("");
+      setOk("");
+
+      if (!inviteEmail.trim()) throw new Error("Email is required.");
+      if (!inviteName.trim()) throw new Error("Display name is required.");
+
+      const res = await apiFetch("/admin/users/invite", {
+        method: "POST",
+        body: JSON.stringify({
+          email: inviteEmail.trim(),
+          displayName: inviteName.trim(),
+          role: inviteRole,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Invite failed: ${res.status}`);
+
+      setOk(`Invited ${inviteName.trim()} (${inviteEmail.trim()}) as ${inviteRole}. They can now sign in with Auth0 using this email.`);
+      setShowInvite(false);
+      setInviteEmail("");
+      setInviteName("");
+      setInviteRole("PARENT");
+      await loadAll();
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to invite user."));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function confirmResetPassword() {
     if (!resetTarget) return;
     const targetId = resetTarget.id;
@@ -252,13 +293,22 @@ export default function StaffManagementPage() {
             title="Staff & Users"
             description="Manage staff accounts, parent portal access, and user roles for your centre."
           />
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            Add user
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowInvite(true); setShowCreate(false); }}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Mail className="h-4 w-4" />
+              Invite by email
+            </button>
+            <button
+              onClick={() => { setShowCreate(true); setShowInvite(false); }}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Add user
+            </button>
+          </div>
         </div>
 
         {ok ? (
@@ -348,6 +398,74 @@ export default function StaffManagementPage() {
                     setShowCreate(false);
                     resetForm();
                   }}
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {showInvite ? (
+          <Card className="mb-6 rounded-2xl border-0 shadow-sm">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Invite user by email</CardTitle>
+                <button onClick={() => setShowInvite(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50/50 p-3 text-sm text-sky-800">
+                <strong>How it works:</strong> Enter the user&apos;s email and role. They can then sign in at{" "}
+                <span className="font-mono text-xs">app.brightcareos.com</span> using Auth0 with the same email.
+                The system will automatically link their account on first login.
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Email</div>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="parent@example.com"
+                  />
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Display name</div>
+                  <input
+                    value={inviteName}
+                    onChange={(e) => setInviteName(e.target.value)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                    placeholder="Full name"
+                  />
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Role</div>
+                  <select
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as "STAFF" | "PARENT")}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
+                  >
+                    <option value="PARENT">Parent</option>
+                    <option value="STAFF">Staff</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={inviteUser}
+                  disabled={saving}
+                  className="inline-flex h-11 items-center gap-2 justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  <Mail className="h-4 w-4" />
+                  {saving ? "Inviting..." : "Send invite"}
+                </button>
+                <button
+                  onClick={() => setShowInvite(false)}
                   className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
                   Cancel
@@ -527,7 +645,13 @@ export default function StaffManagementPage() {
                           <div className={["font-medium text-sm", user.deactivated ? "text-slate-400 line-through" : "text-slate-900"].join(" ")}>
                             {user.displayName || "Unnamed"}
                           </div>
+                          {user.email && <div className="mt-0.5 text-xs text-slate-500">{user.email}</div>}
                           {user.phone && <div className="mt-0.5 text-xs text-slate-500">{user.phone}</div>}
+                          {user.auth0Linked ? (
+                            <div className="mt-0.5 flex items-center gap-1 text-[10px] text-emerald-600"><Check className="h-3 w-3" /> Auth0 linked</div>
+                          ) : user.email && !user.phone ? (
+                            <div className="mt-0.5 text-[10px] text-amber-600">Invited — awaiting first Auth0 login</div>
+                          ) : null}
                           {userCert && (user.role?.toUpperCase() === "STAFF" || user.role?.toUpperCase() === "OWNER") && (
                             <div className="mt-1 text-xs text-slate-500">
                               ECE: {userCert.level || "Not set"}
