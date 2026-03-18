@@ -14,7 +14,7 @@ const TABS = [
   { href: "/staff", label: "Home", icon: LayoutDashboard, exact: true },
   { href: "/attendance", label: "Attendance", icon: CalendarCheck, exact: false },
   { href: "/daily-reports", label: "Reports", icon: FileText, exact: false },
-  { href: "/incidents", label: "Incidents", icon: ShieldAlert, exact: false },
+  { href: "/records", label: "Records", icon: ShieldAlert, exact: false },
   { href: "/messages", label: "Messages", icon: MessageCircle, exact: false },
 ] as const;
 
