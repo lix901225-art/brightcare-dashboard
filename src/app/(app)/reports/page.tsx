@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { PageIntro } from "@/components/app/app-shell";
+import { RoleGate } from "@/components/auth/role-gate";
 import { apiFetch } from "@/lib/api-client";
 
 type ReportType =
@@ -436,6 +437,7 @@ export default function ReportsPage() {
   );
 
   return (
+    <RoleGate allow={["OWNER"]}>
     <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
       <PageIntro
         title="Reports & Exports"
@@ -585,5 +587,6 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
+    </RoleGate>
   );
 }
