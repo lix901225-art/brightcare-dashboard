@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Check, Shield, TrendingUp, AlertTriangle } from "lucide-react";
+import { Check, FileText, Shield, TrendingUp, AlertTriangle } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -413,6 +413,22 @@ export default function DashboardPage() {
                 ) : null}
               </div>
             ) : null}
+
+            {/* Quick Actions */}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link href="/attendance" className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800">
+                <Check className="h-4 w-4" /> Attendance
+              </Link>
+              <Link href="/daily-reports" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <FileText className="h-4 w-4" /> Daily report
+              </Link>
+              <Link href="/announcements" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                <AlertTriangle className="h-4 w-4" /> Announcement
+              </Link>
+              <Link href="/incidents" className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                Incidents
+              </Link>
+            </div>
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               <Card className="rounded-2xl border-0 shadow-sm">
