@@ -70,6 +70,8 @@ export default function DailyReportsPage() {
   const [activities, setActivities] = useState("");
   const [notes, setNotes] = useState("");
   const [bathroom, setBathroom] = useState("");
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [showBatch, setShowBatch] = useState(false);
   const [batchChildIds, setBatchChildIds] = useState<string[]>([]);
 
@@ -168,6 +170,7 @@ export default function DailyReportsPage() {
     setActivities("");
     setNotes("");
     setBathroom("");
+    setPhotoFiles([]);
     setDate(new Date().toISOString().slice(0, 10));
     setBatchChildIds([]);
   }
@@ -181,6 +184,26 @@ export default function DailyReportsPage() {
       if (!childId) throw new Error("Select a child.");
       if (!date) throw new Error("Date is required.");
 
+      // Upload photos first
+      let photoUrls: string[] = [];
+      if (photoFiles.length > 0) {
+        setUploading(true);
+        for (const file of photoFiles) {
+          const formData = new FormData();
+          formData.append("file", file);
+          const uploadRes = await fetch("/api/proxy/files/upload", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${(await import("@/lib/token-store")).readToken() || ""}` },
+            body: formData,
+          });
+          if (uploadRes.ok) {
+            const result = await uploadRes.json();
+            if (result.url) photoUrls.push(`/api/proxy${result.url}`);
+          }
+        }
+        setUploading(false);
+      }
+
       const res = await apiFetch("/daily-reports", {
         method: "POST",
         body: JSON.stringify({
@@ -192,6 +215,7 @@ export default function DailyReportsPage() {
           activities: activities.trim() || undefined,
           notes: notes.trim() || undefined,
           bathroom: bathroom.trim() || undefined,
+          photoUrls: photoUrls.length > 0 ? photoUrls : undefined,
         }),
       });
 
@@ -629,13 +653,46 @@ export default function DailyReportsPage() {
                     </div>
                   </div>
 
+                  {/* Photo upload */}
+                  <div className="mt-4">
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Photos</div>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600 hover:bg-slate-100">
+                      <span>Click to add photos (max 10 MB each)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) setPhotoFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                        }}
+                      />
+                    </label>
+                    {photoFiles.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {photoFiles.map((f, i) => (
+                          <div key={i} className="relative">
+                            <img src={URL.createObjectURL(f)} alt="" className="h-16 w-16 rounded-lg object-cover border border-slate-200" />
+                            <button
+                              type="button"
+                              onClick={() => setPhotoFiles((prev) => prev.filter((_, j) => j !== i))}
+                              className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] text-white"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-6 flex gap-3">
                     <button
                       onClick={createReport}
-                      disabled={saving}
+                      disabled={saving || uploading}
                       className="inline-flex h-11 items-center justify-center rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
                     >
-                      {saving ? "Saving..." : "Create report"}
+                      {uploading ? "Uploading photos..." : saving ? "Saving..." : "Create report"}
                     </button>
                     <button
                       onClick={() => {

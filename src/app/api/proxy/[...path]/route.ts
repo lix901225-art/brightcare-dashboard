@@ -26,10 +26,16 @@ async function proxy(req: NextRequest) {
     if (authorization) headers.set("authorization", authorization);
 
     const method = req.method.toUpperCase();
-    const body =
-      method === "GET" || method === "HEAD"
-        ? undefined
-        : await req.text();
+    let body: BodyInit | undefined;
+    if (method !== "GET" && method !== "HEAD") {
+      // Use arrayBuffer for binary uploads (multipart/form-data), text for JSON
+      const ct = contentType || "";
+      if (ct.includes("multipart/form-data") || ct.includes("application/octet-stream")) {
+        body = Buffer.from(await req.arrayBuffer());
+      } else {
+        body = await req.text();
+      }
+    }
 
     const upstream = await fetch(upstreamUrl, {
       method,
