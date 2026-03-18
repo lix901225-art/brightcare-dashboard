@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Menu, X } from "lucide-react";
+import { Bell, Check, Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, type AppRole } from "@/lib/workspace";
 import { readSession } from "@/lib/session";
 import { useLogout } from "@/lib/use-logout";
+import { apiFetch } from "@/lib/api-client";
 import { StaffMobileNav } from "@/components/app/staff-mobile-nav";
 
 type ShellSession = {
@@ -135,6 +136,133 @@ function SidebarContent({
   );
 }
 
+type NotificationItem = {
+  id: string;
+  type: string;
+  title: string;
+  body?: string | null;
+  isRead: boolean;
+  createdAt: string;
+};
+
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unread, setUnread] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+
+  async function loadCount() {
+    try {
+      const res = await apiFetch("/notifications/unread-count");
+      if (res.ok) {
+        const count = await res.json();
+        setUnread(typeof count === "number" ? count : 0);
+      }
+    } catch { /* silent */ }
+  }
+
+  async function loadItems() {
+    try {
+      const res = await apiFetch("/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setItems(Array.isArray(data) ? data.slice(0, 10) : []);
+        setLoaded(true);
+      }
+    } catch { /* silent */ }
+  }
+
+  useEffect(() => {
+    loadCount();
+    const interval = setInterval(loadCount, 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  function handleOpen() {
+    setOpen((v) => {
+      if (!v && !loaded) loadItems();
+      return !v;
+    });
+  }
+
+  async function markRead(id: string) {
+    await apiFetch(`/notifications/${id}/read`, { method: "PATCH" });
+    setItems((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
+    setUnread((prev) => Math.max(0, prev - 1));
+  }
+
+  async function markAllRead() {
+    await apiFetch("/notifications/read-all", { method: "PATCH" });
+    setItems((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    setUnread(0);
+  }
+
+  function timeAgo(dateStr: string) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}h ago`;
+    return `${Math.floor(hrs / 24)}d ago`;
+  }
+
+  return (
+    <div className="relative">
+      <button
+        onClick={handleOpen}
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+      >
+        <Bell className="h-5 w-5" />
+        {unread > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+            {unread > 9 ? "9+" : unread}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-40 mt-2 w-80 rounded-2xl border border-slate-200 bg-white shadow-lg">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <span className="text-sm font-semibold text-slate-900">Notifications</span>
+              {unread > 0 && (
+                <button onClick={markAllRead} className="flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-900">
+                  <Check className="h-3 w-3" /> Mark all read
+                </button>
+              )}
+            </div>
+            <div className="max-h-80 overflow-y-auto">
+              {items.length === 0 ? (
+                <div className="px-4 py-8 text-center text-sm text-slate-400">No notifications</div>
+              ) : (
+                items.map((n) => (
+                  <button
+                    key={n.id}
+                    onClick={() => !n.isRead && markRead(n.id)}
+                    className={[
+                      "flex w-full items-start gap-3 border-b border-slate-50 px-4 py-3 text-left hover:bg-slate-50",
+                      n.isRead ? "opacity-60" : "",
+                    ].join(" ")}
+                  >
+                    {!n.isRead && <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-rose-500" />}
+                    <div className={n.isRead ? "pl-5" : ""}>
+                      <div className="text-sm font-medium text-slate-900">{n.title}</div>
+                      {n.body ? <div className="mt-0.5 text-xs text-slate-500 line-clamp-2">{n.body}</div> : null}
+                      <div className="mt-1 text-[10px] text-slate-400">{timeAgo(n.createdAt)}</div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -233,6 +361,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
 
               <div className="flex items-center gap-3">
+                {mounted && <NotificationBell />}
+
                 <div className="hidden text-right sm:block">
                   <div className="text-sm font-medium text-slate-900">{userTitle}</div>
                   <div className="text-xs text-slate-500">{userRole}</div>
