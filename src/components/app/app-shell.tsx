@@ -4,7 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Bell, Check, Menu, X } from "lucide-react";
-import { NAV_BY_ROLE, type AppRole } from "@/lib/workspace";
+import { NAV_BY_ROLE, type AppRole, type NavItem } from "@/lib/workspace";
+import { useLocale } from "@/lib/use-locale";
 import { readSession } from "@/lib/session";
 import { useLogout } from "@/lib/use-logout";
 import { apiFetch } from "@/lib/api-client";
@@ -71,13 +72,15 @@ function SidebarContent({
   tenantSub,
   userRole,
   onNavClick,
+  t,
 }: {
-  navItems: { href: string; label: string }[];
+  navItems: NavItem[];
   pathname: string;
   tenantTitle: string;
   tenantSub: string;
   userRole: string;
   onNavClick?: () => void;
+  t: (key: string) => string;
 }) {
   return (
     <>
@@ -119,7 +122,7 @@ function SidebarContent({
                     : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
                 ].join(" ")}
               >
-                {item.label}
+                {item.tKey ? t(item.tKey) : item.label}
               </Link>
             );
           })}
@@ -129,7 +132,7 @@ function SidebarContent({
       <div className="border-t border-slate-200 px-4 py-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-3">
           <div className="text-xs uppercase tracking-wide text-slate-400">Role workspace</div>
-          <div className="mt-1 text-sm font-medium text-slate-900">{userRole}</div>
+          <div className="mt-1 text-sm font-medium text-slate-900">{t(`roles.${userRole}`)}</div>
         </div>
       </div>
     </>
@@ -296,6 +299,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const navItems = useMemo(() => NAV_BY_ROLE[session.role] || NAV_BY_ROLE.OWNER, [session.role]);
 
+  const { t } = useLocale();
   const logout = useLogout();
 
   const tenantTitle = mounted ? session.tenantName || "Workspace" : "Workspace";
@@ -315,6 +319,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             tenantTitle={tenantTitle}
             tenantSub={tenantSub}
             userRole={userRole}
+            t={t}
           />
         </aside>
 
@@ -339,6 +344,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 tenantSub={tenantSub}
                 userRole={userRole}
                 onNavClick={() => setMobileOpen(false)}
+                t={t}
               />
             </aside>
           </div>
@@ -376,7 +382,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={logout}
                   className="inline-flex h-11 items-center rounded-xl border border-slate-200 px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
                 >
-                  Logout
+                  {t("auth.logout")}
                 </button>
               </div>
             </div>
