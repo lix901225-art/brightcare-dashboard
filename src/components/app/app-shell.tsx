@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Bell, Check, Menu, X } from "lucide-react";
-import { NAV_BY_ROLE, type AppRole, type NavItem } from "@/lib/workspace";
+import { Bell, Check, ChevronDown, Menu, X } from "lucide-react";
+import { NAV_BY_ROLE, NAV_GROUPS_BY_ROLE, type AppRole, type NavItem, type NavGroup } from "@/lib/workspace";
 import { useLocale } from "@/lib/use-locale";
 import { readSession } from "@/lib/session";
 import { useLogout } from "@/lib/use-logout";
@@ -65,8 +65,57 @@ export function PageIntro({
   );
 }
 
+function NavLink({ item, pathname, onNavClick, t }: { item: NavItem; pathname: string; onNavClick?: () => void; t: (key: string) => string }) {
+  const active = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
+  return (
+    <Link
+      href={item.href}
+      onClick={onNavClick}
+      className={[
+        "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition",
+        active ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
+      ].join(" ")}
+    >
+      {item.tKey ? t(item.tKey) : item.label}
+    </Link>
+  );
+}
+
+function CollapsibleGroup({ group, pathname, onNavClick, t }: { group: NavGroup; pathname: string; onNavClick?: () => void; t: (key: string) => string }) {
+  const hasActiveChild = group.items.some(
+    (item) => pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"))
+  );
+  const [open, setOpen] = useState(hasActiveChild);
+
+  // Auto-expand when navigating into this group
+  useEffect(() => {
+    if (hasActiveChild && !open) setOpen(true);
+  }, [hasActiveChild]);
+
+  const label = group.tKey ? t(group.tKey) : (group.title || "");
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600"
+      >
+        <span>{label}</span>
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "" : "-rotate-90"}`} />
+      </button>
+      {open && (
+        <div className="mt-0.5 space-y-0.5">
+          {group.items.map((item) => (
+            <NavLink key={item.href} item={item} pathname={pathname} onNavClick={onNavClick} t={t} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SidebarContent({
-  navItems,
+  navGroups,
   pathname,
   tenantTitle,
   tenantSub,
@@ -74,7 +123,7 @@ function SidebarContent({
   onNavClick,
   t,
 }: {
-  navItems: NavItem[];
+  navGroups: NavGroup[];
   pathname: string;
   tenantTitle: string;
   tenantSub: string;
@@ -103,27 +152,23 @@ function SidebarContent({
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4">
-        <div className="space-y-1">
-          {navItems.map((item) => {
-            const active =
-              pathname === item.href ||
-              (item.href !== "/" && pathname.startsWith(item.href + "/"));
-
+      <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <div className="space-y-4">
+          {navGroups.map((group, gi) => {
+            if (group.collapsible && group.title) {
+              return <CollapsibleGroup key={group.title} group={group} pathname={pathname} onNavClick={onNavClick} t={t} />;
+            }
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onNavClick}
-                className={[
-                  "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition",
-                  active
-                    ? "bg-slate-950 text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-slate-950",
-                ].join(" ")}
-              >
-                {item.tKey ? t(item.tKey) : item.label}
-              </Link>
+              <div key={gi} className="space-y-0.5">
+                {group.title && (
+                  <div className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+                    {group.tKey ? t(group.tKey) : group.title}
+                  </div>
+                )}
+                {group.items.map((item) => (
+                  <NavLink key={item.href} item={item} pathname={pathname} onNavClick={onNavClick} t={t} />
+                ))}
+              </div>
             );
           })}
         </div>
@@ -298,6 +343,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   const navItems = useMemo(() => NAV_BY_ROLE[session.role] || NAV_BY_ROLE.OWNER, [session.role]);
+  const navGroups = useMemo(() => NAV_GROUPS_BY_ROLE[session.role] || NAV_GROUPS_BY_ROLE.OWNER, [session.role]);
 
   const { t } = useLocale();
   const logout = useLogout();
@@ -314,7 +360,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {/* Desktop sidebar */}
         <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
           <SidebarContent
-            navItems={navItems}
+            navGroups={navGroups}
             pathname={pathname}
             tenantTitle={tenantTitle}
             tenantSub={tenantSub}
@@ -338,7 +384,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <X className="h-5 w-5" />
               </button>
               <SidebarContent
-                navItems={navItems}
+                navGroups={navGroups}
                 pathname={pathname}
                 tenantTitle={tenantTitle}
                 tenantSub={tenantSub}
