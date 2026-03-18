@@ -271,7 +271,7 @@ export default function BillingPage() {
       label: "Fees + meals",
       items: [
         { description: "Monthly child care fees (before ACCB)", quantity: "1", unitPrice: "1100" },
-        { description: "Meal & snack program", quantity: "1", unitPrice: "180" },
+        { description: "Meal & snack programme", quantity: "1", unitPrice: "180" },
       ],
       dueDays: 30,
     },
@@ -347,7 +347,7 @@ export default function BillingPage() {
   const BULK_TEMPLATES: Record<string, { label: string; items: { description: string; quantity: number; unitPrice: number }[]; dueDays: number }> = {
     monthly: { label: "Monthly parent fees", items: [{ description: "Monthly child care fees (before ACCB)", quantity: 1, unitPrice: 1100 }], dueDays: 30 },
     accb_offset: { label: "Fees after ACCB", items: [{ description: "Monthly child care fees", quantity: 1, unitPrice: 1100 }, { description: "Affordable Child Care Benefit (ACCB) offset", quantity: 1, unitPrice: -350 }], dueDays: 30 },
-    fees_meals: { label: "Fees + meals", items: [{ description: "Monthly child care fees (before ACCB)", quantity: 1, unitPrice: 1100 }, { description: "Meal & snack program", quantity: 1, unitPrice: 180 }], dueDays: 30 },
+    fees_meals: { label: "Fees + meals", items: [{ description: "Monthly child care fees (before ACCB)", quantity: 1, unitPrice: 1100 }, { description: "Meal & snack programme", quantity: 1, unitPrice: 180 }], dueDays: 30 },
     registration: { label: "Registration / waitlist", items: [{ description: "Non-refundable registration & waitlist deposit", quantity: 1, unitPrice: 200 }], dueDays: 14 },
   };
 

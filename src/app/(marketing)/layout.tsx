@@ -34,7 +34,7 @@ const STRUCTURED_DATA = {
         "@type": "Offer",
         price: "0",
         priceCurrency: "CAD",
-        description: "Early access program for licensed BC childcare centres",
+        description: "Early access programme for licensed BC childcare centres",
       },
     },
   ],

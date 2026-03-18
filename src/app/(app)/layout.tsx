@@ -6,6 +6,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import Auth0ProviderClient from "@/lib/auth0-provider";
 import { AuthTokenProvider } from "@/lib/auth-token-context";
 import { Toaster } from "sonner";
+import { NetworkStatus } from "@/components/ui/network-status";
 
 export const metadata: Metadata = {
   robots: { index: false, follow: false },
@@ -32,6 +33,7 @@ export default function ProtectedAppLayout({ children }: { children: ReactNode }
             },
           }}
         />
+        <NetworkStatus />
       </AppAuthGate>
       </AuthTokenProvider>
     </Auth0ProviderClient>

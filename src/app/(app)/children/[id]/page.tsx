@@ -200,7 +200,39 @@ export default function ChildDetailPage() {
   );
 
   if (loading) {
-    return <div className="text-sm text-slate-500">Loading child profile...</div>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-5 animate-pulse rounded bg-slate-200" />
+          <div className="h-6 w-48 animate-pulse rounded-lg bg-slate-200" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="h-5 w-32 animate-pulse rounded bg-slate-200 mb-4" />
+              <div className="grid gap-4 md:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i}>
+                    <div className="h-3 w-20 animate-pulse rounded bg-slate-200 mb-2" />
+                    <div className="h-11 w-full animate-pulse rounded-xl bg-slate-100" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="h-5 w-24 animate-pulse rounded bg-slate-200 mb-4" />
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100" />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

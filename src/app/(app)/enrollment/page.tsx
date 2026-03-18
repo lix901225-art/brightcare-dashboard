@@ -608,7 +608,7 @@ export default function EnrollmentPage() {
                     <option value="">Select reason</option>
                     <option value="Family relocated">Family relocated</option>
                     <option value="Switched centres">Switched centres</option>
-                    <option value="Aged out of program">Aged out of program</option>
+                    <option value="Aged out of programme">Aged out of programme</option>
                     <option value="Financial reasons">Financial reasons</option>
                     <option value="Schedule no longer fits">Schedule no longer fits</option>
                     <option value="Child starting school">Child starting school (K entry / graduated)</option>

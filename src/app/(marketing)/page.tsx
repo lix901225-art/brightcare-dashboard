@@ -194,7 +194,7 @@ export default function HomePage() {
           {[
             ["Privacy-first", "Child data stays in Canada. No third-party sharing, no ads. Read our privacy policy."],
             ["BC-compliant", "Built around BC licensing requirements, provincial funding programs, and Ministry reporting needs."],
-            ["Early access program", "We work directly with licensed BC centres to onboard and customize BrightCare OS. Request a walkthrough to get started."],
+            ["Early access programme", "We work directly with licensed BC centres to onboard and customize BrightCare OS. Request a walkthrough to get started."],
           ].map(([title, desc]) => (
             <div key={title} className="text-center">
               <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50">
