@@ -25,7 +25,11 @@
     "staffManagement": "教職員工",
     "settings": "設定",
     "staffHome": "員工首頁",
-    "parentHome": "家長首頁"
+    "parentHome": "家長首頁",
+    "records": "記錄管理",
+    "learningStories": "學習故事",
+    "management": "管理",
+    "more": "更多"
   },
   "auth": {
     "login": "登入",

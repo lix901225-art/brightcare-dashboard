@@ -25,7 +25,11 @@
     "staffManagement": "教职员工",
     "settings": "设置",
     "staffHome": "员工首页",
-    "parentHome": "家长首页"
+    "parentHome": "家长首页",
+    "records": "记录管理",
+    "learningStories": "学习故事",
+    "management": "管理",
+    "more": "更多"
   },
   "auth": {
     "login": "登录",

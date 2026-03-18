@@ -25,7 +25,11 @@
     "staffManagement": "Staff",
     "settings": "Mga Setting",
     "staffHome": "Staff Home",
-    "parentHome": "Magulang Home"
+    "parentHome": "Magulang Home",
+    "records": "Mga Rekord",
+    "learningStories": "Mga Kuwento ng Pag-aaral",
+    "management": "Pamamahala",
+    "more": "Higit Pa"
   },
   "auth": {
     "login": "Mag-login",

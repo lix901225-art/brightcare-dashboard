@@ -25,7 +25,11 @@
     "staffManagement": "Staff & Users",
     "settings": "Settings",
     "staffHome": "Staff Home",
-    "parentHome": "Parent Home"
+    "parentHome": "Parent Home",
+    "records": "Records",
+    "learningStories": "Learning Stories",
+    "management": "Management",
+    "more": "More"
   },
   "auth": {
     "login": "Log in",

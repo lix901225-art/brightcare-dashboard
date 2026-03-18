@@ -25,7 +25,11 @@
     "staffManagement": "ਸਟਾਫ਼",
     "settings": "ਸੈਟਿੰਗਾਂ",
     "staffHome": "ਸਟਾਫ਼ ਹੋਮ",
-    "parentHome": "ਮਾਪੇ ਹੋਮ"
+    "parentHome": "ਮਾਪੇ ਹੋਮ",
+    "records": "ਰਿਕਾਰਡ",
+    "learningStories": "ਸਿੱਖਣ ਦੀਆਂ ਕਹਾਣੀਆਂ",
+    "management": "ਪ੍ਰਬੰਧਨ",
+    "more": "ਹੋਰ"
   },
   "auth": {
     "login": "ਲਾਗਇਨ",
