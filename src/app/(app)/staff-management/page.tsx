@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Check, Edit2, KeyRound, Mail, Plus, Search, UserX, X } from "lucide-react";
+import Link from "next/link";
+import { Calendar, Check, Edit2, KeyRound, Mail, Plus, Search, UserX, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -308,7 +309,14 @@ export default function StaffManagementPage() {
             title="Staff & Users"
             description="Manage staff accounts, parent portal access, and user roles for your centre."
           />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/staff-management/schedule"
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Calendar className="h-4 w-4" />
+              Schedule
+            </Link>
             <button
               onClick={() => { setShowInvite(true); setShowCreate(false); }}
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
