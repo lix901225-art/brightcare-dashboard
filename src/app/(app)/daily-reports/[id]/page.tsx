@@ -254,6 +254,23 @@ export default function DailyReportDetailPage() {
                   </CardContent>
                 </Card>
               ) : null}
+
+              {report.photoUrls && report.photoUrls.length > 0 ? (
+                <Card className="rounded-2xl border-0 shadow-sm md:col-span-2">
+                  <CardHeader>
+                    <CardTitle className="text-base">Photos ({report.photoUrls.length})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                      {report.photoUrls.map((url, i) => (
+                        <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="group overflow-hidden rounded-xl border border-slate-200">
+                          <img src={url} alt={`Daily report photo ${i + 1}`} className="aspect-square w-full object-cover transition group-hover:scale-105" />
+                        </a>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
           </>
         ) : null}
