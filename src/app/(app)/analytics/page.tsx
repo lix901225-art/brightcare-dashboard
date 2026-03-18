@@ -60,6 +60,7 @@ export default function AnalyticsPage() {
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [satisfaction, setSatisfaction] = useState<{ avg: number | null; count: number }>({ avg: null, count: 0 });
 
   useEffect(() => {
     (async () => {
@@ -79,6 +80,21 @@ export default function AnalyticsPage() {
         setAttendance(attendanceRes.ok ? await attendanceRes.json() : []);
         setInvoices(invoicesRes?.ok ? await invoicesRes.json() : []);
         setIncidents(incidentsRes?.ok ? await incidentsRes.json() : []);
+
+        // Load survey satisfaction
+        try {
+          const templatesRes = await apiFetch("/surveys/templates?activeOnly=true");
+          if (templatesRes.ok) {
+            const templates = await templatesRes.json();
+            if (Array.isArray(templates) && templates.length > 0) {
+              const summaryRes = await apiFetch(`/surveys/templates/${templates[0].id}/summary`);
+              if (summaryRes.ok) {
+                const summary = await summaryRes.json();
+                setSatisfaction({ avg: summary.averageRating, count: summary.totalResponses });
+              }
+            }
+          }
+        } catch { /* non-critical */ }
       } catch (e: unknown) {
         setError(getErrorMessage(e, "Unable to load analytics data."));
       } finally {
@@ -547,6 +563,33 @@ export default function AnalyticsPage() {
                 <div className="mt-1 text-sm text-slate-500">Withdrawn</div>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Parent Satisfaction */}
+        <Card className="rounded-2xl border-0 shadow-sm">
+          <CardHeader><CardTitle>Parent satisfaction</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+                <div className="text-3xl font-bold text-slate-900">{satisfaction.avg != null ? satisfaction.avg.toFixed(1) : "—"}</div>
+                <div className="mt-1 text-sm text-slate-500">Avg rating / 5</div>
+                {satisfaction.avg != null && (
+                  <div className="mt-2 flex justify-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span key={n} className={`text-lg ${n <= Math.round(satisfaction.avg!) ? "text-amber-400" : "text-slate-200"}`}>★</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
+                <div className="text-3xl font-bold text-slate-900">{satisfaction.count}</div>
+                <div className="mt-1 text-sm text-slate-500">Responses</div>
+              </div>
+            </div>
+            {satisfaction.count === 0 && (
+              <div className="mt-3 text-center text-sm text-slate-400">No survey responses yet. Create a survey in the Surveys page.</div>
+            )}
           </CardContent>
         </Card>
       </div>
