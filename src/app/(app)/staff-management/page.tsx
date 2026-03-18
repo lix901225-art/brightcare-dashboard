@@ -197,7 +197,8 @@ export default function StaffManagementPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Invite failed: ${res.status}`);
 
-      setOk(`Invited ${inviteName.trim()} (${inviteEmail.trim()}) as ${inviteRole}. They can now sign in with Auth0 using this email.`);
+      const loginUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
+      setOk(`Invited ${inviteName.trim()} (${inviteEmail.trim()}) as ${inviteRole}. Share this login link: ${loginUrl}/login`);
       setShowInvite(false);
       setInviteEmail("");
       setInviteName("");
@@ -442,9 +443,17 @@ export default function StaffManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="mb-4 rounded-xl border border-sky-100 bg-sky-50/50 p-3 text-sm text-sky-800">
-                <strong>How it works:</strong> Enter the user&apos;s email and role. They can then sign in at{" "}
-                <span className="font-mono text-xs">app.brightcareos.com</span> using Auth0 with the same email.
-                The system will automatically link their account on first login.
+                <strong>How it works:</strong> Enter the user&apos;s email and role. Share the login link with them — they sign in via Auth0 with the same email and their account is automatically linked.
+                <button
+                  onClick={() => {
+                    const url = `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/login`;
+                    navigator.clipboard.writeText(url);
+                    setOk("Login link copied to clipboard!");
+                  }}
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg border border-sky-200 bg-white px-3 text-xs font-medium text-sky-700 hover:bg-sky-50"
+                >
+                  Copy login link
+                </button>
               </div>
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
