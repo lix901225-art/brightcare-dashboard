@@ -35,6 +35,7 @@ type TenantResponse = {
   closeTime?: string | null;
   capacity?: number | null;
   licenceNumber?: string | null;
+  healthAuthority?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -73,6 +74,7 @@ export default function SettingsPage() {
   const [tenantCloseTime, setTenantCloseTime] = useState("17:30");
   const [tenantCapacity, setTenantCapacity] = useState("");
   const [tenantLicenceNumber, setTenantLicenceNumber] = useState("");
+  const [tenantHealthAuthority, setTenantHealthAuthority] = useState("");
 
   async function loadAll(showRefreshState = false) {
     if (showRefreshState) setRefreshing(true);
@@ -106,6 +108,7 @@ export default function SettingsPage() {
       setTenantCloseTime(tenantData?.closeTime || "17:30");
       setTenantCapacity(tenantData?.capacity != null ? String(tenantData.capacity) : "");
       setTenantLicenceNumber(tenantData?.licenceNumber || "");
+      setTenantHealthAuthority(tenantData?.healthAuthority || "");
 
       patchSession({
         displayName: meData?.displayName || "User",
@@ -176,6 +179,7 @@ export default function SettingsPage() {
           closeTime: tenantCloseTime.trim() || undefined,
           capacity: tenantCapacity ? Number(tenantCapacity) : undefined,
           licenceNumber: tenantLicenceNumber.trim() || undefined,
+          healthAuthority: tenantHealthAuthority || undefined,
         }),
       });
 
@@ -363,6 +367,17 @@ export default function SettingsPage() {
                     <label className="grid gap-1">
                       <span className="text-xs font-medium uppercase tracking-wide text-slate-500">BC licence number</span>
                       <input value={tenantLicenceNumber} onChange={(e) => setTenantLicenceNumber(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="LIC-12345" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Health authority</span>
+                      <select value={tenantHealthAuthority} onChange={(e) => setTenantHealthAuthority(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                        <option value="">Select health authority</option>
+                        <option value="Vancouver Coastal Health">Vancouver Coastal Health</option>
+                        <option value="Fraser Health">Fraser Health</option>
+                        <option value="Interior Health">Interior Health</option>
+                        <option value="Island Health">Island Health</option>
+                        <option value="Northern Health">Northern Health</option>
+                      </select>
                     </label>
                   </div>
 
