@@ -313,6 +313,25 @@ export default function ChildDetailPage() {
           description={`Preferred: ${child.preferredName || "—"} · Room: ${roomLabel}`}
         />
         <div className="flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                const res = await apiFetch(`/children/${id}/export-pdf`);
+                if (!res.ok) throw new Error("Export failed");
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `child-profile-${child.fullName || id.slice(0, 8)}.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+              } catch { setError("Unable to export PDF."); }
+            }}
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <FileText className="h-4 w-4" />
+            Export PDF
+          </button>
           {!editing ? (
             <button
               onClick={() => {
