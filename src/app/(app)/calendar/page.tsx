@@ -1,10 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Calendar, Globe, Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar, Globe, Plus, Star, Trash2, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { apiFetch } from "@/lib/api-client";
+import { readSession } from "@/lib/session";
+import { getErrorMessage } from "@/lib/error";
 
 /* ─── BC multicultural calendar events ─── */
 
@@ -77,7 +80,97 @@ const CULTURE_FILTERS = [
   "Persian / Iranian",
 ];
 
+type DbEvent = {
+  id: string;
+  title: string;
+  date: string;
+  startTime?: string | null;
+  endTime?: string | null;
+  type: string;
+  description?: string | null;
+};
+
+const EVENT_TYPES = ["HOLIDAY", "CULTURAL", "ACTIVITY", "FIELD_TRIP", "CLOSURE"] as const;
+
+function eventTypeBadge(type: string) {
+  switch (type) {
+    case "HOLIDAY": return "border-red-200 bg-red-50 text-red-700";
+    case "CULTURAL": return "border-amber-200 bg-amber-50 text-amber-700";
+    case "CLOSURE": return "border-rose-200 bg-rose-50 text-rose-700";
+    case "FIELD_TRIP": return "border-sky-200 bg-sky-50 text-sky-700";
+    default: return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  }
+}
+
 export default function CulturalCalendarPage() {
+  const session = readSession();
+  const canEdit = session?.role === "OWNER" || session?.role === "STAFF";
+
+  /* DB events */
+  const [dbEvents, setDbEvents] = useState<DbEvent[]>([]);
+  const [dbLoading, setDbLoading] = useState(true);
+  const [showCreate, setShowCreate] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+
+  const [newTitle, setNewTitle] = useState("");
+  const [newDate, setNewDate] = useState("");
+  const [newType, setNewType] = useState<string>("ACTIVITY");
+  const [newDesc, setNewDesc] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch("/calendar/events?year=2026");
+        if (res.ok) setDbEvents(await res.json());
+      } catch { /* silent */ }
+      finally { setDbLoading(false); }
+    })();
+  }, []);
+
+  async function createEvent() {
+    try {
+      setSaving(true); setError(""); setOk("");
+      if (!newTitle.trim()) throw new Error("Title is required.");
+      if (!newDate) throw new Error("Date is required.");
+      const res = await apiFetch("/calendar/events", {
+        method: "POST",
+        body: JSON.stringify({ title: newTitle.trim(), date: newDate, type: newType, description: newDesc.trim() || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || `Failed: ${res.status}`);
+      setOk("Event added.");
+      setDbEvents((prev) => [...prev, data].sort((a, b) => a.date.localeCompare(b.date)));
+      setShowCreate(false);
+      setNewTitle(""); setNewDate(""); setNewDesc("");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to create event."));
+    } finally { setSaving(false); }
+  }
+
+  async function deleteEvent(id: string) {
+    if (!confirm("Delete this event?")) return;
+    try {
+      await apiFetch(`/calendar/events/${id}`, { method: "DELETE" });
+      setDbEvents((prev) => prev.filter((e) => e.id !== id));
+    } catch { /* silent */ }
+  }
+
+  async function seedHolidays() {
+    try {
+      setSaving(true);
+      const res = await apiFetch("/calendar/seed-holidays", { method: "POST" });
+      const data = await res.json();
+      setOk(data?.message || "Holidays seeded.");
+      // Reload
+      const reloadRes = await apiFetch("/calendar/events?year=2026");
+      if (reloadRes.ok) setDbEvents(await reloadRes.json());
+    } catch { /* silent */ }
+    finally { setSaving(false); }
+  }
+
+  /* Static cultural calendar */
   const [cultureFilter, setCultureFilter] = useState("All");
   const [monthFilter, setMonthFilter] = useState("");
 
@@ -112,19 +205,93 @@ export default function CulturalCalendarPage() {
   ];
 
   return (
-    <RoleGate allow={["OWNER", "STAFF"]}>
+    <RoleGate allow={["OWNER", "STAFF", "PARENT"]}>
       <div>
-        <div className="mb-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
-            title="Cultural Calendar"
-            description="Multicultural awareness calendar for centre programming. Reflects Greater Vancouver's diverse communities — Chinese, South Asian, Filipino, Indigenous, and more."
+            title="Calendar"
+            description="Centre events, BC holidays, and multicultural awareness calendar."
           />
+          {canEdit && (
+            <div className="flex gap-2">
+              <button onClick={seedHolidays} disabled={saving} className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                <Star className="h-4 w-4" /> Seed BC holidays
+              </button>
+              <button onClick={() => setShowCreate(!showCreate)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800">
+                <Plus className="h-4 w-4" /> Add event
+              </button>
+            </div>
+          )}
         </div>
 
+        {ok && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{ok}</div>}
+        {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+
+        {showCreate && canEdit && (
+          <Card className="mb-6 rounded-2xl border-0 shadow-sm">
+            <CardHeader><CardTitle>Add centre event</CardTitle></CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-4">
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Title</div>
+                  <input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="e.g. Spring Field Trip" />
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Date</div>
+                  <input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Type</div>
+                  <select value={newType} onChange={(e) => setNewType(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none">
+                    {EVENT_TYPES.map((t) => <option key={t} value={t}>{t.replace("_", " ")}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Description</div>
+                  <input value={newDesc} onChange={(e) => setNewDesc(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="Optional details" />
+                </div>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button onClick={createEvent} disabled={saving} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50">
+                  {saving ? "Saving..." : "Add event"}
+                </button>
+                <button onClick={() => setShowCreate(false)} className="inline-flex h-11 items-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Centre Events from DB */}
+        {dbEvents.length > 0 && (
+          <Card className="mb-6 rounded-2xl border-0 shadow-sm">
+            <CardHeader><CardTitle>Centre events & holidays</CardTitle></CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {dbEvents.map((e) => (
+                  <div key={e.id} className="flex items-center justify-between rounded-xl border border-slate-200 p-3">
+                    <div className="flex items-center gap-3">
+                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${eventTypeBadge(e.type)}`}>{e.type.replace("_", " ")}</span>
+                      <div>
+                        <div className="text-sm font-medium text-slate-900">{e.title}</div>
+                        <div className="text-xs text-slate-500">{new Date(e.date).toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric" })}{e.description ? ` — ${e.description}` : ""}</div>
+                      </div>
+                    </div>
+                    {canEdit && (
+                      <button onClick={() => deleteEvent(e.id)} className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Cultural awareness calendar */}
         <div className="mb-3 rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs text-sky-700">
-          <strong>Why this matters:</strong> BrightCare centres serve families from many cultural backgrounds.
-          This calendar helps staff plan inclusive activities, acknowledge important celebrations, and
-          communicate with families about cultural events relevant to their community.
+          <strong>Cultural awareness:</strong> BrightCare centres serve families from many cultural backgrounds.
+          This calendar helps staff plan inclusive activities and acknowledge important celebrations.
         </div>
 
         {/* Filters */}
