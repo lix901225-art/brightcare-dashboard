@@ -44,6 +44,7 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/attendance", label: "Attendance", tKey: "nav.attendance" },
     { href: "/messages", label: "Messages", tKey: "nav.messages" },
     { href: "/daily-reports", label: "Daily Reports", tKey: "nav.dailyReports" },
+    { href: "/health-checks", label: "Health Checks", tKey: "nav.healthChecks" },
     { href: "/records", label: "Records", tKey: "nav.records" },
     { href: "/enrollment", label: "Enrollment", tKey: "nav.enrollment" },
     { href: "/guardians", label: "Guardians", tKey: "nav.guardians" },
@@ -97,6 +98,7 @@ export const NAV_GROUPS_BY_ROLE: Record<AppRole, NavGroup[]> = {
         { href: "/attendance", label: "Attendance", tKey: "nav.attendance" },
         { href: "/messages", label: "Messages", tKey: "nav.messages" },
         { href: "/daily-reports", label: "Daily Reports", tKey: "nav.dailyReports" },
+        { href: "/health-checks", label: "Health Checks", tKey: "nav.healthChecks" },
       ],
     },
     {
