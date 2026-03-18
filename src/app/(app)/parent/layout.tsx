@@ -4,6 +4,7 @@ import { ReactNode, useEffect } from "react";
 import { ParentMobileNav } from "@/components/app/parent-mobile-nav";
 import { PwaInstallPrompt } from "@/components/app/pwa-install-prompt";
 import { SurveyReminder } from "@/components/app/survey-reminder";
+import { ParentOnboarding } from "@/components/app/parent-onboarding";
 import { setupOfflineSync } from "@/lib/offline-queue";
 
 export default function ParentLayout({ children }: { children: ReactNode }) {
@@ -24,6 +25,7 @@ export default function ParentLayout({ children }: { children: ReactNode }) {
       <ParentMobileNav />
       <PwaInstallPrompt />
       <SurveyReminder />
+      <ParentOnboarding />
     </>
   );
 }
