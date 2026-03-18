@@ -155,17 +155,19 @@ function LocationSwitcher() {
       {open && (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
           <button
-            onClick={() => { setActiveId(""); localStorage.removeItem(LOCATION_KEY); setOpen(false); }}
+            onClick={() => { setActiveId(""); localStorage.removeItem(LOCATION_KEY); setOpen(false); window.dispatchEvent(new Event("location-change")); }}
             className={`flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 ${!activeId ? "font-semibold text-slate-900" : "text-slate-600"}`}
           >
+            {!activeId && <Check className="h-3 w-3 text-emerald-500" />}
             All locations
           </button>
           {locations.map((loc) => (
             <button
               key={loc.id}
-              onClick={() => { setActiveId(loc.id); localStorage.setItem(LOCATION_KEY, loc.id); setOpen(false); }}
+              onClick={() => { setActiveId(loc.id); localStorage.setItem(LOCATION_KEY, loc.id); setOpen(false); window.dispatchEvent(new Event("location-change")); }}
               className={`flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 ${activeId === loc.id ? "font-semibold text-slate-900" : "text-slate-600"}`}
             >
+              {activeId === loc.id && <Check className="h-3 w-3 text-emerald-500" />}
               <span className="min-w-0 flex-1 truncate text-left">{loc.name}</span>
               {loc.isPrimary && <span className="rounded bg-violet-50 px-1 py-0.5 text-[9px] text-violet-600">Primary</span>}
             </button>
