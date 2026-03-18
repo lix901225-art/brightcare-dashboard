@@ -101,6 +101,7 @@ export const NAV_GROUPS_BY_ROLE: Record<AppRole, NavGroup[]> = {
       title: null,
       items: [
         { href: "/records", label: "Records", tKey: "nav.records" },
+        { href: "/learning-stories", label: "Learning Stories", tKey: "nav.learningStories" },
       ],
     },
     {
