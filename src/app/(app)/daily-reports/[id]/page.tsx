@@ -21,7 +21,10 @@ type ReportDetail = {
   naps?: number | null;
   mood?: string | null;
   activities?: string | null;
+  notes?: string | null;
+  bathroom?: string | null;
   photosCount?: number;
+  photoUrls?: string[];
 };
 
 function moodEmoji(mood?: string | null) {
@@ -219,6 +222,38 @@ export default function DailyReportDetailPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {report.bathroom ? (
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-50">
+                        <Calendar className="h-4 w-4 text-violet-600" />
+                      </div>
+                      <CardTitle className="text-base">Bathroom</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm leading-relaxed text-slate-700">{report.bathroom}</div>
+                  </CardContent>
+                </Card>
+              ) : null}
+
+              {report.notes ? (
+                <Card className="rounded-2xl border-0 shadow-sm md:col-span-2">
+                  <CardHeader>
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100">
+                        <ArrowLeft className="h-4 w-4 text-slate-600 rotate-180" />
+                      </div>
+                      <CardTitle className="text-base">Notes</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{report.notes}</div>
+                  </CardContent>
+                </Card>
+              ) : null}
             </div>
           </>
         ) : null}
