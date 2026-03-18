@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Clock, FileText, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Clock, Download, FileText, ShieldCheck } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,6 +35,8 @@ type InvoiceRow = {
   currency?: string | null;
   totalAmount: number;
   subsidyAmount: number;
+  ccfriAmount?: number;
+  accbAmount?: number;
   netAmount: number;
   paidAmount: number;
   balanceAmount: number;
@@ -148,10 +150,12 @@ export default function ParentBillingPage() {
   const totals = useMemo(() => {
     const totalBilled = summaryChildren.reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
     const totalSubsidy = summaryChildren.reduce((sum, s) => sum + Number(s.subsidyAmount || 0), 0);
+    const totalCcfri = summaryChildren.reduce((sum, s) => sum + Number((s as any).ccfriAmount || 0), 0);
+    const totalAccb = summaryChildren.reduce((sum, s) => sum + Number((s as any).accbAmount || 0), 0);
     const totalNet = summaryChildren.reduce((sum, s) => sum + Number(s.netAmount || s.totalAmount - (s.subsidyAmount || 0) || 0), 0);
     const totalPaid = summaryChildren.reduce((sum, s) => sum + Number(s.paidAmount || 0), 0);
     const totalBalance = summaryChildren.reduce((sum, s) => sum + Number(s.balance || 0), 0);
-    return { totalBilled, totalSubsidy, totalNet, totalPaid, totalBalance };
+    return { totalBilled, totalSubsidy, totalCcfri, totalAccb, totalNet, totalPaid, totalBalance };
   }, [summaryChildren]);
 
   const unpaidInvoices = useMemo(() => {
@@ -198,53 +202,50 @@ export default function ParentBillingPage() {
           </div>
         ) : (
           <>
-            {/* Summary cards */}
-            <div className="grid gap-4 md:grid-cols-4">
-              <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total fees</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold">{fmtCurrency(totals.totalBilled)}</div>
-                  <div className="mt-1 text-xs text-slate-500">{invoices.length} invoice{invoices.length !== 1 ? "s" : ""}</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-blue-600">Subsidy applied</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold text-blue-700">{fmtCurrency(totals.totalSubsidy)}</div>
-                  <div className="mt-1 text-xs text-blue-500">CCFRI / ACCB</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader className="pb-2"><CardTitle className="text-sm text-emerald-600">Total paid</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-semibold text-emerald-700">{fmtCurrency(totals.totalPaid)}</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-2xl border-0 shadow-sm">
-                <CardHeader className="pb-2">
-                  <CardTitle className={["text-sm", totals.totalBalance > 0 ? "text-rose-600" : "text-slate-500"].join(" ")}>
-                    Balance due
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className={["text-3xl font-semibold", totals.totalBalance > 0 ? "text-rose-700" : ""].join(" ")}>
-                    {fmtCurrency(totals.totalBalance)}
+            {/* Fee waterfall breakdown */}
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardHeader><CardTitle>Fee summary</CardTitle></CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-600">Total childcare fees</span>
+                    <span className="font-semibold text-slate-900">{fmtCurrency(totals.totalBilled)}</span>
                   </div>
-                  {unpaidInvoices.length > 0 ? (
-                    <div className="mt-1 text-xs text-rose-600">{unpaidInvoices.length} unpaid invoice{unpaidInvoices.length !== 1 ? "s" : ""}</div>
-                  ) : (
-                    <div className="mt-1 text-xs text-emerald-600">All paid up</div>
+                  {(totals.totalCcfri > 0 || totals.totalSubsidy > 0) && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-600">Less: CCFRI (Child Care Fee Reduction)</span>
+                      <span className="font-medium text-blue-700">-{fmtCurrency(totals.totalCcfri || totals.totalSubsidy)}</span>
+                    </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* ACCB / fee context */}
-            <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
-              <p className="text-sm text-blue-800">
-                <strong>About your fees:</strong> Invoice totals reflect your parent portion after CCFRI (Child Care Fee Reduction Initiative) has been applied by your centre. If you receive ACCB (Affordable Child Care Benefit), that amount is applied separately by the government and may further reduce what you owe.
-              </p>
-            </div>
+                  {totals.totalAccb > 0 && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-blue-600">Less: ACCB (Affordable Child Care Benefit)</span>
+                      <span className="font-medium text-blue-700">-{fmtCurrency(totals.totalAccb)}</span>
+                    </div>
+                  )}
+                  <div className="border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
+                    <span className="font-semibold text-slate-900">Parent portion</span>
+                    <span className="font-semibold text-slate-900">{fmtCurrency(totals.totalNet || totals.totalBilled - totals.totalSubsidy)}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-emerald-600">Paid to date</span>
+                    <span className="font-medium text-emerald-700">{fmtCurrency(totals.totalPaid)}</span>
+                  </div>
+                  <div className="border-t border-slate-200 pt-2 flex items-center justify-between">
+                    <span className={["text-sm font-bold", totals.totalBalance > 0 ? "text-rose-700" : "text-emerald-700"].join(" ")}>
+                      {totals.totalBalance > 0 ? "Amount owing" : "Balance"}
+                    </span>
+                    <span className={["text-2xl font-bold", totals.totalBalance > 0 ? "text-rose-700" : "text-emerald-700"].join(" ")}>
+                      {fmtCurrency(totals.totalBalance)}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600">
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  Licensed childcare in BC is GST-exempt under the Excise Tax Act.
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Overdue urgency banner */}
             {overdueInvoices.length > 0 ? (
@@ -425,10 +426,27 @@ export default function ParentBillingPage() {
                                         <span className="text-slate-600">Total fees</span>
                                         <span className="font-medium">{fmtCurrency(detail.totalAmount)}</span>
                                       </div>
-                                      <div className="mt-1 flex items-center justify-between text-sm">
-                                        <span className="text-blue-600">Subsidy (CCFRI / ACCB)</span>
-                                        <span className="font-medium text-blue-700">-{fmtCurrency(detail.subsidyAmount)}</span>
-                                      </div>
+                                      {((detail as any).ccfriAmount > 0 || (detail as any).accbAmount > 0) ? (
+                                        <>
+                                          {(detail as any).ccfriAmount > 0 && (
+                                            <div className="mt-1 flex items-center justify-between text-sm">
+                                              <span className="text-blue-600">CCFRI (Fee Reduction)</span>
+                                              <span className="font-medium text-blue-700">-{fmtCurrency((detail as any).ccfriAmount)}</span>
+                                            </div>
+                                          )}
+                                          {(detail as any).accbAmount > 0 && (
+                                            <div className="mt-1 flex items-center justify-between text-sm">
+                                              <span className="text-blue-600">ACCB (Affordable Child Care)</span>
+                                              <span className="font-medium text-blue-700">-{fmtCurrency((detail as any).accbAmount)}</span>
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <div className="mt-1 flex items-center justify-between text-sm">
+                                          <span className="text-blue-600">Subsidy (CCFRI / ACCB)</span>
+                                          <span className="font-medium text-blue-700">-{fmtCurrency(detail.subsidyAmount)}</span>
+                                        </div>
+                                      )}
                                       <div className="mt-1 border-t border-blue-200 pt-1 flex items-center justify-between text-sm">
                                         <span className="font-semibold text-slate-900">Parent portion</span>
                                         <span className="font-semibold text-slate-900">
@@ -474,14 +492,23 @@ export default function ParentBillingPage() {
                 <Card className="mt-6 rounded-2xl border-0 shadow-sm">
                   <CardHeader>
                     <div className="flex items-center justify-between">
-                      <CardTitle>Tax receipts — {currentYear}</CardTitle>
-                      <Link
-                        href="/billing/tax-receipts"
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        View / print receipts
-                      </Link>
+                      <CardTitle>Year-end tax summary — {currentYear}</CardTitle>
+                      <div className="flex gap-2">
+                        <Link
+                          href="/billing/tax-receipts"
+                          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          View receipts
+                        </Link>
+                        <Link
+                          href="/billing/tax-receipts"
+                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800"
+                        >
+                          <Download className="h-3.5 w-3.5" />
+                          Download
+                        </Link>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -490,30 +517,33 @@ export default function ParentBillingPage() {
                         No paid invoices for {currentYear} yet.
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-slate-600">Total childcare fees ({currentYear})</span>
-                          <span className="font-semibold">{fmtCurrency(yearlyTotal)}</span>
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4">
+                        <div className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
+                          CRA Line 21400 — Child Care Expenses
                         </div>
-                        {yearlySubsidy > 0 && (
-                          <div className="mt-1 flex items-center justify-between text-sm">
-                            <span className="text-blue-600">Less: subsidies (CCFRI / ACCB)</span>
-                            <span className="font-medium text-blue-700">-{fmtCurrency(yearlySubsidy)}</span>
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-slate-600">Total childcare fees</span>
+                            <span className="font-medium">{fmtCurrency(yearlyTotal)}</span>
                           </div>
-                        )}
-                        <div className="mt-2 border-t border-slate-200 pt-2 flex items-center justify-between text-sm">
-                          <span className="font-semibold text-slate-900">Amount paid by parent</span>
-                          <span className="font-semibold text-slate-900">{fmtCurrency(yearlyPaid)}</span>
+                          {yearlySubsidy > 0 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-blue-600">Less: government subsidies</span>
+                              <span className="font-medium text-blue-700">-{fmtCurrency(yearlySubsidy)}</span>
+                            </div>
+                          )}
+                          <div className="border-t border-emerald-200 pt-1.5 flex items-center justify-between">
+                            <span className="text-sm font-bold text-slate-900">Eligible amount paid</span>
+                            <span className="text-lg font-bold text-emerald-700">{fmtCurrency(yearlyPaid)}</span>
+                          </div>
                         </div>
-                        <div className="mt-2 text-xs text-slate-500">
-                          {paidThisYear.length} paid invoice{paidThisYear.length !== 1 ? "s" : ""}. Eligible for CRA Line 21400.
+                        <div className="mt-3 rounded-lg bg-white/60 px-3 py-2 text-xs text-slate-600">
+                          <strong>{paidThisYear.length}</strong> paid invoice{paidThisYear.length !== 1 ? "s" : ""} in {currentYear}.
+                          Report this amount on your CRA tax return under <strong>Line 21400 — Child Care Expenses</strong>.
+                          Keep receipts for at least 6 years.
                         </div>
                       </div>
                     )}
-                    <div className="mt-3 flex items-center gap-1.5 text-xs text-emerald-600">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      Licensed childcare in BC is GST-exempt under the Excise Tax Act.
-                    </div>
                   </CardContent>
                 </Card>
               );
