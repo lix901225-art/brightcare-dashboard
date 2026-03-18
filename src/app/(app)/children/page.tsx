@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, Plus, Search, X } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Plus, Search, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -215,6 +215,31 @@ export default function ChildrenPage() {
     setStatus("ACTIVE");
   }
 
+  function exportChildrenCsv() {
+    const rows = [
+      ["Full Name", "Preferred Name", "DOB", "Gender", "Status", "Room", "Start Date", "Allergies", "Medical Notes"],
+      ...children.map((c) => [
+        c.fullName || "",
+        c.preferredName || "",
+        c.dob ? String(c.dob).slice(0, 10) : "",
+        c.gender || "",
+        c.status || "",
+        c.className || c.roomId || "",
+        c.startDate ? String(c.startDate).slice(0, 10) : "",
+        `"${(c.allergies || "").replace(/"/g, '""')}"`,
+        `"${(c.medicalNotes || "").replace(/"/g, '""')}"`,
+      ]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `children-roster-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function createChild() {
     try {
       setSaving(true);
@@ -258,13 +283,22 @@ export default function ChildrenPage() {
             title="Children"
             description="Child roster, guardian coverage, and operational follow-up."
           />
-          <button
-            onClick={() => setShowCreate(true)}
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
-          >
-            <Plus className="h-4 w-4" />
-            Add child
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={exportChildrenCsv}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </button>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              <Plus className="h-4 w-4" />
+              Add child
+            </button>
+          </div>
         </div>
 
         {ok ? (
