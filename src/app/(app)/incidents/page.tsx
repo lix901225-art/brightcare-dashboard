@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, X, AlertTriangle, Lock, Shield } from "lucide-react";
+import { Download, Plus, Search, X, AlertTriangle, Lock, Shield } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,13 @@ type Incident = {
   followUpRequired?: boolean | null;
   followUpNotes?: string | null;
   healthAuthorityNotified?: boolean | null;
+  // VCH fields
+  incidentTypes?: string | null;
+  staffPresentCount?: number | null;
+  childrenPresentCount?: number | null;
+  correctiveMeasures?: string | null;
+  physicianNotified?: boolean | null;
+  licensingOfficerNotified?: boolean | null;
 };
 
 const SEVERITY_OPTIONS = ["Low", "Medium", "High", "Critical"];
@@ -52,6 +59,30 @@ const TYPE_OPTIONS = [
   "Allergic Reaction",
   "Property Damage",
   "Other",
+];
+
+/** Vancouver Coastal Health official incident categories */
+const VCH_CATEGORIES = [
+  "Aggressive/Unusual Behaviour",
+  "Attempted Suicide",
+  "Choking",
+  "Death",
+  "Disease Outbreak",
+  "Emergency Restraint",
+  "Emotional Abuse",
+  "Fall",
+  "Financial Abuse",
+  "Food Poisoning",
+  "Medication Error",
+  "Missing/Wandering",
+  "Motor Vehicle Injury",
+  "Neglect",
+  "Other Injury",
+  "Physical Abuse",
+  "Poisoning",
+  "Service Delivery Problem",
+  "Sexual Abuse",
+  "Unexpected Illness",
 ];
 
 export default function IncidentsPage() {
@@ -85,6 +116,31 @@ export default function IncidentsPage() {
   const [followUpRequired, setFollowUpRequired] = useState(false);
   const [followUpNotes, setFollowUpNotes] = useState("");
   const [healthAuthorityNotified, setHealthAuthorityNotified] = useState(false);
+
+  /* VCH fields */
+  const [vchCategories, setVchCategories] = useState<string[]>([]);
+  const [staffPresentCount, setStaffPresentCount] = useState("");
+  const [childrenPresentCount, setChildrenPresentCount] = useState("");
+  const [correctiveMeasures, setCorrectiveMeasures] = useState("");
+
+  async function exportPdf(incidentId: string) {
+    try {
+      const res = await apiFetch(`/incidents/${incidentId}/export-pdf`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || `Export failed: ${res.status}`);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `incident-report-${incidentId.slice(0, 8)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Unable to export PDF."));
+    }
+  }
 
   async function loadAll() {
     try {
@@ -262,6 +318,10 @@ export default function IncidentsPage() {
           followUpRequired: followUpRequired || undefined,
           followUpNotes: followUpNotes.trim() || undefined,
           healthAuthorityNotified: healthAuthorityNotified || undefined,
+          incidentTypes: vchCategories.length > 0 ? JSON.stringify(vchCategories) : undefined,
+          staffPresentCount: staffPresentCount ? Number(staffPresentCount) : undefined,
+          childrenPresentCount: childrenPresentCount ? Number(childrenPresentCount) : undefined,
+          correctiveMeasures: correctiveMeasures.trim() || undefined,
         }),
       });
 
@@ -568,6 +628,48 @@ export default function IncidentsPage() {
                 ) : null}
               </div>
 
+              {/* VCH Official Form Fields */}
+              <details className="mt-4">
+                <summary className="cursor-pointer text-sm font-semibold text-slate-700 hover:text-slate-900">
+                  Vancouver Coastal Health fields (for formal reporting)
+                </summary>
+                <div className="mt-3 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">VCH incident categories (select all that apply)</div>
+                    <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+                      {VCH_CATEGORIES.map((cat) => (
+                        <label key={cat} className="flex items-center gap-2 text-xs text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={vchCategories.includes(cat)}
+                            onChange={(e) => {
+                              if (e.target.checked) setVchCategories((prev) => [...prev, cat]);
+                              else setVchCategories((prev) => prev.filter((c) => c !== cat));
+                            }}
+                            className="h-3.5 w-3.5 rounded border-slate-300"
+                          />
+                          {cat}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Staff present</div>
+                      <input type="number" min="0" value={staffPresentCount} onChange={(e) => setStaffPresentCount(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="Number of staff present" />
+                    </div>
+                    <div>
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Children present</div>
+                      <input type="number" min="0" value={childrenPresentCount} onChange={(e) => setChildrenPresentCount(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="Number of children present" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Corrective measures</div>
+                    <textarea value={correctiveMeasures} onChange={(e) => setCorrectiveMeasures(e.target.value)} placeholder="Steps taken to prevent recurrence..." className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none" />
+                  </div>
+                </div>
+              </details>
+
               <div className="mt-6 flex gap-3">
                 <button
                   onClick={createIncident}
@@ -782,6 +884,13 @@ export default function IncidentsPage() {
                         ) : null}
                       </div>
 
+                      <button
+                        onClick={() => exportPdf(inc.id)}
+                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        VCH PDF
+                      </button>
                       {!inc.lockedAt ? (
                         <button
                           onClick={() => lockIncident(inc.id)}
