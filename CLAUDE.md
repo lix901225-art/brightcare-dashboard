@@ -197,6 +197,25 @@ Only stop when:
 - `npm run build` has an unresolvable error
 - You have exhaustively audited every page and found nothing to improve
 
+### Default: Never Stop
+
+After completing any task, **immediately**:
+
+1. Run `npm run build` — must be zero errors
+2. Run `pm2 list` — all three processes must be online
+3. Open every page looking for UI issues, errors, data anomalies
+4. Cross-reference BC licensing requirements for compliance gaps
+5. Compare against competitors (Brightwheel, Lillio, Kindertales, Procare) for feature gaps
+6. Fix what you find, commit, continue
+
+**No task list is not a reason to stop.**
+
+The **only** situations where stopping is acceptable:
+- Need an external API key or account (record TODO, skip, continue with next task)
+- Need user manual action (record, skip, continue)
+- `npm run build` has a persistent error that cannot be resolved
+- After actively searching for 10 minutes, genuinely cannot find anything to improve
+
 ### Other Defaults
 
 - Prefer dashboard (frontend) changes unless backend is explicitly required
