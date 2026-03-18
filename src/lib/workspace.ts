@@ -56,6 +56,7 @@ export const NAV_BY_ROLE: Record<AppRole, NavItem[]> = {
     { href: "/analytics", label: "Analytics", tKey: "nav.analytics" },
     { href: "/rooms", label: "Rooms", tKey: "nav.rooms" },
     { href: "/meal-planning", label: "Meal Planning", tKey: "nav.mealPlanning" },
+    { href: "/curriculum", label: "Curriculum", tKey: "nav.curriculum" },
     { href: "/locations", label: "Locations", tKey: "nav.locations" },
     { href: "/surveys", label: "Surveys", tKey: "nav.surveys" },
     { href: "/policies", label: "Policies", tKey: "nav.policies" },
