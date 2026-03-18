@@ -14,19 +14,20 @@ import {
   FileCheck,
   X,
 } from "lucide-react";
+import { useLocale } from "@/lib/use-locale";
 
 const TABS = [
-  { href: "/parent", label: "Home", icon: Home, exact: true },
-  { href: "/parent/attendance", label: "Attendance", icon: CalendarCheck, exact: false },
-  { href: "/daily-reports", label: "Reports", icon: FileText, exact: false },
-  { href: "/parent/billing", label: "Billing", icon: CreditCard, exact: false },
+  { href: "/parent", label: "Home", tKey: "nav.parentHome", icon: Home, exact: true },
+  { href: "/parent/attendance", label: "Attendance", tKey: "nav.attendance", icon: CalendarCheck, exact: false },
+  { href: "/daily-reports", label: "Reports", tKey: "nav.dailyReports", icon: FileText, exact: false },
+  { href: "/parent/billing", label: "Billing", tKey: "nav.billing", icon: CreditCard, exact: false },
 ] as const;
 
 const MORE_ITEMS = [
-  { href: "/messages", label: "Messages", icon: FileText },
-  { href: "/parent/incidents", label: "Incidents", icon: AlertTriangle },
-  { href: "/parent/announcements", label: "Announcements", icon: Megaphone },
-  { href: "/policies", label: "Policies", icon: FileCheck },
+  { href: "/messages", label: "Messages", tKey: "nav.messages", icon: FileText },
+  { href: "/parent/incidents", label: "Incidents", tKey: "nav.incidents", icon: AlertTriangle },
+  { href: "/parent/announcements", label: "Announcements", tKey: "nav.announcements", icon: Megaphone },
+  { href: "/policies", label: "Policies", tKey: "nav.policies", icon: FileCheck },
 ] as const;
 
 function isActive(pathname: string, href: string, exact: boolean) {
@@ -40,6 +41,7 @@ function isActive(pathname: string, href: string, exact: boolean) {
  */
 export function ParentMobileNav() {
   const pathname = usePathname();
+  const { t } = useLocale();
   const [moreOpen, setMoreOpen] = useState(false);
   const moreRef = useRef<HTMLDivElement>(null);
 
@@ -100,7 +102,7 @@ export function ParentMobileNav() {
                     ].join(" ")}
                   >
                     <Icon className={["h-4 w-4", active ? "text-slate-900" : "text-slate-400"].join(" ")} />
-                    {item.label}
+                    {t(item.tKey)}
                   </Link>
                 );
               })}
@@ -129,7 +131,7 @@ export function ParentMobileNav() {
                 className={["h-5 w-5", active ? "text-slate-900" : "text-slate-400"].join(" ")}
                 strokeWidth={active ? 2.2 : 1.8}
               />
-              <span>{tab.label}</span>
+              <span>{t(tab.tKey)}</span>
             </Link>
           );
         })}
