@@ -10,6 +10,7 @@ import { readSession } from "@/lib/session";
 import { useLogout } from "@/lib/use-logout";
 import { apiFetch } from "@/lib/api-client";
 import { StaffMobileNav } from "@/components/app/staff-mobile-nav";
+import { GlobalSearch } from "@/components/app/global-search";
 
 type ShellSession = {
   role: AppRole;
@@ -478,6 +479,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
 
               <div className="flex items-center gap-3">
+                {mounted && <GlobalSearch />}
                 {mounted && <NotificationBell />}
 
                 <div className="hidden text-right sm:block">
