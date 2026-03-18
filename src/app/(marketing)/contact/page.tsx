@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ContactForm } from "@/components/marketing/contact-form";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -85,8 +86,10 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Contact info + service area */}
+          {/* Contact form + info */}
           <div className="space-y-6">
+            <ContactForm />
+
             <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-semibold text-slate-900">
                 General inquiries
