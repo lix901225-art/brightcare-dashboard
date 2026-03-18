@@ -248,6 +248,22 @@ function LoginPageInner() {
           </form>
         </CardContent>
       </Card>
+
+      {/* App download prompt */}
+      <div className="mt-6 rounded-2xl border border-slate-200 bg-white/80 p-4 text-center backdrop-blur-sm">
+        <div className="text-sm font-semibold text-slate-900">Get the BrightCare App</div>
+        <p className="mt-1 text-xs text-slate-500">
+          Download the mobile app for real-time notifications, quick check-in, and instant messaging.
+        </p>
+        <div className="mt-3 flex justify-center gap-3">
+          <a href="#" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+            iOS (TestFlight)
+          </a>
+          <a href="#" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50">
+            Android
+          </a>
+        </div>
+      </div>
     </main>
   );
 }
