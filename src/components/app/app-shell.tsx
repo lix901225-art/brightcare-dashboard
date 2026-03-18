@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Bell, Check, ChevronDown, Menu, X } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, NAV_GROUPS_BY_ROLE, type AppRole, type NavItem, type NavGroup } from "@/lib/workspace";
 import { useLocale } from "@/lib/use-locale";
 import { readSession } from "@/lib/session";
@@ -114,6 +114,68 @@ function CollapsibleGroup({ group, pathname, onNavClick, t }: { group: NavGroup;
   );
 }
 
+const LOCATION_KEY = "brightcare.activeLocationId";
+
+function LocationSwitcher() {
+  const [locations, setLocations] = useState<{ id: string; name: string; isPrimary: boolean }[]>([]);
+  const [activeId, setActiveId] = useState<string>("");
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LOCATION_KEY) || "";
+    setActiveId(stored);
+    apiFetch("/locations?activeOnly=true")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: any[]) => {
+        if (!Array.isArray(data) || data.length < 2) { setLocations([]); return; }
+        setLocations(data.map((l) => ({ id: l.id, name: l.name, isPrimary: !!l.isPrimary })));
+        if (!stored) {
+          const primary = data.find((l) => l.isPrimary);
+          if (primary) { setActiveId(primary.id); localStorage.setItem(LOCATION_KEY, primary.id); }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  if (locations.length < 2) return null;
+
+  const active = locations.find((l) => l.id === activeId);
+  const label = active?.name || "All locations";
+
+  return (
+    <div className="relative mt-2">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium text-slate-700 hover:bg-slate-50"
+      >
+        <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-slate-400" />
+        <span className="min-w-0 flex-1 truncate">{label}</span>
+        <ChevronDown className={`h-3 w-3 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+          <button
+            onClick={() => { setActiveId(""); localStorage.removeItem(LOCATION_KEY); setOpen(false); }}
+            className={`flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 ${!activeId ? "font-semibold text-slate-900" : "text-slate-600"}`}
+          >
+            All locations
+          </button>
+          {locations.map((loc) => (
+            <button
+              key={loc.id}
+              onClick={() => { setActiveId(loc.id); localStorage.setItem(LOCATION_KEY, loc.id); setOpen(false); }}
+              className={`flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 ${activeId === loc.id ? "font-semibold text-slate-900" : "text-slate-600"}`}
+            >
+              <span className="min-w-0 flex-1 truncate text-left">{loc.name}</span>
+              {loc.isPrimary && <span className="rounded bg-violet-50 px-1 py-0.5 text-[9px] text-violet-600">Primary</span>}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SidebarContent({
   navGroups,
   pathname,
@@ -150,6 +212,7 @@ function SidebarContent({
           <div className="truncate text-sm font-medium text-slate-900">{tenantTitle}</div>
           <div className="mt-1 truncate text-xs text-slate-500">{tenantSub}</div>
         </div>
+        {(userRole === "OWNER" || userRole === "STAFF") && <LocationSwitcher />}
       </div>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4">

@@ -77,6 +77,7 @@ export default function Auth0ProviderClient({
         }}
         cacheLocation="localstorage"
         useRefreshTokens
+        useCookiesForTransactions={false}
       >
         {children}
       </Auth0Provider>

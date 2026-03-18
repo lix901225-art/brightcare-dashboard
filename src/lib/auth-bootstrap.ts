@@ -39,7 +39,10 @@ export async function bootstrapSessionFromBackend(
   const session = readSession();
   if (!session?.userId || !session?.tenantId) return null;
 
-  const token = bearerToken || readToken();
+  // Prefer the stored backend JWT over the Auth0 access token.
+  // Auth0 returns an opaque token (not a JWT) when no audience is configured,
+  // which the backend would reject as invalid.
+  const token = readToken() || bearerToken;
   if (!token) {
     clearSession();
     return null;
