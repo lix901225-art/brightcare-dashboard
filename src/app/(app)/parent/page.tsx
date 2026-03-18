@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Calendar, Check, Clock, MessageCircle } from "lucide-react";
+import { AlertTriangle, Calendar, Check, Clock, FileText, MessageCircle, Utensils } from "lucide-react";
 import { PullToRefresh } from "@/components/app/pull-to-refresh";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
@@ -228,6 +228,75 @@ export default function ParentHomePage() {
     return days.reverse();
   }, []);
 
+  // ─── Activity Timeline ───
+  type TimelineEvent = { id: string; time: string; type: string; icon: typeof Clock; color: string; title: string; detail?: string; href?: string };
+
+  const timeline = useMemo(() => {
+    const events: TimelineEvent[] = [];
+
+    // Attendance events
+    for (const a of attendance) {
+      const child = children.find((c) => c.id === a.childId);
+      const name = child?.fullName || "Child";
+      if (a.checkinAt) {
+        events.push({
+          id: `checkin-${a.id || a.childId}`,
+          time: a.checkinAt,
+          type: "checkin",
+          icon: Check,
+          color: "text-emerald-600 bg-emerald-50",
+          title: `${name} checked in`,
+          detail: new Date(a.checkinAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        });
+      }
+      if (a.checkoutAt) {
+        events.push({
+          id: `checkout-${a.id || a.childId}`,
+          time: a.checkoutAt,
+          type: "checkout",
+          icon: Clock,
+          color: "text-slate-600 bg-slate-100",
+          title: `${name} checked out`,
+          detail: new Date(a.checkoutAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }),
+        });
+      }
+    }
+
+    // Daily report events
+    for (const r of todayReports) {
+      events.push({
+        id: `report-${r.id}`,
+        time: r.date || today,
+        type: "report",
+        icon: FileText,
+        color: "text-amber-600 bg-amber-50",
+        title: `Daily report: ${r.childId ? childNameById[r.childId] || "Child" : "Child"}`,
+        detail: [r.mood, r.meals ? "Meals recorded" : null, r.activities ? "Activities logged" : null].filter(Boolean).join(" · "),
+        href: `/daily-reports/${r.id}`,
+      });
+    }
+
+    // Message events (latest thread updates)
+    for (const t of recentThreads) {
+      if (t.updatedAt) {
+        events.push({
+          id: `msg-${t.id}`,
+          time: t.updatedAt,
+          type: "message",
+          icon: MessageCircle,
+          color: "text-violet-600 bg-violet-50",
+          title: `Message: ${t.childName || "Centre"}`,
+          detail: t.latestMessage ? (t.latestMessage.length > 60 ? t.latestMessage.slice(0, 60) + "..." : t.latestMessage) : undefined,
+          href: `/messages/${t.id}`,
+        });
+      }
+    }
+
+    // Sort by time descending
+    events.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    return events.slice(0, 10);
+  }, [attendance, children, todayReports, recentThreads, childNameById, today]);
+
   const handleRefresh = useCallback(async () => {
     await loadAll();
   }, [today]);
@@ -319,6 +388,51 @@ export default function ParentHomePage() {
                 </Link>
               </div>
             ) : null}
+
+            {/* Activity Timeline */}
+            {timeline.length > 0 && (
+              <Card className="mt-6 rounded-2xl border-0 shadow-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Today&apos;s activity
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative space-y-0">
+                    {timeline.map((event, i) => {
+                      const Icon = event.icon;
+                      const isLast = i === timeline.length - 1;
+                      return (
+                        <div key={event.id} className="relative flex gap-3 pb-4">
+                          {!isLast && (
+                            <div className="absolute left-[15px] top-8 h-[calc(100%-16px)] w-px bg-slate-200" />
+                          )}
+                          <div className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${event.color}`}>
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          {event.href ? (
+                            <Link href={event.href} className="min-w-0 flex-1 rounded-xl px-3 py-2 hover:bg-slate-50 transition-colors">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-sm font-medium text-slate-900">{event.title}</div>
+                                <div className="shrink-0 text-xs text-slate-400">{event.detail}</div>
+                              </div>
+                            </Link>
+                          ) : (
+                            <div className="min-w-0 flex-1 rounded-xl px-3 py-2">
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="text-sm font-medium text-slate-900">{event.title}</div>
+                                <div className="shrink-0 text-xs text-slate-400">{event.detail}</div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               <Card className="rounded-2xl border-0 shadow-sm">
