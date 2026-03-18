@@ -17,6 +17,7 @@ import {
   Receipt,
 } from "lucide-react";
 import Link from "next/link";
+import { PageIntro } from "@/components/app/app-shell";
 import { apiFetch } from "@/lib/api-client";
 
 type ReportType =
@@ -436,14 +437,10 @@ export default function ReportsPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-4 sm:p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">
-          Reports & Exports
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Export your centre data as CSV for record-keeping and compliance
-        </p>
-      </div>
+      <PageIntro
+        title="Reports & Exports"
+        description="Export your centre data as CSV for record-keeping and compliance."
+      />
 
       {/* Quick links to management pages */}
       <div className="grid gap-3 sm:grid-cols-2">
