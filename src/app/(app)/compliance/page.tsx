@@ -607,6 +607,13 @@ export default function CompliancePage() {
                     ? `${immSummary.filter((c) => !c.isComplete).length} child(ren) missing vaccines`
                     : "Check each child profile for immunization records",
                 },
+                {
+                  label: "All staff have valid first aid certification",
+                  ok: firstAidCerts.length > 0 && firstAidCerts.every((c) => c.status === "valid"),
+                  fix: firstAidCerts.filter((c) => c.status !== "valid").length > 0
+                    ? `${firstAidCerts.filter((c) => c.status !== "valid").length} cert(s) expired or expiring`
+                    : "Upload first aid certificates for all staff",
+                },
               ];
               const passed = checks.filter((c) => c.ok).length;
               const total = checks.length;
