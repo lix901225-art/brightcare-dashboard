@@ -474,6 +474,24 @@ export default function BillingPage() {
               All
             </button>
             <button
+              onClick={async () => {
+                try {
+                  setError("");
+                  setOk("");
+                  const res = await apiFetch("/billing/generate-monthly", { method: "POST" });
+                  const data = await res.json();
+                  if (!res.ok) throw new Error(data?.message || "Failed");
+                  setOk(data.message || "Monthly invoices generated.");
+                  await loadAll();
+                } catch (e: unknown) {
+                  setError(typeof e === "object" && e !== null && "message" in e ? (e as Error).message : "Failed to generate.");
+                }
+              }}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 text-sm font-medium text-emerald-700 hover:bg-emerald-100"
+            >
+              Auto-generate monthly
+            </button>
+            <button
               onClick={() => { setShowBulk((v) => !v); setShowCreate(false); }}
               className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
