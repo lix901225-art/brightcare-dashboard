@@ -197,8 +197,8 @@ export default function StaffManagementPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || `Invite failed: ${res.status}`);
 
-      const loginUrl = process.env.NEXT_PUBLIC_APP_URL || window.location.origin;
-      setOk(`Invited ${inviteName.trim()} (${inviteEmail.trim()}) as ${inviteRole}. Share this login link: ${loginUrl}/login`);
+      const inviteLink = data.inviteLink || `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/login`;
+      setOk(`Invited ${inviteName.trim()} (${inviteEmail.trim()}) as ${inviteRole}. Invite link: ${inviteLink}`);
       setShowInvite(false);
       setInviteEmail("");
       setInviteName("");
