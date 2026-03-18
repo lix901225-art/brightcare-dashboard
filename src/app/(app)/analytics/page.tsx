@@ -15,6 +15,7 @@ import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { PageLoadingSkeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error";
 
 /* ─── types ─── */
@@ -222,7 +223,7 @@ export default function AnalyticsPage() {
   }, [children, rooms]);
 
   if (loading) {
-    return <div className="text-sm text-slate-500">Loading analytics...</div>;
+    return <PageLoadingSkeleton />;
   }
 
   const maxAttendance = Math.max(1, ...attendanceTrend.map((d) => d.total));

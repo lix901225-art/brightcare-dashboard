@@ -17,6 +17,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { formatDate } from "@/lib/api-helpers";
+import { PageLoadingSkeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error";
 
 /* ─── types ─── */
@@ -201,7 +202,7 @@ export default function CompliancePage() {
   }, [ratioData, eceStats]);
 
   if (loading) {
-    return <div className="text-sm text-slate-500">Loading compliance dashboard...</div>;
+    return <PageLoadingSkeleton />;
   }
 
   return (

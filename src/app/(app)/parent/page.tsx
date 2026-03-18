@@ -8,6 +8,7 @@ import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error";
 
 type ThreadRow = {
@@ -247,8 +248,9 @@ export default function ParentHomePage() {
         ) : null}
 
         {loading ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-            Loading parent workspace...
+          <div className="space-y-6">
+            <MetricCardsSkeleton count={5} />
+            <CardListSkeleton count={3} />
           </div>
         ) : (
           <>

@@ -322,8 +322,12 @@ export default function MessageThreadPage() {
           ) : null}
           <CardContent className={isParent ? "pt-5" : ""}>
             {loading ? (
-              <div className="rounded-xl border border-slate-200 bg-white p-8 text-sm text-slate-500">
-                Loading messages...
+              <div className="space-y-3 py-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className={`flex ${i % 2 === 0 ? "" : "justify-end"}`}>
+                    <div className="h-12 w-48 animate-pulse rounded-2xl bg-slate-100" />
+                  </div>
+                ))}
               </div>
             ) : filteredMessages.length === 0 ? (
               <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500">
