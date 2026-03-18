@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { AlertTriangle, Check, ChevronLeft, Clock, FileText, Heart, Pencil, Plus, Save, Shield, Syringe, Star, X } from "lucide-react";
+import { AlertTriangle, Award, BarChart3, BookOpen, Camera, Check, ChevronLeft, Clock, FileText, Heart, Pencil, Plus, Save, Shield, Smile, Syringe, Star, TrendingUp, X } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -723,6 +723,9 @@ export default function ChildDetailPage() {
         </Card>
       </div>
 
+      {/* ─── Growth Portfolio Summary ─── */}
+      <GrowthSummarySection childId={id} />
+
       {/* ─── Immunization tracking (BC guidelines) ─── */}
       <ImmunizationSection childId={id} />
 
@@ -733,6 +736,166 @@ export default function ChildDetailPage() {
       <PhotoGallerySection childId={id} />
     </div>
     </RoleGate>
+  );
+}
+
+/* ─── Growth Summary / Portfolio ─── */
+
+type GrowthSummary = {
+  year: string;
+  childName: string | null;
+  reportCount: number;
+  milestoneCount: number;
+  milestonesByCategory: Record<string, number>;
+  learningStoryCount: number;
+  photoCount: number;
+  attendanceDays: number;
+  totalAttendanceDays: number;
+  attendanceRate: number;
+  moodDistribution: Record<string, number>;
+};
+
+const MOOD_ICONS: Record<string, string> = { happy: "😊", calm: "😌", tired: "😴", fussy: "😣", excited: "🤩", sad: "😢" };
+const CATEGORY_COLORS: Record<string, string> = {
+  "Physical/Motor": "bg-blue-100 text-blue-700 border-blue-200",
+  "Language/Communication": "bg-amber-100 text-amber-700 border-amber-200",
+  "Social/Emotional": "bg-pink-100 text-pink-700 border-pink-200",
+  "Cognitive": "bg-violet-100 text-violet-700 border-violet-200",
+  "Creative": "bg-emerald-100 text-emerald-700 border-emerald-200",
+};
+
+function GrowthSummarySection({ childId }: { childId: string }) {
+  const currentYear = new Date().getFullYear();
+  const [year, setYear] = useState(String(currentYear));
+  const [summary, setSummary] = useState<GrowthSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch(`/children/${childId}/growth-summary?year=${year}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => setSummary(data))
+      .catch(() => setSummary(null))
+      .finally(() => setLoading(false));
+  }, [childId, year]);
+
+  const years = Array.from({ length: 5 }, (_, i) => String(currentYear - i));
+  const topMood = summary?.moodDistribution
+    ? Object.entries(summary.moodDistribution).sort((a, b) => b[1] - a[1])[0]
+    : null;
+
+  return (
+    <Card className="rounded-2xl border-0 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-violet-500" />
+            Growth portfolio
+          </CardTitle>
+          <select
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            className="rounded-lg border border-slate-200 px-2 py-1 text-sm"
+          >
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {loading ? (
+          <div className="py-6 text-center text-sm text-slate-400">Loading growth data...</div>
+        ) : !summary ? (
+          <div className="py-6 text-center text-sm text-slate-500">No data available for {year}.</div>
+        ) : (
+          <div className="space-y-5">
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                <div className="text-2xl font-bold text-slate-900">{summary.reportCount}</div>
+                <div className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-500">
+                  <FileText className="h-3 w-3" /> Daily reports
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                <div className="text-2xl font-bold text-slate-900">{summary.milestoneCount}</div>
+                <div className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-500">
+                  <Award className="h-3 w-3" /> Milestones
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                <div className="text-2xl font-bold text-slate-900">{summary.learningStoryCount}</div>
+                <div className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-500">
+                  <BookOpen className="h-3 w-3" /> Learning stories
+                </div>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-center">
+                <div className="text-2xl font-bold text-slate-900">{summary.photoCount}</div>
+                <div className="mt-1 flex items-center justify-center gap-1 text-xs text-slate-500">
+                  <Camera className="h-3 w-3" /> Photos
+                </div>
+              </div>
+            </div>
+
+            {/* Attendance & Mood */}
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-slate-200 p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Attendance rate</div>
+                <div className="flex items-end gap-2">
+                  <span className="text-3xl font-bold text-slate-900">{summary.attendanceRate}%</span>
+                  <span className="mb-1 text-sm text-slate-500">
+                    ({summary.attendanceDays}/{summary.totalAttendanceDays} days)
+                  </span>
+                </div>
+                <div className="mt-2 h-2 rounded-full bg-slate-100">
+                  <div
+                    className="h-2 rounded-full bg-emerald-500 transition-all"
+                    style={{ width: `${Math.min(summary.attendanceRate, 100)}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-slate-200 p-4">
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Mood distribution</div>
+                {Object.keys(summary.moodDistribution).length === 0 ? (
+                  <div className="text-sm text-slate-400">No mood data</div>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(summary.moodDistribution)
+                      .sort((a, b) => b[1] - a[1])
+                      .map(([mood, count]) => (
+                        <span key={mood} className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs">
+                          <span>{MOOD_ICONS[mood] || "😐"}</span>
+                          <span className="capitalize">{mood}</span>
+                          <span className="font-semibold">{count}</span>
+                        </span>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Milestones by category */}
+            {Object.keys(summary.milestonesByCategory).length > 0 && (
+              <div>
+                <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Milestones by development area</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(summary.milestonesByCategory).map(([cat, count]) => (
+                    <span
+                      key={cat}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium ${CATEGORY_COLORS[cat] || "bg-slate-100 text-slate-700 border-slate-200"}`}
+                    >
+                      {cat}: {count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
