@@ -25,6 +25,16 @@ type MeResponse = {
 type TenantResponse = {
   id: string;
   name: string | null;
+  address?: string | null;
+  city?: string | null;
+  province?: string | null;
+  postalCode?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  openTime?: string | null;
+  closeTime?: string | null;
+  capacity?: number | null;
+  licenceNumber?: string | null;
   createdAt?: string;
   updatedAt?: string;
 };
@@ -53,6 +63,16 @@ export default function SettingsPage() {
 
   const [displayName, setDisplayName] = useState("");
   const [tenantName, setTenantName] = useState("");
+  const [tenantAddress, setTenantAddress] = useState("");
+  const [tenantCity, setTenantCity] = useState("");
+  const [tenantProvince, setTenantProvince] = useState("BC");
+  const [tenantPostalCode, setTenantPostalCode] = useState("");
+  const [tenantPhone, setTenantPhone] = useState("");
+  const [tenantEmail, setTenantEmail] = useState("");
+  const [tenantOpenTime, setTenantOpenTime] = useState("07:30");
+  const [tenantCloseTime, setTenantCloseTime] = useState("17:30");
+  const [tenantCapacity, setTenantCapacity] = useState("");
+  const [tenantLicenceNumber, setTenantLicenceNumber] = useState("");
 
   async function loadAll(showRefreshState = false) {
     if (showRefreshState) setRefreshing(true);
@@ -76,6 +96,16 @@ export default function SettingsPage() {
       setTenant(tenantData);
       setDisplayName(meData?.displayName || "");
       setTenantName(tenantData?.name || "");
+      setTenantAddress(tenantData?.address || "");
+      setTenantCity(tenantData?.city || "");
+      setTenantProvince(tenantData?.province || "BC");
+      setTenantPostalCode(tenantData?.postalCode || "");
+      setTenantPhone(tenantData?.phone || "");
+      setTenantEmail(tenantData?.email || "");
+      setTenantOpenTime(tenantData?.openTime || "07:30");
+      setTenantCloseTime(tenantData?.closeTime || "17:30");
+      setTenantCapacity(tenantData?.capacity != null ? String(tenantData.capacity) : "");
+      setTenantLicenceNumber(tenantData?.licenceNumber || "");
 
       patchSession({
         displayName: meData?.displayName || "User",
@@ -134,7 +164,19 @@ export default function SettingsPage() {
 
       const res = await apiFetch("/tenant/current", {
         method: "PATCH",
-        body: JSON.stringify({ name: trimmed }),
+        body: JSON.stringify({
+          name: trimmed,
+          address: tenantAddress.trim() || undefined,
+          city: tenantCity.trim() || undefined,
+          province: tenantProvince.trim() || undefined,
+          postalCode: tenantPostalCode.trim() || undefined,
+          phone: tenantPhone.trim() || undefined,
+          email: tenantEmail.trim() || undefined,
+          openTime: tenantOpenTime.trim() || undefined,
+          closeTime: tenantCloseTime.trim() || undefined,
+          capacity: tenantCapacity ? Number(tenantCapacity) : undefined,
+          licenceNumber: tenantLicenceNumber.trim() || undefined,
+        }),
       });
 
       const data = await res.json();
@@ -280,6 +322,49 @@ export default function SettingsPage() {
                       placeholder="e.g. Sunshine Kids Daycare"
                     />
                   </label>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Address</span>
+                      <input value={tenantAddress} onChange={(e) => setTenantAddress(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="123 Main St" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">City</span>
+                      <input value={tenantCity} onChange={(e) => setTenantCity(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="Vancouver" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Province</span>
+                      <input value={tenantProvince} onChange={(e) => setTenantProvince(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="BC" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Postal code</span>
+                      <input value={tenantPostalCode} onChange={(e) => setTenantPostalCode(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="V6B 1A1" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Phone</span>
+                      <input value={tenantPhone} onChange={(e) => setTenantPhone(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="604-555-0100" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Email</span>
+                      <input type="email" value={tenantEmail} onChange={(e) => setTenantEmail(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="info@centre.ca" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Opening time</span>
+                      <input type="time" value={tenantOpenTime} onChange={(e) => setTenantOpenTime(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Closing time</span>
+                      <input type="time" value={tenantCloseTime} onChange={(e) => setTenantCloseTime(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">Licensed capacity</span>
+                      <input type="number" min="0" value={tenantCapacity} onChange={(e) => setTenantCapacity(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="25" />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-xs font-medium uppercase tracking-wide text-slate-500">BC licence number</span>
+                      <input value={tenantLicenceNumber} onChange={(e) => setTenantLicenceNumber(e.target.value)} className="h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" placeholder="LIC-12345" />
+                    </label>
+                  </div>
 
                   <button
                     onClick={saveTenant}

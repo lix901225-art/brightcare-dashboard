@@ -168,23 +168,41 @@ export default function MessageThreadPage() {
 
   async function sendMessage() {
     try {
-      if (!body.trim()) throw new Error("Message body is required.");
+      const text = body.trim();
+      if (!text) throw new Error("Message body is required.");
       setSending(true);
       setError("");
       setOk("");
 
+      // Optimistic update — show message immediately
+      const optimisticId = `optimistic-${Date.now()}`;
+      const optimisticMsg: MessageRow = {
+        id: optimisticId,
+        body: text,
+        createdAt: new Date().toISOString(),
+        senderDisplayName: session?.displayName || "You",
+        senderName: session?.displayName || "You",
+        senderRole: session?.role || null,
+        senderUserId: myUserId || null,
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+      setBody("");
+
       const res = await apiFetch(`/messages/threads/${threadId}/messages`, {
         method: "POST",
-        body: JSON.stringify({
-          body: body.trim(),
-        }),
+        body: JSON.stringify({ body: text }),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || `Send failed: ${res.status}`);
+      if (!res.ok) {
+        // Remove optimistic message on failure
+        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+        setBody(text);
+        throw new Error(data?.message || `Send failed: ${res.status}`);
+      }
 
-      setBody("");
-      await loadAll();
+      // Replace optimistic message with real one
+      setMessages((prev) => prev.map((m) => m.id === optimisticId ? { ...data, senderDisplayName: optimisticMsg.senderDisplayName, senderName: optimisticMsg.senderName, senderRole: optimisticMsg.senderRole, senderUserId: optimisticMsg.senderUserId } : m));
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to send message."));
     } finally {

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   Calendar,
+  Download,
   TrendingUp,
   Users,
   DollarSign,
@@ -226,14 +227,57 @@ export default function AnalyticsPage() {
 
   const maxAttendance = Math.max(1, ...attendanceTrend.map((d) => d.total));
 
+  function exportCsv() {
+    const rows: string[][] = [
+      ["BrightCare OS — Monthly Report"],
+      [],
+      ["Metric", "Value"],
+      ["Total children enrolled", String(children.filter((c) => (c.status || "").toUpperCase() === "ACTIVE").length)],
+      ["Total rooms", String(rooms.length)],
+      ["Total capacity", String(rooms.reduce((s, r) => s + (r.capacity || 0), 0))],
+      ["Occupancy %", enrolment.occupancyPct + "%"],
+      [],
+      ["Revenue", "Amount"],
+      ["Total revenue (paid)", "$" + revenue.totalRevenue.toFixed(2)],
+      ["Outstanding balance", "$" + revenue.outstandingBalance.toFixed(2)],
+      ["Overdue invoices", String(revenue.overdueCount)],
+      [],
+      ["Attendance (last 14 days)", "Date", "Present", "Absent", "Total"],
+      ...attendanceTrend.map((d) => ["", d.date, String(d.present), String(d.absent), String(d.total)]),
+      [],
+      ["Room Occupancy", "Room", "Enrolled", "Capacity", "Occupancy %"],
+      ...rooms.map((r) => {
+        const enrolled = children.filter((c) => c.roomId === r.id && (c.status || "").toUpperCase() === "ACTIVE").length;
+        const cap = r.capacity || 0;
+        return ["", r.name, String(enrolled), String(cap), cap > 0 ? Math.round((enrolled / cap) * 100) + "%" : "N/A"];
+      }),
+    ];
+
+    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `brightcare-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <RoleGate allow={["OWNER"]}>
       <div>
-        <div className="mb-6">
+        <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro
             title="Analytics & Forecasting"
             description="Enrolment trends, occupancy projections, attendance patterns, and financial overview."
           />
+          <button
+            onClick={exportCsv}
+            className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            <Download className="h-4 w-4" />
+            Export CSV
+          </button>
         </div>
 
         {error ? (
