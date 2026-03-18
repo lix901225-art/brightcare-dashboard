@@ -174,7 +174,30 @@ These are non-negotiable. BrightCare must handle BC-specific requirements that g
 - Minor implementation choices (pick the most idiomatic approach)
 - Whether a feature fits Track B scope (if it's in the roadmap above, it fits)
 
-### Default Behaviour
+### Default Behaviour — Never Stop
+
+After completing any task, report, or commit, **immediately**:
+
+1. Check for remaining known tasks in the current conversation
+2. Autonomously audit all pages for issues (UI inconsistency, empty data, errors)
+3. Cross-reference BC licensing requirements for compliance gaps
+4. Compare against competitor features (Brightwheel, Procare, Lillio, Kindertales)
+5. Fix what you find, commit, continue
+
+**"No more tasks" is not a reason to stop.** Actively search:
+- Every page route for broken API calls, missing loading states, empty states
+- All forms for missing validation
+- Mobile responsiveness on all key pages
+- BC English spelling (centre, licence, programme)
+- Dead code, unused imports, stale comments
+
+Only stop when:
+- External API key or account is required
+- User manual action is needed
+- `npm run build` has an unresolvable error
+- You have exhaustively audited every page and found nothing to improve
+
+### Other Defaults
 
 - Prefer dashboard (frontend) changes unless backend is explicitly required
 - Do not restart the API unless a change requires it
