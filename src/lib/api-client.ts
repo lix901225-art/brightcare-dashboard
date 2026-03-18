@@ -106,7 +106,11 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
     return res;
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") {
-      throw new Error(`Request to ${path} timed out after ${timeoutMs}ms`);
+      throw new Error(`Request timed out — please check your connection and try again.`);
+    }
+    // Network errors (server down, no internet, DNS failure)
+    if (err instanceof TypeError && (err.message === "Failed to fetch" || err.message.includes("fetch"))) {
+      throw new Error("Unable to reach the server. Please check your internet connection.");
     }
     throw err;
   } finally {
