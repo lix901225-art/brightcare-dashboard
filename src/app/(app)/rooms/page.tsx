@@ -497,6 +497,30 @@ export default function RoomsPage() {
                       );
                     })() : null}
 
+                    {/* Children list with move */}
+                    {count > 0 && (
+                      <div className="mt-3 space-y-1">
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-slate-400">Enrolled children</div>
+                        {children.filter((c) => c.roomId === room.id).map((c) => (
+                          <div key={c.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-2 py-1">
+                            <span className="text-xs font-medium text-slate-700">{c.fullName || c.id.slice(0, 8)}</span>
+                            <select
+                              value={room.id}
+                              onChange={async (e) => {
+                                const newRoomId = e.target.value || null;
+                                await apiFetch(`/children/${c.id}`, { method: "PATCH", body: JSON.stringify({ roomId: newRoomId }) });
+                                loadAll();
+                              }}
+                              className="h-7 rounded border border-slate-200 bg-white px-1 text-[10px]"
+                            >
+                              <option value="">Unassign</option>
+                              {rooms.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+                            </select>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
                     {room.createdAt ? (
                       <div className="mt-3 text-xs text-slate-400">
                         Created {new Date(room.createdAt).toLocaleDateString()}
