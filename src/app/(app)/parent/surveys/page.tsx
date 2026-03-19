@@ -106,7 +106,7 @@ export default function ParentSurveysPage() {
                         <button
                           key={n}
                           onClick={() => setAnswers((a) => ({ ...a, [q.id]: n }))}
-                          className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition ${(answers[q.id] || 0) >= n ? "border-amber-300 bg-amber-50 text-amber-600" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}
+                          className={`flex h-10 w-10 items-center justify-center rounded-lg border text-sm font-medium transition ${Number(answers[q.id] || 0) >= n ? "border-amber-300 bg-amber-50 text-amber-600" : "border-slate-200 text-slate-400 hover:border-slate-300"}`}
                         >
                           {n}
                         </button>

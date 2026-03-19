@@ -56,7 +56,7 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [notifPrefs, setNotifPrefs] = useState<Record<string, boolean>>({});
+  const [notifPrefs, setNotifPrefs] = useState<Record<string, any>>({});
   const [savingNotifs, setSavingNotifs] = useState(false);
 
   const isOwner = readSession()?.role === "OWNER";
