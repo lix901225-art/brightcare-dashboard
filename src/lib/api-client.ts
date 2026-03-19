@@ -53,7 +53,8 @@ async function tryRefreshToken(): Promise<string | null> {
 
     if (!res.ok) return null;
 
-    const data = await res.json();
+    const raw = await res.json();
+    const data = (raw && typeof raw === "object" && "success" in raw && "data" in raw) ? raw.data : raw;
     if (data?.token) {
       writeToken(data.token);
       return data.token;

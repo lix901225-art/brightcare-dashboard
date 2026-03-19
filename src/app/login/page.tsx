@@ -37,8 +37,11 @@ function LoginPageInner() {
         body: JSON.stringify({ phone: phone.trim(), password: password.trim() }),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.message || data?.error?.message || `Login failed (${res.status})`);
+      const raw = await res.json();
+      if (!res.ok) throw new Error(raw?.message || raw?.error?.message || `Login failed (${res.status})`);
+
+      // Unwrap envelope: { success, data: { token, ... }, timestamp }
+      const data = (raw && typeof raw === "object" && "success" in raw && "data" in raw) ? raw.data : raw;
 
       if (data.token) writeToken(data.token);
 
@@ -48,8 +51,9 @@ function LoginPageInner() {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.token}` },
           cache: "no-store",
         });
-        const tData = await tRes.json();
-        if (tRes.ok) tenantName = tData?.name || tData?.data?.name || data.tenantId;
+        const tRaw = await tRes.json();
+        const tData = (tRaw && "data" in tRaw) ? tRaw.data : tRaw;
+        if (tRes.ok) tenantName = tData?.name || data.tenantId;
       } catch {
         tenantName = data.tenantId;
       }

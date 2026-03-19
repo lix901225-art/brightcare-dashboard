@@ -78,7 +78,9 @@ function Auth0CallbackInner() {
           throw new Error(msg);
         }
 
-        const data: Auth0SyncResponse = await res.json();
+        const raw = await res.json();
+        // Unwrap envelope: { success, data: { ... }, timestamp }
+        const data: Auth0SyncResponse = (raw && typeof raw === "object" && "success" in raw && "data" in raw) ? raw.data : raw;
 
         // Track B: store JWT if backend returns one
         if (data.token) writeToken(data.token);
