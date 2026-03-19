@@ -87,18 +87,16 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
       signal: controller.signal,
     });
 
-    // Wrap res.json() to auto-unwrap API envelope { success, data, timestamp }
-    const res = Object.create(rawRes, {
-      json: {
-        value: async () => {
-          const raw = await rawRes.json();
-          if (raw && typeof raw === "object" && "success" in raw && "data" in raw) {
-            return raw.data;
-          }
-          return raw;
-        },
-      },
-    }) as Response;
+    // Patch .json() to auto-unwrap API envelope { success, data, timestamp }
+    const originalJson = rawRes.json.bind(rawRes);
+    const res = rawRes as Response;
+    (res as any).json = async () => {
+      const raw = await originalJson();
+      if (raw && typeof raw === "object" && "success" in raw && "data" in raw) {
+        return raw.data;
+      }
+      return raw;
+    };
 
     // On 401: try refreshing the token once, then retry the request
     if (res.status === 401 && !skipAuth && !_skipRefresh) {
