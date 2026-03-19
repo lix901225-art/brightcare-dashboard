@@ -24,13 +24,14 @@ function Auth0CallbackInner() {
     }
   }, [auth0Error]);
 
-  // Timeout: if still loading after 15s, show an error instead of spinning forever
+  // Timeout: if still loading after 5s, force redirect to dashboard
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!syncedRef.current && !error) {
-        setError("Sign-in timed out. Please try again.");
+        console.warn("[auth/callback] Timed out waiting for Auth0 — redirecting to /dashboard");
+        window.location.replace("/dashboard");
       }
-    }, 15_000);
+    }, 5_000);
     return () => clearTimeout(timer);
   }, [error]);
 
