@@ -29,7 +29,15 @@
     "records": "記錄管理",
     "learningStories": "學習故事",
     "management": "管理",
-    "more": "更多"
+    "more": "更多",
+    "healthChecks": "健康檢查",
+    "mealPlanning": "餐單計劃",
+    "curriculum": "課程計劃",
+    "surveys": "問卷調查",
+    "updateRequests": "變更申請",
+    "funding": "資金報告",
+    "taxReceipts": "稅務收據",
+    "lessonPlans": "教案計劃"
   },
   "auth": {
     "login": "登入",

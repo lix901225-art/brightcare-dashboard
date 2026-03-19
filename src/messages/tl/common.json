@@ -29,7 +29,15 @@
     "records": "Mga Rekord",
     "learningStories": "Mga Kuwento ng Pag-aaral",
     "management": "Pamamahala",
-    "more": "Higit Pa"
+    "more": "Higit Pa",
+    "healthChecks": "Health Checks",
+    "mealPlanning": "Meal Planning",
+    "curriculum": "Curriculum",
+    "surveys": "Surveys",
+    "updateRequests": "Update Requests",
+    "funding": "Funding Reports",
+    "taxReceipts": "Tax Receipts",
+    "lessonPlans": "Lesson Plans"
   },
   "auth": {
     "login": "Mag-login",
