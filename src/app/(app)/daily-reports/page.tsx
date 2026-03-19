@@ -592,68 +592,78 @@ export default function DailyReportsPage() {
                       />
                     </div>
 
-                    <div>
+                    {/* Mood — emoji tap selector */}
+                    <div className="md:col-span-2">
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                         Mood
                       </div>
-                      <select
-                        value={mood}
-                        onChange={(e) => setMood(e.target.value)}
-                        className="hidden h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none md:block"
-                      >
-                        <option value="">Select mood</option>
-                        {MOOD_OPTIONS.map((m) => (
-                          <option key={m} value={m}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                      <div className="flex flex-wrap gap-2 md:hidden">
-                        {MOOD_OPTIONS.map((m) => (
+                      <div className="flex gap-2">
+                        {[
+                          { key: "Happy", emoji: "😊" },
+                          { key: "Calm", emoji: "😌" },
+                          { key: "Tired", emoji: "😴" },
+                          { key: "Fussy", emoji: "😢" },
+                          { key: "Sick", emoji: "🤒" },
+                        ].map((m) => (
                           <button
-                            key={m}
+                            key={m.key}
                             type="button"
-                            onClick={() => setMood(mood === m ? "" : m)}
-                            className={[
-                              "inline-flex h-10 items-center rounded-xl border px-4 text-sm font-medium transition-all active:scale-[0.97]",
-                              mood === m
-                                ? "border-slate-900 bg-slate-900 text-white"
-                                : "border-slate-200 bg-white text-slate-700",
-                            ].join(" ")}
+                            onClick={() => setMood(mood === m.key ? "" : m.key)}
+                            className={`flex flex-1 flex-col items-center rounded-xl border-2 py-3 transition ${mood === m.key ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
                           >
-                            {m === "Happy" ? "😊" : m === "Content" ? "🙂" : m === "Tired" ? "😴" : m === "Fussy" ? "😣" : "😢"} {m}
+                            <span className="text-2xl">{m.emoji}</span>
+                            <span className={`mt-1 text-[10px] font-semibold ${mood === m.key ? "text-indigo-600" : "text-slate-400"}`}>{m.key}</span>
                           </button>
                         ))}
                       </div>
                     </div>
 
+                    {/* Naps */}
                     <div>
-                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                        Naps (count)
+                      <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Naps</div>
+                      <div className="flex gap-2">
+                        {["0", "1", "2", "3"].map((n) => (
+                          <button key={n} type="button" onClick={() => setNaps(n)}
+                            className={`flex-1 rounded-xl border py-2.5 text-center text-sm font-semibold transition ${naps === n ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600"}`}
+                          >{n}</button>
+                        ))}
                       </div>
-                      <input
-                        type="number"
-                        min="0"
-                        max="5"
-                        value={naps}
-                        onChange={(e) => setNaps(e.target.value)}
-                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                      />
                     </div>
                   </div>
 
+                  {/* Meals — tap selector */}
                   <div className="mt-4">
-                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
-                      Meals
+                    <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Meals</div>
+                    <div className="space-y-2">
+                      {["Breakfast", "Lunch", "PM Snack"].map((mealTime) => (
+                        <div key={mealTime} className="flex items-center gap-3">
+                          <span className="w-20 text-sm font-medium text-slate-600">{mealTime}</span>
+                          <div className="flex flex-1 gap-1.5">
+                            {["none", "some", "most", "all"].map((level) => {
+                              const mealKey = mealTime.toLowerCase().replace(" ", "");
+                              const isActive = meals.includes(`${mealKey}:${level}`);
+                              return (
+                                <button
+                                  key={level}
+                                  type="button"
+                                  onClick={() => {
+                                    const prefix = `${mealKey}:`;
+                                    const cleaned = meals.split(",").filter((s) => !s.trim().startsWith(prefix)).join(",");
+                                    setMeals(cleaned ? `${cleaned},${prefix}${level}` : `${prefix}${level}`);
+                                  }}
+                                  className={`flex-1 rounded-lg border py-1.5 text-center text-xs font-semibold transition ${isActive ? "border-emerald-500 bg-emerald-500 text-white" : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"}`}
+                                >
+                                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                    <textarea
-                      value={meals}
-                      onChange={(e) => setMeals(e.target.value)}
-                      placeholder="Breakfast: oatmeal, snack: apple slices, lunch: pasta..."
-                      className="min-h-[80px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
-                    />
                   </div>
 
+                  {/* Activities */}
                   <div className="mt-4">
                     <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                       Activities
@@ -661,8 +671,8 @@ export default function DailyReportsPage() {
                     <textarea
                       value={activities}
                       onChange={(e) => setActivities(e.target.value)}
-                      placeholder="Painting, outdoor play, circle time, story reading..."
-                      className="min-h-[80px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
+                      placeholder="Painting, outdoor play, circle time..."
+                      className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
                     />
                   </div>
 
