@@ -37,23 +37,19 @@ function LoginPageInner() {
         body: JSON.stringify({ phone: phone.trim(), password: password.trim() }),
       });
 
-      const raw = await res.json();
-      if (!res.ok) throw new Error(raw?.message || raw?.error?.message || `Login failed (${res.status})`);
-
-      // Unwrap envelope: { success, data: { token, ... }, timestamp }
-      const data = (raw && typeof raw === "object" && "success" in raw && "data" in raw) ? raw.data : raw;
+      // apiFetch().json() auto-unwraps envelope, so data = {token, role, ...}
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.message || data?.error?.message || `Login failed (${res.status})`);
 
       if (data.token) writeToken(data.token);
 
       let tenantName = "";
       try {
-        const tRes = await fetch("/api/proxy/tenant/current", {
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.token}` },
-          cache: "no-store",
-        });
-        const tRaw = await tRes.json();
-        const tData = (tRaw && "data" in tRaw) ? tRaw.data : tRaw;
-        if (tRes.ok) tenantName = tData?.name || data.tenantId;
+        const tRes = await apiFetch("/tenant/current", { bearerToken: data.token });
+        if (tRes.ok) {
+          const tData = await tRes.json();
+          tenantName = tData?.name || data.tenantId;
+        }
       } catch {
         tenantName = data.tenantId;
       }

@@ -87,16 +87,23 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
       signal: controller.signal,
     });
 
-    // Patch .json() to auto-unwrap API envelope { success, data, timestamp }
-    const originalJson = rawRes.json.bind(rawRes);
-    const res = rawRes as Response;
-    (res as any).json = async () => {
-      const raw = await originalJson();
-      if (raw && typeof raw === "object" && "success" in raw && "data" in raw) {
-        return raw.data;
-      }
-      return raw;
-    };
+    // Wrap response so .json() auto-unwraps the API envelope.
+    // Use a Proxy to preserve all native Response getters (ok, status, headers).
+    const res = new Proxy(rawRes, {
+      get(target, prop, receiver) {
+        if (prop === "json") {
+          return async () => {
+            const raw = await target.json();
+            if (raw && typeof raw === "object" && "success" in raw && "data" in raw) {
+              return raw.data;
+            }
+            return raw;
+          };
+        }
+        const value = Reflect.get(target, prop, target);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
 
     // On 401: try refreshing the token once, then retry the request
     if (res.status === 401 && !skipAuth && !_skipRefresh) {
