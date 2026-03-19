@@ -17,9 +17,15 @@ function buildHeaders(
   init?: RequestInit,
   skipAuth?: boolean,
   bearerToken?: string,
+  body?: BodyInit | null,
 ): Headers {
   const headers = new Headers(init?.headers || {});
-  headers.set("Content-Type", "application/json");
+
+  // Don't set Content-Type for FormData — the browser must set it
+  // with the correct multipart boundary automatically.
+  if (!(body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (!skipAuth) {
     const token = bearerToken ?? readToken();
@@ -82,7 +88,7 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
   try {
     const rawRes = await fetch(`/api/proxy${path}`, {
       ...rest,
-      headers: buildHeaders(rest, skipAuth, bearerToken),
+      headers: buildHeaders(rest, skipAuth, bearerToken, rest.body),
       cache: "no-store",
       signal: controller.signal,
     });
