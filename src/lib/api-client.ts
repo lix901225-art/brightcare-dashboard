@@ -80,12 +80,25 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const res = await fetch(`/api/proxy${path}`, {
+    const rawRes = await fetch(`/api/proxy${path}`, {
       ...rest,
       headers: buildHeaders(rest, skipAuth, bearerToken),
       cache: "no-store",
       signal: controller.signal,
     });
+
+    // Wrap res.json() to auto-unwrap API envelope { success, data, timestamp }
+    const res = Object.create(rawRes, {
+      json: {
+        value: async () => {
+          const raw = await rawRes.json();
+          if (raw && typeof raw === "object" && "success" in raw && "data" in raw) {
+            return raw.data;
+          }
+          return raw;
+        },
+      },
+    }) as Response;
 
     // On 401: try refreshing the token once, then retry the request
     if (res.status === 401 && !skipAuth && !_skipRefresh) {
@@ -117,4 +130,29 @@ export async function apiFetch(path: string, init: ApiInit = {}) {
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * Unwrap the API response envelope.
+ * Handles both `{ success, data, timestamp }` and direct payloads.
+ */
+export function unwrapEnvelope(raw: unknown): unknown {
+  if (raw && typeof raw === "object" && "success" in (raw as Record<string, unknown>) && "data" in (raw as Record<string, unknown>)) {
+    return (raw as Record<string, unknown>).data;
+  }
+  return raw;
+}
+
+/**
+ * Convenience: apiFetch + json parse + envelope unwrap in one call.
+ * Throws on non-ok responses with the error message.
+ */
+export async function apiJson<T = unknown>(path: string, init: ApiInit = {}): Promise<T> {
+  const res = await apiFetch(path, init);
+  const raw = await res.json();
+  if (!res.ok) {
+    const msg = (raw as any)?.message || (raw as any)?.error?.message || `Request failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return unwrapEnvelope(raw) as T;
 }

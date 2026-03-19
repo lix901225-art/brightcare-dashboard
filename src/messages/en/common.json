@@ -29,7 +29,15 @@
     "records": "Records",
     "learningStories": "Learning Stories",
     "management": "Management",
-    "more": "More"
+    "more": "More",
+    "healthChecks": "Health Checks",
+    "mealPlanning": "Meal Planning",
+    "curriculum": "Curriculum",
+    "surveys": "Surveys",
+    "updateRequests": "Update Requests",
+    "funding": "Funding Reports",
+    "taxReceipts": "Tax Receipts",
+    "lessonPlans": "Lesson Plans"
   },
   "auth": {
     "login": "Log in",

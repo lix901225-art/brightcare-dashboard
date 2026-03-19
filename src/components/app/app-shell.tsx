@@ -71,6 +71,7 @@ function NavLink({ item, pathname, onNavClick, t }: { item: NavItem; pathname: s
   return (
     <Link
       href={item.href}
+      scroll={false}
       onClick={onNavClick}
       className={[
         "flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition",
