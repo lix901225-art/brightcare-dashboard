@@ -237,6 +237,7 @@ export default function DailyReportsPage() {
 
       setOk("Daily report created.");
       setShowCreate(false);
+      setFilterDate(date); // Show today's reports so the new one is visible
       resetForm();
       await loadAll();
     } catch (e: unknown) {
@@ -273,6 +274,7 @@ export default function DailyReportsPage() {
       const count = Array.isArray(data) ? data.length : batchChildIds.length;
       setOk(`${count} daily report${count !== 1 ? "s" : ""} created.`);
       setShowBatch(false);
+      setFilterDate(date); // Show today's reports
       resetForm();
       await loadAll();
     } catch (e: unknown) {
@@ -618,14 +620,22 @@ export default function DailyReportsPage() {
                       </div>
                     </div>
 
-                    {/* Naps */}
+                    {/* Naps — descriptive tap selector */}
                     <div>
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Naps</div>
                       <div className="flex gap-2">
-                        {["0", "1", "2", "3"].map((n) => (
-                          <button key={n} type="button" onClick={() => setNaps(n)}
-                            className={`flex-1 rounded-xl border py-2.5 text-center text-sm font-semibold transition ${naps === n ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600"}`}
-                          >{n}</button>
+                        {[
+                          { value: "0", label: "No nap", emoji: "🚫" },
+                          { value: "1", label: "1 nap", emoji: "😴" },
+                          { value: "2", label: "2 naps", emoji: "😴" },
+                          { value: "3", label: "3 naps", emoji: "💤" },
+                        ].map((n) => (
+                          <button key={n.value} type="button" onClick={() => setNaps(n.value)}
+                            className={`flex flex-1 flex-col items-center rounded-xl border-2 py-2.5 transition ${naps === n.value ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
+                          >
+                            <span className="text-lg">{n.emoji}</span>
+                            <span className={`mt-0.5 text-[10px] font-semibold ${naps === n.value ? "text-indigo-600" : "text-slate-400"}`}>{n.label}</span>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -798,7 +808,18 @@ export default function DailyReportsPage() {
                     </div>
                     <div>
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Naps</div>
-                      <input type="number" min="0" max="5" value={naps} onChange={(e) => setNaps(e.target.value)} className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none" />
+                      <div className="flex gap-1.5">
+                        {[
+                          { value: "0", label: "0" },
+                          { value: "1", label: "1" },
+                          { value: "2", label: "2" },
+                          { value: "3", label: "3" },
+                        ].map((n) => (
+                          <button key={n.value} type="button" onClick={() => setNaps(n.value)}
+                            className={`flex-1 rounded-xl border py-2.5 text-center text-sm font-semibold transition ${naps === n.value ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600"}`}
+                          >{n.label}</button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -849,7 +870,7 @@ export default function DailyReportsPage() {
               </Card>
             ) : null}
 
-            {canCreate ? (
+            {canCreate && !showCreate && !showBatch ? (
               <div className="mb-6 grid gap-4 md:grid-cols-4">
                 <Card className="rounded-2xl border-0 shadow-sm">
                   <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Total reports</CardTitle></CardHeader>
@@ -873,8 +894,8 @@ export default function DailyReportsPage() {
               </div>
             ) : null}
 
-            {/* Missing reports today — actionable panel for staff */}
-            {canCreate && missingChildren.length > 0 && !filterDate ? (
+            {/* Missing reports today — actionable panel for staff (hidden when form is open) */}
+            {canCreate && !showCreate && !showBatch && missingChildren.length > 0 && !filterDate ? (
               <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50/50 p-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-amber-800">
                   <AlertTriangle className="h-4 w-4" />
