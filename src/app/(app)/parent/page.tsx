@@ -147,43 +147,6 @@ function mealsSummary(raw?: string | null): string {
   return "Ate little";
 }
 
-/** Get gradient background based on activities */
-function activityGradient(activities?: string | null): string {
-  if (!activities) return "from-sky-200 to-sky-300";
-  const a = activities.toLowerCase();
-  if (a.includes("outdoor") || a.includes("nature")) return "from-green-300 to-green-400";
-  if (a.includes("block") || a.includes("building")) return "from-orange-300 to-orange-400";
-  if (a.includes("story") || a.includes("reading")) return "from-purple-300 to-purple-400";
-  if (a.includes("art") || a.includes("craft")) return "from-pink-300 to-pink-400";
-  if (a.includes("music") || a.includes("dance")) return "from-blue-300 to-blue-400";
-  if (a.includes("physical") || a.includes("play")) return "from-lime-300 to-green-300";
-  if (a.includes("science") || a.includes("explore")) return "from-cyan-300 to-teal-400";
-  if (a.includes("garden")) return "from-emerald-300 to-emerald-400";
-  return "from-sky-200 to-sky-300";
-}
-
-/** Get emoji icons for activities (up to 3) */
-function activityEmojis(activities?: string | null): string[] {
-  if (!activities) return ["⭐"];
-  const EMOJI_MAP: Record<string, string> = {
-    block: "🧱", building: "🧱", outdoor: "🌿", nature: "🌿",
-    story: "📚", reading: "📚", art: "🎨", craft: "🎨",
-    music: "🎵", dance: "🎵", puzzle: "🧩", game: "🧩",
-    physical: "🏃", water: "🌊", sand: "🌊", cooking: "🍳",
-    baking: "🍳", science: "🔬", explore: "🔬", social: "🤝",
-    writing: "✏️", drawing: "✏️", pretend: "🎭", garden: "🌱",
-    rest: "😴", quiet: "😴", technology: "🖥️",
-  };
-  const parts = activities.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-  const emojis: string[] = [];
-  for (const part of parts) {
-    if (emojis.length >= 3) break;
-    const match = Object.entries(EMOJI_MAP).find(([key]) => part.includes(key));
-    if (match && !emojis.includes(match[1])) emojis.push(match[1]);
-  }
-  return emojis.length > 0 ? emojis : ["⭐"];
-}
-
 function severityColor(severity: string) {
   const s = severity?.toUpperCase();
   if (s === "HIGH" || s === "CRITICAL") return "bg-rose-100 text-rose-700 border-rose-200";
@@ -358,15 +321,15 @@ export default function ParentHomePage() {
                               <span className="text-lg font-bold text-white truncate">{displayName}</span>
                               {age && <span className="text-sm text-blue-200">· {age}</span>}
                             </div>
-                            <div className="mt-1">
-                              {isCheckedIn && att?.checkinAt && (
+                            <div className="mt-1 space-y-0.5">
+                              {(isCheckedIn || isCheckedOut) && att?.checkinAt && (
                                 <div className="text-sm text-emerald-300 font-medium">✅ Checked in at {fmtTime(att.checkinAt)}</div>
                               )}
                               {isCheckedOut && att?.checkoutAt && (
                                 <div className="text-sm text-slate-300">🚪 Checked out at {fmtTime(att.checkoutAt)}</div>
                               )}
                               {status === "ABSENT" && <div className="text-sm text-rose-300 font-medium">❌ Absent today</div>}
-                              {status === "UNKNOWN" && <div className="text-sm text-slate-400">Not checked in yet</div>}
+                              {status === "UNKNOWN" && <div className="text-sm text-slate-400">⏰ Not checked in yet</div>}
                             </div>
                             {child.className && <div className="text-xs text-blue-300/60 mt-0.5">🏠 {child.className}</div>}
                           </div>
@@ -387,55 +350,57 @@ export default function ParentHomePage() {
                           </div>
                         </FeedCard>
                       ) : report ? (
-                        /* Fallback: show teacher's note if no AI narrative */
-                        <FeedCard className="bg-white" accent="bg-slate-300">
-                          <div className="p-5">
-                            {report.notes ? (
-                              <>
-                                <Quote className="h-5 w-5 text-slate-300 mb-3" />
-                                <p className="text-sm leading-relaxed text-slate-700">{report.notes}</p>
-                                <div className="mt-3 text-xs text-slate-400">Teacher&apos;s note</div>
-                              </>
-                            ) : (
-                              <div className="text-sm text-slate-500">Report received. Summary generating...</div>
+                        /* Fallback: Quick Glance summary when no AI narrative */
+                        <FeedCard className="bg-white">
+                          <div className="px-5 py-4">
+                            <div className="flex items-center gap-3 text-sm text-slate-600 flex-wrap">
+                              {report.mood && (
+                                <span className="inline-flex items-center gap-1">
+                                  {moodEmoji(report.mood)} <span className="capitalize">{report.mood}</span>
+                                </span>
+                              )}
+                              {napCount > 0 && (
+                                <>
+                                  <span className="text-slate-300">·</span>
+                                  <span className="inline-flex items-center gap-1">🌙 {napCount} nap{napCount !== 1 ? "s" : ""}</span>
+                                </>
+                              )}
+                              {mealsText && (
+                                <>
+                                  <span className="text-slate-300">·</span>
+                                  <span className="inline-flex items-center gap-1">🍽️ {mealsText}</span>
+                                </>
+                              )}
+                            </div>
+                            {report.notes && (
+                              <p className="mt-3 text-sm leading-relaxed text-slate-600 italic">&ldquo;{report.notes}&rdquo;</p>
                             )}
                           </div>
                         </FeedCard>
                       ) : null}
 
-                      {/* ═══ Card 3 — Photos / Activity Placeholder ═══ */}
-                      {report && (
-                        hasPhotos ? (
-                          <FeedCard className="bg-white">
-                            {report.photoUrls!.length === 1 ? (
-                              <button onClick={() => setLightboxUrl(report.photoUrls![0])} className="w-full">
-                                <div className="relative">
-                                  <img src={report.photoUrls![0]} alt="" className="w-full aspect-[4/3] object-cover" />
-                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent p-4 rounded-b-2xl">
-                                    <div className="text-xs text-white/80">📷 Today&apos;s photo</div>
-                                  </div>
+                      {/* ═══ Card 3 — Photos (only when present) ═══ */}
+                      {hasPhotos && (
+                        <FeedCard className="bg-white">
+                          {report!.photoUrls!.length === 1 ? (
+                            <button onClick={() => setLightboxUrl(report!.photoUrls![0])} className="w-full">
+                              <div className="relative">
+                                <img src={report!.photoUrls![0]} alt="" className="w-full aspect-[4/3] object-cover" />
+                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent p-4 rounded-b-2xl">
+                                  <div className="text-xs text-white/80">📷 Today&apos;s photo</div>
                                 </div>
-                              </button>
-                            ) : (
-                              <div className="flex gap-1.5 overflow-x-auto snap-x p-2">
-                                {report.photoUrls!.map((url, i) => (
-                                  <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start overflow-hidden rounded-xl">
-                                    <img src={url} alt="" className="h-52 w-44 object-cover" />
-                                  </button>
-                                ))}
                               </div>
-                            )}
-                          </FeedCard>
-                        ) : (
-                          <FeedCard>
-                            <div className={["bg-gradient-to-br h-48 flex flex-col items-center justify-center gap-3", activityGradient(report.activities)].join(" ")}>
-                              <div className="text-[60px] leading-none flex items-center gap-2">
-                                {activityEmojis(report.activities).map((e, i) => <span key={i}>{e}</span>)}
-                              </div>
-                              <span className="text-sm text-white/75 font-medium">No photos today</span>
+                            </button>
+                          ) : (
+                            <div className="flex gap-1.5 overflow-x-auto snap-x p-2">
+                              {report!.photoUrls!.map((url, i) => (
+                                <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start overflow-hidden rounded-xl">
+                                  <img src={url} alt="" className="h-52 w-44 object-cover" />
+                                </button>
+                              ))}
                             </div>
-                          </FeedCard>
-                        )
+                          )}
+                        </FeedCard>
                       )}
 
                       {/* ═══ Card 4 — Quick Glance ═══ */}
@@ -567,13 +532,18 @@ export default function ParentHomePage() {
                 </FeedCard>
               )}
 
-              {/* No report yet */}
+              {/* No report yet — warm waiting card */}
               {children.length > 0 && reports.length === 0 && (
-                <FeedCard className="bg-white">
+                <FeedCard className="bg-yellow-50">
                   <div className="p-8 text-center">
-                    <div className="text-4xl mb-3">📋</div>
-                    <div className="text-base font-semibold text-slate-700">No report yet today</div>
-                    <div className="text-sm text-slate-400 mt-1">Check back later for updates!</div>
+                    <div className="text-5xl mb-3">☀️</div>
+                    <div className="text-lg font-semibold text-slate-800">No report yet</div>
+                    <div className="text-sm text-slate-400 mt-1">Check back later today!</div>
+                    {children.length === 1 && (
+                      <div className="text-sm text-slate-400 mt-2">
+                        {children[0].preferredName || children[0].fullName} is at {children[0].className || "daycare"} 🌟
+                      </div>
+                    )}
                   </div>
                 </FeedCard>
               )}
