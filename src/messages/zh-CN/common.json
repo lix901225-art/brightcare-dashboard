@@ -37,7 +37,8 @@
     "updateRequests": "变更申请",
     "funding": "资金报告",
     "taxReceipts": "税务收据",
-    "lessonPlans": "教案计划"
+    "lessonPlans": "教案计划",
+    "updateInfo": "更新信息"
   },
   "auth": {
     "login": "登录",

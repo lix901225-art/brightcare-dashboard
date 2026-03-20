@@ -37,7 +37,8 @@
     "updateRequests": "Update Requests",
     "funding": "Funding Reports",
     "taxReceipts": "Tax Receipts",
-    "lessonPlans": "Lesson Plans"
+    "lessonPlans": "Lesson Plans",
+    "updateInfo": "ਜਾਣਕਾਰੀ ਅੱਪਡੇਟ ਕਰੋ"
   },
   "auth": {
     "login": "ਲਾਗਇਨ",

@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { toDateInput } from "@/lib/api-helpers";
 import { getErrorMessage } from "@/lib/error";
+import { readSession } from "@/lib/session";
 
 type Child = {
   id: string;
@@ -108,6 +109,9 @@ function makeForm(child: Child): ProfileForm {
 export default function ChildDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id as string;
+  const session = readSession();
+  const isParent = session?.role === "PARENT";
+  const isStaffOrOwner = session?.role === "OWNER" || session?.role === "STAFF";
 
   const [child, setChild] = useState<Child | null>(null);
   const [guardians, setGuardians] = useState<GuardianLink[]>([]);
@@ -312,75 +316,96 @@ export default function ChildDetailPage() {
           title={child.fullName}
           description={`Preferred: ${child.preferredName || "—"} · Room: ${roomLabel}`}
         />
-        <div className="flex gap-2">
-          <button
-            onClick={async () => {
-              try {
-                const res = await apiFetch(`/children/${id}/export-pdf`);
-                if (!res.ok) throw new Error("Export failed");
-                const blob = await res.blob();
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `child-profile-${child.fullName || id.slice(0, 8)}.pdf`;
-                a.click();
-                URL.revokeObjectURL(url);
-              } catch { setError("Unable to export PDF."); }
-            }}
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <FileText className="h-4 w-4" />
-            Export PDF
-          </button>
-          {!editing ? (
+        {isStaffOrOwner && (
+          <div className="flex gap-2">
             <button
-              onClick={() => {
-                setEditing(true);
-                setOk("");
-                setError("");
+              onClick={async () => {
+                try {
+                  const res = await apiFetch(`/children/${id}/export-pdf`);
+                  if (!res.ok) throw new Error("Export failed");
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = `child-profile-${child.fullName || id.slice(0, 8)}.pdf`;
+                  a.click();
+                  URL.revokeObjectURL(url);
+                } catch { setError("Unable to export PDF."); }
               }}
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
-              <Pencil className="h-4 w-4" />
-              Edit profile
+              <FileText className="h-4 w-4" />
+              Export PDF
             </button>
-          ) : (
-            <>
-              <button
-                onClick={saveProfile}
-                disabled={saving}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
-              >
-                <Save className="h-4 w-4" />
-                {saving ? "Saving..." : "Save"}
-              </button>
+            {!editing ? (
               <button
                 onClick={() => {
-                  setEditing(false);
-                  setForm(makeForm(child));
+                  setEditing(true);
                   setOk("");
                   setError("");
                 }}
-                disabled={saving}
                 className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                <X className="h-4 w-4" />
-                Cancel
+                <Pencil className="h-4 w-4" />
+                Edit profile
               </button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <button
+                  onClick={saveProfile}
+                  disabled={saving}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50"
+                >
+                  <Save className="h-4 w-4" />
+                  {saving ? "Saving..." : "Save"}
+                </button>
+                <button
+                  onClick={() => {
+                    setEditing(false);
+                    setForm(makeForm(child));
+                    setOk("");
+                    setError("");
+                  }}
+                  disabled={saving}
+                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {ok ? <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{ok}</div> : null}
       {error ? <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Status</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{child.status || "—"}</div></CardContent></Card>
-        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">DOB</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{child.dob ? String(child.dob).split("T")[0] : "—"}</div></CardContent></Card>
-        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Start date</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{child.startDate ? String(child.startDate).split("T")[0] : "—"}</div></CardContent></Card>
-        <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Room</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{roomLabel}</div></CardContent></Card>
-      </div>
+      {isStaffOrOwner && (
+        <div className="grid gap-4 md:grid-cols-4">
+          <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Status</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{child.status || "—"}</div></CardContent></Card>
+          <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">DOB</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{child.dob ? String(child.dob).split("T")[0] : "—"}</div></CardContent></Card>
+          <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Start date</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{child.startDate ? String(child.startDate).split("T")[0] : "—"}</div></CardContent></Card>
+          <Card className="rounded-2xl border-0 shadow-sm"><CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Room</CardTitle></CardHeader><CardContent><div className="text-xl font-semibold">{roomLabel}</div></CardContent></Card>
+        </div>
+      )}
+
+      {/* Parent: simple child info */}
+      {isParent && (
+        <div className="flex items-center gap-4 rounded-2xl bg-white p-4 shadow-sm">
+          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-xl font-bold text-slate-500">
+            {(child.fullName || "?")[0]}
+          </div>
+          <div>
+            <div className="text-lg font-semibold text-slate-900">{child.fullName}</div>
+            <div className="text-sm text-slate-500">
+              {child.dob ? `Born: ${String(child.dob).split("T")[0]}` : ""}
+              {child.dob && roomLabel !== "—" ? " · " : ""}
+              {roomLabel !== "—" ? `Room: ${roomLabel}` : ""}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Medical / Safety alerts */}
       {(child.allergies || child.medicalNotes || child.emergencyNotes) ? (
@@ -416,16 +441,23 @@ export default function ChildDetailPage() {
       ) : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <Link href={`/guardians?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Guardians</Link>
-        <Link href={`/attendance?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Attendance</Link>
-        <Link href={`/daily-reports?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Daily Reports</Link>
+        {isStaffOrOwner && (
+          <>
+            <Link href={`/guardians?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Guardians</Link>
+            <Link href={`/attendance?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Attendance</Link>
+          </>
+        )}
+        <Link href={isParent ? "/daily-reports" : `/daily-reports?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Daily Reports</Link>
         <Link href={`/messages?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Messages</Link>
-        <Link href={`/documents?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Documents</Link>
-        <Link href={`/billing?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Billing</Link>
+        <Link href={isParent ? "/parent/billing" : `/billing?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Billing</Link>
+        <Link href={isParent ? "/parent/health-checks" : `/health-checks?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Health</Link>
+        {isStaffOrOwner && (
+          <Link href={`/documents?childId=${encodeURIComponent(id)}`} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">Documents</Link>
+        )}
       </div>
 
-      {/* Enrollment readiness checklist — BC licensing inspection prep */}
-      {(() => {
+      {/* Enrollment readiness checklist — BC licensing inspection prep (OWNER/STAFF only) */}
+      {isStaffOrOwner && (() => {
         const checks = [
           { label: "Room assigned", ok: !!child.roomId, fix: "Assign a room in the profile editor", editField: true },
           { label: "DOB on file", ok: !!child.dob, fix: "Add date of birth", editField: true },
@@ -433,7 +465,6 @@ export default function ChildDetailPage() {
           { label: "Emergency contact", ok: guardians.some((g) => g.isEmergencyContact), fix: "Designate an emergency contact", link: `/guardians?childId=${encodeURIComponent(id)}` },
           { label: "Pickup authorization", ok: guardians.some((g) => g.isPickupAuthorized), fix: "Authorize at least one pickup person", link: `/guardians?childId=${encodeURIComponent(id)}` },
           { label: "Allergies documented", ok: !!child.allergies, fix: "Document allergies or mark 'None known'", editField: true },
-          { label: "Medical notes", ok: !!child.medicalNotes, fix: "Add medical info or mark 'None'", editField: true },
         ];
         const passed = checks.filter((c) => c.ok).length;
         const total = checks.length;
@@ -495,8 +526,8 @@ export default function ChildDetailPage() {
         );
       })()}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl border-0 shadow-sm">
+      <div className={`mt-6 grid gap-4 ${isParent ? "" : "lg:grid-cols-2"}`}>
+        {isStaffOrOwner && <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader><CardTitle>Child profile</CardTitle></CardHeader>
           <CardContent className="space-y-4 text-sm text-slate-600">
             {!editing ? (
@@ -580,9 +611,9 @@ export default function ChildDetailPage() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
 
-        <Card className="rounded-2xl border-0 shadow-sm">
+        {isStaffOrOwner && <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Guardians</CardTitle>
@@ -623,11 +654,11 @@ export default function ChildDetailPage() {
               </div>
             )}
           </CardContent>
-        </Card>
+        </Card>}
       </div>
 
-      {/* Recent activity row */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      {/* Recent activity row (OWNER/STAFF only) */}
+      {isStaffOrOwner && <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="rounded-2xl border-0 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -721,16 +752,16 @@ export default function ChildDetailPage() {
             )}
           </CardContent>
         </Card>
-      </div>
+      </div>}
 
       {/* ─── Growth Portfolio Summary ─── */}
-      <GrowthSummarySection childId={id} />
+      {isStaffOrOwner && <GrowthSummarySection childId={id} />}
 
       {/* ─── Immunization tracking (BC guidelines) ─── */}
       <ImmunizationSection childId={id} />
 
       {/* ─── Developmental milestones ─── */}
-      <MilestonesSection childId={id} childDob={child.dob} />
+      {isStaffOrOwner && <MilestonesSection childId={id} childDob={child.dob} />}
 
       {/* ─── Photo Gallery ─── */}
       <PhotoGallerySection childId={id} />

@@ -37,7 +37,8 @@
     "updateRequests": "變更申請",
     "funding": "資金報告",
     "taxReceipts": "稅務收據",
-    "lessonPlans": "教案計劃"
+    "lessonPlans": "教案計劃",
+    "updateInfo": "更新資訊"
   },
   "auth": {
     "login": "登入",

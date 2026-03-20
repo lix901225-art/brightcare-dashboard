@@ -51,7 +51,7 @@ export default function ParentUpdateInfoPage() {
 
   useEffect(() => {
     Promise.all([
-      apiFetch("/children").then((r) => r.ok ? r.json() : []),
+      apiFetch("/children?myChildren=true").then((r) => r.ok ? r.json() : []),
       apiFetch("/update-requests/my").then((r) => r.ok ? r.json() : []),
     ]).then(([childData, reqData]) => {
       const c = Array.isArray(childData) ? childData : (childData?.children || []);
