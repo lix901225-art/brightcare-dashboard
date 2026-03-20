@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CreditCard, MessageCircle, X } from "lucide-react";
+import { AlertTriangle, ChevronRight, CreditCard, FileWarning, MessageCircle, ShieldAlert, X } from "lucide-react";
 import { PullToRefresh } from "@/components/app/pull-to-refresh";
 import { RoleGate } from "@/components/auth/role-gate";
 import { apiFetch } from "@/lib/api-client";
@@ -92,6 +92,17 @@ type TodayMenu = {
   afternoonSnack?: string;
 };
 
+type IncidentRow = {
+  id: string;
+  childId: string;
+  type?: string | null;
+  severity: string;
+  occurredAt: string;
+  description: string;
+  actionsTaken?: string | null;
+  parentReviewedAt?: string | null;
+};
+
 /* ─── helpers ─── */
 
 function fmtTime(value?: string | null) {
@@ -99,6 +110,13 @@ function fmtTime(value?: string | null) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return null;
   return d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+}
+
+function fmtDate(value?: string | null) {
+  if (!value) return "";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString([], { month: "short", day: "numeric" });
 }
 
 function childAge(dob?: string | null): string {
@@ -126,9 +144,9 @@ function moodEmoji(m?: string | null) {
 }
 
 /** Parse meals string like "breakfast:most,lunch:some,pmSnack:none" into structured data */
-function parseMeals(raw?: string | null): { label: string; amount: string }[] {
+function parseMeals(raw?: string | null): { label: string; amount: string; level: number }[] {
   if (!raw) return [];
-  const results: { label: string; amount: string }[] = [];
+  const results: { label: string; amount: string; level: number }[] = [];
   const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
 
   const labelMap: Record<string, string> = {
@@ -144,13 +162,14 @@ function parseMeals(raw?: string | null): { label: string; amount: string }[] {
     dinner: "Dinner",
   };
 
-  const amountMap: Record<string, string> = {
-    all: "All eaten",
-    most: "Most eaten",
-    some: "Some eaten",
-    none: "Not eaten",
-    "n/a": "N/A",
-    refused: "Refused",
+  const amountMap: Record<string, { text: string; level: number }> = {
+    all: { text: "All eaten", level: 5 },
+    most: { text: "Most eaten", level: 4 },
+    some: { text: "Some eaten", level: 3 },
+    little: { text: "A little", level: 2 },
+    none: { text: "Not eaten", level: 1 },
+    "n/a": { text: "N/A", level: 0 },
+    refused: { text: "Refused", level: 0 },
   };
 
   for (const part of parts) {
@@ -159,13 +178,26 @@ function parseMeals(raw?: string | null): { label: string; amount: string }[] {
       const key = part.slice(0, colonIdx).trim().toLowerCase().replace(/[\s_-]/g, "");
       const val = part.slice(colonIdx + 1).trim().toLowerCase();
       const label = labelMap[key] || part.slice(0, colonIdx).trim();
-      const amount = amountMap[val] || part.slice(colonIdx + 1).trim();
-      results.push({ label, amount });
+      const mapped = amountMap[val] || { text: part.slice(colonIdx + 1).trim(), level: 3 };
+      results.push({ label, amount: mapped.text, level: mapped.level });
     } else {
-      results.push({ label: part, amount: "" });
+      results.push({ label: part, amount: "", level: 0 });
     }
   }
   return results;
+}
+
+/** Render a small progress bar for meal consumption */
+function MealBar({ level }: { level: number }) {
+  const colors = ["bg-slate-200", "bg-rose-400", "bg-amber-400", "bg-amber-400", "bg-emerald-400", "bg-emerald-500"];
+  const filled = Math.max(0, Math.min(5, level));
+  return (
+    <div className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <div key={i} className={["h-2 w-3 rounded-sm", i <= filled ? colors[filled] : "bg-slate-100"].join(" ")} />
+      ))}
+    </div>
+  );
 }
 
 /** Format toileting type for display */
@@ -173,10 +205,17 @@ function toiletingTypeLabel(type?: string | null): string {
   if (!type) return "";
   const t = type.toLowerCase();
   if (t === "wet") return "Wet";
-  if (t === "bm" || t === "bowel") return "BM";
+  if (t === "bm" || t === "bowel") return "Bowel movement";
   if (t === "both") return "Wet + BM";
   if (t === "dry") return "Dry";
   return type;
+}
+
+function severityColor(severity: string) {
+  const s = severity?.toUpperCase();
+  if (s === "HIGH" || s === "CRITICAL") return "bg-rose-100 text-rose-700 border-rose-200";
+  if (s === "MEDIUM") return "bg-amber-100 text-amber-700 border-amber-200";
+  return "bg-slate-100 text-slate-600 border-slate-200";
 }
 
 /* ─── page ─── */
@@ -193,6 +232,7 @@ export default function ParentHomePage() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [todayMenu, setTodayMenu] = useState<TodayMenu | null>(null);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [expandedAnnouncement, setExpandedAnnouncement] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
@@ -203,7 +243,7 @@ export default function ParentHomePage() {
     setError("");
 
     try {
-      const [childrenRes, attendanceRes, reportsRes, learningRes, threadsRes, invoicesRes, announcementsRes, menuRes] = await Promise.all([
+      const [childrenRes, attendanceRes, reportsRes, learningRes, threadsRes, invoicesRes, announcementsRes, menuRes, incidentsRes] = await Promise.all([
         apiFetch("/children?myChildren=true"),
         apiFetch("/attendance").catch(() => null),
         apiFetch("/daily-reports").catch(() => null),
@@ -212,6 +252,7 @@ export default function ParentHomePage() {
         apiFetch("/billing/invoices").catch(() => null),
         apiFetch("/announcements").catch(() => null),
         apiFetch(`/meal-menus?date=${today}`).catch(() => null),
+        apiFetch("/incidents").catch(() => null),
       ]);
 
       const childrenData = await childrenRes.json();
@@ -231,7 +272,6 @@ export default function ParentHomePage() {
       if (learningRes?.ok) {
         const lsData = await learningRes.json();
         const arr = Array.isArray(lsData) ? lsData : (lsData?.data ?? []);
-        // Show recent learning stories (last 7 days)
         const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
         setLearningStories(arr.filter((s: LearningStory) => new Date(s.createdAt) >= weekAgo));
       }
@@ -255,6 +295,14 @@ export default function ParentHomePage() {
         if (menuData && (menuData.breakfast || menuData.lunch || menuData.morningSnack || menuData.afternoonSnack)) {
           setTodayMenu(menuData);
         }
+      }
+
+      if (incidentsRes?.ok) {
+        const incData = await incidentsRes.json();
+        const arr = Array.isArray(incData) ? incData : (incData?.data ?? []);
+        // Show incidents from last 30 days
+        const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
+        setIncidents(arr.filter((i: IncidentRow) => new Date(i.occurredAt) >= monthAgo).slice(0, 5));
       }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load."));
@@ -296,7 +344,29 @@ export default function ParentHomePage() {
     [invoices]
   );
 
-  const recentThreads = useMemo(() => threads.slice(0, 3), [threads]);
+  const recentThreads = useMemo(() => threads.slice(0, 2), [threads]);
+
+  const unreviewed = useMemo(
+    () => incidents.filter((i) => !i.parentReviewedAt),
+    [incidents]
+  );
+
+  // CCFRI reminder: show in August-September
+  const showCcfriReminder = useMemo(() => {
+    const month = new Date().getMonth(); // 0-indexed
+    return month === 7 || month === 8; // August or September
+  }, []);
+
+  // Info update reminder: show in September
+  const showInfoReminder = useMemo(() => {
+    return new Date().getMonth() === 8; // September
+  }, []);
+
+  const childNameMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of children) map[c.id] = c.preferredName || c.fullName || "Child";
+    return map;
+  }, [children]);
 
   return (
     <RoleGate allow={["PARENT", "OWNER"]}>
@@ -310,6 +380,34 @@ export default function ParentHomePage() {
             <CardListSkeleton count={4} />
           ) : (
             <div className="space-y-4">
+
+              {/* ─── CCFRI reminder banner (Aug-Sep only) ─── */}
+              {showCcfriReminder && (
+                <Link
+                  href="/parent/ccfri"
+                  className="flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 transition-colors hover:bg-orange-100"
+                >
+                  <span className="text-xl">⚠️</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-orange-800">CCFRI eligibility update needed by Sept 1</div>
+                    <div className="text-xs text-orange-600">Tap to learn more →</div>
+                  </div>
+                </Link>
+              )}
+
+              {/* ─── Info update reminder (Sep only) ─── */}
+              {showInfoReminder && (
+                <Link
+                  href="/parent/update-info"
+                  className="flex items-center gap-3 rounded-2xl border border-blue-200 bg-blue-50 p-4 transition-colors hover:bg-blue-100"
+                >
+                  <span className="text-xl">📝</span>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-blue-800">Please review your child&apos;s information</div>
+                    <div className="text-xs text-blue-600">Make sure emergency contacts and allergy info are up to date</div>
+                  </div>
+                </Link>
+              )}
 
               {/* ─── Announcements banner ─── */}
               {announcements.length > 0 && (
@@ -333,24 +431,6 @@ export default function ParentHomePage() {
                     </div>
                   )}
                 </button>
-              )}
-
-              {/* ─── Unpaid invoices alert ─── */}
-              {unpaidInvoices.length > 0 && (
-                <Link href="/parent/billing" className="flex items-center gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 transition-colors hover:bg-rose-100">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-100">
-                    <CreditCard className="h-5 w-5 text-rose-600" />
-                  </div>
-                  <div>
-                    <div className="text-sm font-semibold text-rose-800">
-                      ${unpaidInvoices.reduce((s, i) => s + i.balanceAmount, 0).toFixed(2)} due
-                    </div>
-                    <div className="text-xs text-rose-600">
-                      {unpaidInvoices.length} invoice{unpaidInvoices.length !== 1 ? "s" : ""} outstanding
-                      {unpaidInvoices[0]?.dueDate ? ` · Due ${String(unpaidInvoices[0].dueDate).slice(0, 10)}` : ""}
-                    </div>
-                  </div>
-                </Link>
               )}
 
               {/* ─── Feed per child ─── */}
@@ -378,8 +458,8 @@ export default function ParentHomePage() {
 
                       {/* ═══ Child header card ═══ */}
                       <div className="rounded-2xl bg-white p-5 shadow-sm">
-                        <div className="flex items-center gap-3">
-                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-indigo-100 text-xl font-bold text-indigo-600">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-100 to-violet-100 text-xl font-bold text-indigo-600">
                             {displayName[0].toUpperCase()}
                           </div>
                           <div className="flex-1 min-w-0">
@@ -393,17 +473,17 @@ export default function ParentHomePage() {
                             </div>
                             <div className="mt-0.5">
                               {isCheckedIn && att?.checkinAt && (
-                                <span className="inline-flex items-center gap-1 text-sm text-emerald-600">
+                                <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
                                   ✅ Checked in at {fmtTime(att.checkinAt)}
                                 </span>
                               )}
                               {isCheckedOut && att?.checkoutAt && (
-                                <span className="inline-flex items-center gap-1 text-sm text-slate-500">
+                                <span className="inline-flex items-center gap-1.5 text-sm text-slate-500">
                                   🚪 Checked out at {fmtTime(att.checkoutAt)}
                                 </span>
                               )}
                               {status === "ABSENT" && (
-                                <span className="text-sm text-rose-500">Absent today</span>
+                                <span className="text-sm text-rose-500 font-medium">❌ Absent today</span>
                               )}
                               {status === "UNKNOWN" && (
                                 <span className="text-sm text-slate-400">Not checked in yet</span>
@@ -454,17 +534,18 @@ export default function ParentHomePage() {
                               </div>
                             )}
 
-                            {/* Meals */}
+                            {/* Meals with progress bars */}
                             {meals.length > 0 && (
                               <div>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
                                   <span>🍽️</span> Meals
                                 </div>
-                                <div className="space-y-1.5 pl-6">
+                                <div className="space-y-2 pl-6">
                                   {meals.map((m, i) => (
-                                    <div key={i} className="flex items-center justify-between text-sm">
-                                      <span className="text-slate-600">{m.label}</span>
-                                      <span className="text-slate-800 font-medium">{m.amount}</span>
+                                    <div key={i} className="flex items-center gap-3">
+                                      <span className="text-sm text-slate-600 w-24 shrink-0">{m.label}</span>
+                                      <MealBar level={m.level} />
+                                      <span className="text-xs text-slate-500">{m.amount}</span>
                                     </div>
                                   ))}
                                 </div>
@@ -480,8 +561,8 @@ export default function ParentHomePage() {
                                 <div className="space-y-1.5 pl-6">
                                   {toileting.map((entry, i) => (
                                     <div key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                                      {entry.time && <span className="text-slate-400">{fmtTime(entry.time) || entry.time}</span>}
-                                      <span>·</span>
+                                      {entry.time && <span className="text-slate-400 font-medium">{fmtTime(entry.time) || entry.time}</span>}
+                                      <span className="text-slate-300">·</span>
                                       <span>{toiletingTypeLabel(entry.type)}</span>
                                       {entry.notes && <span className="text-slate-400">— {entry.notes}</span>}
                                     </div>
@@ -502,18 +583,18 @@ export default function ParentHomePage() {
                               </div>
                             )}
 
-                            {/* Photos */}
+                            {/* Photos — horizontal scroll */}
                             {report.photoUrls && report.photoUrls.length > 0 && (
                               <div>
                                 <div className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
                                   <span>📷</span> Photos
                                 </div>
-                                <div className="grid grid-cols-3 gap-2 pl-6">
+                                <div className="flex gap-2 overflow-x-auto pl-6 pb-1 -mr-5 pr-5 snap-x">
                                   {report.photoUrls.map((url, i) => (
                                     <button
                                       key={i}
                                       onClick={() => setLightboxUrl(url)}
-                                      className="aspect-square overflow-hidden rounded-xl border border-slate-200 hover:opacity-80 transition-opacity"
+                                      className="h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-200 hover:opacity-80 transition-opacity snap-start"
                                     >
                                       <img src={url} alt="" className="h-full w-full object-cover" />
                                     </button>
@@ -614,7 +695,7 @@ export default function ParentHomePage() {
                 })
               )}
 
-              {/* ─── Recent messages ─── */}
+              {/* ─── Messages preview ─── */}
               <div className="rounded-2xl bg-white p-5 shadow-sm">
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
@@ -645,6 +726,90 @@ export default function ParentHomePage() {
                   </div>
                 )}
               </div>
+
+              {/* ─── Upcoming card ─── */}
+              {(unpaidInvoices.length > 0 || showCcfriReminder) && (
+                <div className="rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+                    Upcoming
+                  </div>
+                  <div className="space-y-2">
+                    {/* Unpaid invoices */}
+                    {unpaidInvoices.length > 0 && (
+                      <Link href="/parent/billing" className="flex items-center gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-3 transition-colors hover:bg-rose-50">
+                        <CreditCard className="h-5 w-5 text-rose-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800">
+                            ${unpaidInvoices.reduce((s, i) => s + i.balanceAmount, 0).toFixed(2)} due
+                          </div>
+                          <div className="text-xs text-slate-500">
+                            {unpaidInvoices.length} invoice{unpaidInvoices.length !== 1 ? "s" : ""} outstanding
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </Link>
+                    )}
+
+                    {/* CCFRI update */}
+                    {showCcfriReminder && (
+                      <Link href="/parent/ccfri" className="flex items-center gap-3 rounded-xl border border-orange-100 bg-orange-50/50 p-3 transition-colors hover:bg-orange-50">
+                        <FileWarning className="h-5 w-5 text-orange-500 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium text-slate-800">CCFRI eligibility update</div>
+                          <div className="text-xs text-slate-500">Due by September 1</div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-300" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ─── Recent Incidents ─── */}
+              {incidents.length > 0 && (
+                <div className="rounded-2xl bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                      <ShieldAlert className="h-4 w-4" /> Recent Incidents
+                      {unreviewed.length > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">
+                          {unreviewed.length}
+                        </span>
+                      )}
+                    </div>
+                    <Link href="/parent/incidents" className="text-xs font-medium text-indigo-500 hover:text-indigo-700">View all →</Link>
+                  </div>
+                  <div className="space-y-2">
+                    {incidents.slice(0, 3).map((inc) => (
+                      <Link
+                        key={inc.id}
+                        href="/parent/incidents"
+                        className={[
+                          "flex items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-slate-50",
+                          !inc.parentReviewedAt ? "border-rose-100 bg-rose-50/30" : "border-slate-100",
+                        ].join(" ")}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className={["text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border", severityColor(inc.severity)].join(" ")}>
+                              {inc.severity}
+                            </span>
+                            {inc.type && <span className="text-xs text-slate-500">{inc.type}</span>}
+                          </div>
+                          <div className="text-sm text-slate-700 mt-1 line-clamp-1">
+                            {childNameMap[inc.childId] || "Child"}: {inc.description}
+                          </div>
+                          <div className="text-xs text-slate-400 mt-0.5">
+                            {fmtDate(inc.occurredAt)}
+                            {!inc.parentReviewedAt && <span className="text-rose-500 ml-2">· Not reviewed</span>}
+                          </div>
+                        </div>
+                        <ChevronRight className="h-4 w-4 text-slate-300 shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           )}
