@@ -67,6 +67,7 @@ export default function DailyReportsPage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [meals, setMeals] = useState("");
   const [naps, setNaps] = useState("0");
+  const [napEntries, setNapEntries] = useState<{ start: string; end: string }[]>([]);
   const [mood, setMood] = useState("");
   const [activities, setActivities] = useState("");
   const [notes, setNotes] = useState("");
@@ -178,6 +179,7 @@ export default function DailyReportsPage() {
   function resetForm() {
     setMeals("");
     setNaps("0");
+    setNapEntries([]);
     setMood("");
     setActivities("");
     setNotes("");
@@ -624,23 +626,77 @@ export default function DailyReportsPage() {
                       </div>
                     </div>
 
-                    {/* Naps — descriptive tap selector */}
-                    <div>
+                    {/* Naps — HiMama-style start/end tracker */}
+                    <div className="md:col-span-2">
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Naps</div>
+
+                      {/* Nap entries */}
+                      {napEntries.length > 0 && (
+                        <div className="mb-2 space-y-1.5">
+                          {napEntries.map((nap, i) => {
+                            const duration = nap.start && nap.end
+                              ? (() => {
+                                  const [sh, sm] = nap.start.split(":").map(Number);
+                                  const [eh, em] = nap.end.split(":").map(Number);
+                                  const mins = (eh * 60 + em) - (sh * 60 + sm);
+                                  if (mins <= 0) return "";
+                                  const h = Math.floor(mins / 60);
+                                  const m = mins % 60;
+                                  return h > 0 ? `${h}h ${m}min` : `${m}min`;
+                                })()
+                              : "";
+                            return (
+                              <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                <span className="text-sm">😴</span>
+                                <input type="time" value={nap.start} onChange={(e) => { const arr = [...napEntries]; arr[i] = { ...arr[i], start: e.target.value }; setNapEntries(arr); setNaps(String(arr.length)); }} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs" />
+                                <span className="text-xs text-slate-400">→</span>
+                                <input type="time" value={nap.end} onChange={(e) => { const arr = [...napEntries]; arr[i] = { ...arr[i], end: e.target.value }; setNapEntries(arr); }} className="h-8 rounded-lg border border-slate-200 bg-white px-2 text-xs" />
+                                {duration && <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">{duration}</span>}
+                                <button type="button" onClick={() => { const arr = napEntries.filter((_, j) => j !== i); setNapEntries(arr); setNaps(String(arr.length)); }} className="ml-auto text-slate-400 hover:text-rose-500 text-xs">&times;</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {/* Active nap (start pressed, no end yet) */}
                       <div className="flex gap-2">
-                        {[
-                          { value: "0", label: "No nap", emoji: "🚫" },
-                          { value: "1", label: "1 nap", emoji: "😴" },
-                          { value: "2", label: "2 naps", emoji: "😴" },
-                          { value: "3", label: "3 naps", emoji: "💤" },
-                        ].map((n) => (
-                          <button key={n.value} type="button" onClick={() => setNaps(n.value)}
-                            className={`flex flex-1 flex-col items-center rounded-xl border-2 py-2.5 transition ${naps === n.value ? "border-indigo-400 bg-indigo-50" : "border-slate-200 bg-white hover:border-slate-300"}`}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const now = new Date().toTimeString().slice(0, 5);
+                            // Check if there's an active nap (has start but no end)
+                            const activeIdx = napEntries.findIndex((n) => n.start && !n.end);
+                            if (activeIdx >= 0) {
+                              // End the active nap
+                              const arr = [...napEntries];
+                              arr[activeIdx] = { ...arr[activeIdx], end: now };
+                              setNapEntries(arr);
+                            } else {
+                              // Start a new nap
+                              const arr = [...napEntries, { start: now, end: "" }];
+                              setNapEntries(arr);
+                              setNaps(String(arr.length));
+                            }
+                          }}
+                          className={[
+                            "flex-1 inline-flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]",
+                            napEntries.some((n) => n.start && !n.end)
+                              ? "bg-rose-500 text-white hover:bg-rose-600"
+                              : "border-2 border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
+                          ].join(" ")}
+                        >
+                          {napEntries.some((n) => n.start && !n.end) ? "😴 Nap End" : "😴 Nap Start"}
+                        </button>
+                        {napEntries.length === 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setNaps("0")}
+                            className={`inline-flex h-12 items-center justify-center gap-1 rounded-xl border-2 px-4 text-sm font-semibold transition ${napEntries.length === 0 && naps === "0" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600"}`}
                           >
-                            <span className="text-lg">{n.emoji}</span>
-                            <span className={`mt-0.5 text-[10px] font-semibold ${naps === n.value ? "text-indigo-600" : "text-slate-400"}`}>{n.label}</span>
+                            🚫 No nap
                           </button>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </div>
@@ -695,31 +751,50 @@ export default function DailyReportsPage() {
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                         Bathroom
                       </div>
-                      <input
-                        value={bathroom}
-                        onChange={(e) => setBathroom(e.target.value)}
-                        placeholder="e.g. 2 diaper changes, used potty once"
-                        className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm outline-none"
-                      />
 
-                      {/* Toileting log (BC licensing) */}
-                      <div className="mt-3">
-                        <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Toileting log</div>
-                        {toileting.map((t, i) => (
-                          <div key={i} className="mb-2 flex items-center gap-2">
-                            <input type="time" value={t.time} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], time: e.target.value }; setToileting(arr); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs" />
-                            <select value={t.type} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], type: e.target.value }; setToileting(arr); }} className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-xs">
-                              <option value="wet">Wet</option>
-                              <option value="bm">BM</option>
-                              <option value="both">Both</option>
-                              <option value="dry">Dry</option>
-                            </select>
-                            <input value={t.notes} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], notes: e.target.value }; setToileting(arr); }} placeholder="Notes" className="h-9 flex-1 rounded-lg border border-slate-200 bg-white px-2 text-xs" />
-                            <button onClick={() => setToileting(toileting.filter((_, j) => j !== i))} className="text-xs text-slate-400 hover:text-rose-500">&times;</button>
-                          </div>
+                      {/* Quick-add buttons */}
+                      <div className="flex gap-2 mb-3">
+                        {[
+                          { type: "wet", label: "💧 Wet", color: "border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100" },
+                          { type: "bm", label: "💩 BM", color: "border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100" },
+                          { type: "both", label: "💧💩 Both", color: "border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100" },
+                          { type: "dry", label: "✅ Dry", color: "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" },
+                        ].map((btn) => (
+                          <button
+                            key={btn.type}
+                            type="button"
+                            onClick={() => {
+                              const now = new Date().toTimeString().slice(0, 5);
+                              setToileting([...toileting, { time: now, type: btn.type, notes: "" }]);
+                            }}
+                            className={`flex-1 rounded-xl border py-2.5 text-center text-xs font-semibold transition active:scale-[0.97] ${btn.color}`}
+                          >
+                            {btn.label}
+                          </button>
                         ))}
-                        <button onClick={() => setToileting([...toileting, { time: new Date().toTimeString().slice(0, 5), type: "wet", notes: "" }])} className="text-xs font-medium text-slate-500 hover:text-slate-700">+ Add entry</button>
                       </div>
+
+                      {/* Toileting log entries */}
+                      {toileting.length > 0 && (
+                        <div className="space-y-1.5">
+                          {toileting.map((t, i) => {
+                            const badge = { wet: "💧 Wet", bm: "💩 BM", both: "💧💩 Both", dry: "✅ Dry" }[t.type] || t.type;
+                            const badgeColor = { wet: "bg-sky-100 text-sky-700", bm: "bg-amber-100 text-amber-700", both: "bg-violet-100 text-violet-700", dry: "bg-emerald-100 text-emerald-700" }[t.type] || "bg-slate-100 text-slate-700";
+                            return (
+                              <div key={i} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                <input type="time" value={t.time} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], time: e.target.value }; setToileting(arr); }} className="h-7 w-20 rounded border border-slate-200 bg-white px-1.5 text-xs" />
+                                <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${badgeColor}`}>{badge}</span>
+                                <input value={t.notes} onChange={(e) => { const arr = [...toileting]; arr[i] = { ...arr[i], notes: e.target.value }; setToileting(arr); }} placeholder="Notes" className="h-7 flex-1 rounded border border-slate-200 bg-white px-2 text-xs" />
+                                <button type="button" onClick={() => setToileting(toileting.filter((_, j) => j !== i))} className="text-slate-400 hover:text-rose-500 text-sm">&times;</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {toileting.length === 0 && (
+                        <div className="text-xs text-slate-400">Tap a button above to log a bathroom entry</div>
+                      )}
                     </div>
                     <div>
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
