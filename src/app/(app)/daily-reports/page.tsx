@@ -733,17 +733,72 @@ export default function DailyReportsPage() {
                     </div>
                   </div>
 
-                  {/* Activities */}
+                  {/* Activities — icon grid selector */}
                   <div className="mt-4">
                     <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                       Activities
                     </div>
-                    <textarea
-                      value={activities}
-                      onChange={(e) => setActivities(e.target.value)}
-                      placeholder="Painting, outdoor play, circle time..."
-                      className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none"
-                    />
+                    {(() => {
+                      const ACTIVITY_OPTIONS = [
+                        { emoji: "🧱", label: "Building/Blocks" },
+                        { emoji: "🌿", label: "Outdoor/Nature" },
+                        { emoji: "📚", label: "Storytime" },
+                        { emoji: "🎨", label: "Arts & Crafts" },
+                        { emoji: "🎵", label: "Music/Dance" },
+                        { emoji: "🧩", label: "Puzzles/Games" },
+                        { emoji: "🏃", label: "Physical Play" },
+                        { emoji: "🌊", label: "Water/Sand Play" },
+                        { emoji: "🍳", label: "Cooking/Baking" },
+                        { emoji: "🔬", label: "Science/Explore" },
+                        { emoji: "🤝", label: "Social Play" },
+                        { emoji: "😴", label: "Rest/Quiet Time" },
+                        { emoji: "✏️", label: "Writing/Drawing" },
+                        { emoji: "🎭", label: "Pretend Play" },
+                        { emoji: "🖥️", label: "Technology" },
+                        { emoji: "🌱", label: "Gardening" },
+                      ];
+                      const selected = activities ? activities.split(",").map((s) => s.trim()).filter(Boolean) : [];
+                      const toggle = (label: string) => {
+                        if (selected.includes(label)) {
+                          setActivities(selected.filter((s) => s !== label).join(", "));
+                        } else {
+                          setActivities([...selected, label].join(", "));
+                        }
+                      };
+                      return (
+                        <>
+                          <div className="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6">
+                            {ACTIVITY_OPTIONS.map((opt) => {
+                              const isSelected = selected.includes(opt.label);
+                              return (
+                                <button
+                                  key={opt.label}
+                                  type="button"
+                                  onClick={() => toggle(opt.label)}
+                                  className={[
+                                    "flex flex-col items-center gap-1 rounded-xl border p-2.5 text-center transition-colors",
+                                    isSelected
+                                      ? "border-indigo-300 bg-indigo-50 ring-1 ring-indigo-200"
+                                      : "border-slate-200 bg-white hover:bg-slate-50",
+                                  ].join(" ")}
+                                >
+                                  <span className="text-xl">{opt.emoji}</span>
+                                  <span className={["text-[10px] leading-tight font-medium", isSelected ? "text-indigo-700" : "text-slate-600"].join(" ")}>
+                                    {opt.label}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <input
+                            value={activities}
+                            onChange={(e) => setActivities(e.target.value)}
+                            placeholder="+ Other activities..."
+                            className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none placeholder:text-slate-400"
+                          />
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -908,7 +963,7 @@ export default function DailyReportsPage() {
                     </div>
                     <div>
                       <div className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">Activities</div>
-                      <textarea value={activities} onChange={(e) => setActivities(e.target.value)} placeholder="Circle time, outdoor play..." className="min-h-[60px] w-full rounded-xl border border-slate-200 bg-white p-3 text-sm outline-none" />
+                      <input value={activities} onChange={(e) => setActivities(e.target.value)} placeholder="Building/Blocks, Outdoor/Nature, Storytime..." className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none" />
                     </div>
                   </div>
                   <div className="mt-4">
