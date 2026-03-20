@@ -5,8 +5,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronRight, X } from "lucide-react";
 import { PullToRefresh } from "@/components/app/pull-to-refresh";
 import { RoleGate } from "@/components/auth/role-gate";
+import { PageIntro } from "@/components/app/app-shell";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
-import { CardListSkeleton } from "@/components/ui/skeleton";
+import { MetricCardsSkeleton, CardListSkeleton } from "@/components/ui/skeleton";
 import { getErrorMessage } from "@/lib/error";
 
 /* ─── types ─── */
@@ -39,6 +41,7 @@ type DailyReport = {
   notes?: string | null;
   photoUrls?: string[] | null;
   aiNarrative?: string | null;
+  status?: string | null;
 };
 
 type ThreadRow = {
@@ -109,7 +112,7 @@ function moodEmoji(m?: string | null) {
 }
 
 function mealsSummary(raw?: string | null): string {
-  if (!raw) return "";
+  if (!raw) return "—";
   const parts = raw.split(",").map((s) => s.trim()).filter(Boolean);
   let total = 0, count = 0;
   const levels: Record<string, number> = { all: 3, most: 2, some: 1, little: 0, none: 0, refused: 0 };
@@ -117,7 +120,7 @@ function mealsSummary(raw?: string | null): string {
     const idx = p.indexOf(":");
     if (idx > 0) { total += levels[p.slice(idx + 1).trim().toLowerCase()] ?? 1; count++; }
   }
-  if (count === 0) return "";
+  if (count === 0) return "—";
   const avg = total / count;
   if (avg >= 2.5) return "Ate well";
   if (avg >= 1.5) return "Ate most";
@@ -137,7 +140,6 @@ export default function ParentHomePage() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [weekMenus, setWeekMenus] = useState<WeekMenu[]>([]);
-  const [expandedAnnouncement, setExpandedAnnouncement] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -181,7 +183,7 @@ export default function ParentHomePage() {
 
       if (weekMenuRes?.ok) {
         const d = await weekMenuRes.json();
-        if (d?.menus && Array.isArray(d.menus) && d.menus.length > 0) setWeekMenus(d.menus);
+        if (d?.menus && Array.isArray(d.menus)) setWeekMenus(d.menus);
       }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load."));
@@ -195,241 +197,296 @@ export default function ParentHomePage() {
   const attByChild = useMemo(() => Object.fromEntries(attendance.filter((a) => a.childId).map((a) => [a.childId!, a])), [attendance]);
   const reportByChild = useMemo(() => { const m: Record<string, DailyReport> = {}; for (const r of reports) if (r.childId) m[r.childId] = r; return m; }, [reports]);
   const unpaid = useMemo(() => invoices.filter((i) => i.status.toUpperCase() !== "PAID" && i.status.toUpperCase() !== "VOID" && i.balanceAmount > 0), [invoices]);
-  const unreadThreads = useMemo(() => threads.filter((t) => (t.unreadCount ?? 0) > 0).slice(0, 2), [threads]);
+  const latestThreads = useMemo(() => threads.slice(0, 3), [threads]);
+
+  // Use first child for metrics (most parents have 1 child)
+  const child = children[0] || null;
+  const att = child ? attByChild[child.id] : null;
+  const report = child ? reportByChild[child.id] : null;
+  const displayName = child ? (child.preferredName || child.fullName || "Child") : "";
+  const age = childAge(child?.dob);
+  const status = (att?.status || "UNKNOWN").toUpperCase();
+  const isIn = status === "PRESENT" || status === "CHECKED_IN";
+  const isOut = status === "CHECKED_OUT";
+  const napCount = report?.naps != null ? Number(report.naps) : 0;
+  const meals = mealsSummary(report?.meals);
+  const hasPhotos = (report?.photoUrls || []).length > 0;
+  const reportStatus = report?.status?.toUpperCase() === "SENT" ? "Sent" : report ? "Draft" : "—";
 
   return (
     <RoleGate allow={["PARENT", "OWNER"]}>
       <PullToRefresh onRefresh={loadAll}>
-        <div className="mx-auto max-w-[520px] min-h-screen bg-white pb-8">
-          {error && <div className="mx-4 mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+        <div>
+          <PageIntro
+            title={`Welcome back${displayName ? `, ${displayName}'s family` : ""}`}
+            description={new Date().toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" })}
+          />
+
+          {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
+
+          {/* ─── Unpaid invoice banner ─── */}
+          {!loading && unpaid.length > 0 && (
+            <Link href="/parent/billing" className="mb-6 flex items-center gap-3 rounded-2xl border border-orange-200 bg-orange-50 p-4 transition-colors hover:bg-orange-100">
+              <span className="text-xl">💰</span>
+              <div className="flex-1 text-sm">
+                <span className="font-semibold text-orange-800">${unpaid.reduce((s, i) => s + i.balanceAmount, 0).toFixed(2)}</span>
+                <span className="text-orange-700"> due {unpaid[0]?.dueDate ? fmtDate(unpaid[0].dueDate) : "soon"}</span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-orange-400" />
+            </Link>
+          )}
 
           {loading ? (
-            <div className="px-4 pt-6"><CardListSkeleton count={3} /></div>
-          ) : children.length === 0 ? (
-            <div className="px-4 pt-16 text-center">
-              <div className="text-5xl mb-4">👋</div>
-              <div className="text-lg font-semibold text-slate-900">Welcome!</div>
-              <div className="mt-1 text-sm text-slate-500">No children linked yet. Contact your centre.</div>
+            <div className="space-y-6">
+              <MetricCardsSkeleton count={4} />
+              <CardListSkeleton count={2} />
             </div>
+          ) : children.length === 0 ? (
+            <Card className="rounded-2xl border-0 shadow-sm">
+              <CardContent className="py-12 text-center">
+                <div className="text-5xl mb-4">👋</div>
+                <div className="text-lg font-semibold text-slate-900">Welcome!</div>
+                <div className="mt-1 text-sm text-slate-500">No children linked yet. Contact your centre.</div>
+              </CardContent>
+            </Card>
           ) : (
-            children.map((child) => {
-              const att = attByChild[child.id];
-              const report = reportByChild[child.id];
-              const status = (att?.status || "UNKNOWN").toUpperCase();
-              const isIn = status === "PRESENT" || status === "CHECKED_IN";
-              const isOut = status === "CHECKED_OUT";
-              const age = childAge(child.dob);
-              const name = child.preferredName || child.fullName || "Child";
-              const hasPhotos = (report?.photoUrls || []).length > 0;
-              const napCount = report?.naps != null ? Number(report.naps) : 0;
-              const meals = mealsSummary(report?.meals);
+            <>
+              {/* ════════ Metric Cards Row ════════ */}
+              <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-6">
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Mood</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="text-3xl">{report?.mood ? moodEmoji(report.mood) : "—"}</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800 capitalize">{report?.mood || "No data"}</div>
+                  </CardContent>
+                </Card>
 
-              return (
-                <div key={child.id}>
-
-                  {/* ════════════ TOP — Child Profile ════════════ */}
-                  <div className="px-4 pt-8 pb-6 text-center">
-                    {/* Avatar */}
-                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-3xl font-bold text-white shadow-lg">
-                      {name[0].toUpperCase()}
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Nap</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="text-3xl">🌙</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">
+                      {napCount > 0 ? `${napCount} nap${napCount !== 1 ? "s" : ""}` : "No nap"}
                     </div>
+                  </CardContent>
+                </Card>
 
-                    {/* Name */}
-                    <div className="mt-3 text-2xl font-bold text-slate-900">{name}</div>
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Meals</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="text-3xl">🍽️</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">{meals}</div>
+                  </CardContent>
+                </Card>
 
-                    {/* Meta line */}
-                    <div className="mt-1 text-sm text-slate-400">
-                      {[age, child.className].filter(Boolean).join(" · ")}
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Report</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="text-3xl">📋</div>
+                    <div className="mt-1 text-sm font-medium text-slate-800">{reportStatus}</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* ════════ Child Profile Card ════════ */}
+              <Card className="rounded-2xl border-0 shadow-sm mb-6">
+                <CardContent className="py-5">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-xl font-bold text-white">
+                      {displayName[0]?.toUpperCase() || "?"}
                     </div>
-
-                    {/* Attendance status */}
-                    <div className="mt-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-lg font-semibold text-slate-900">{displayName}</div>
+                      <div className="text-sm text-slate-500">
+                        {[age, child?.className].filter(Boolean).join(" · ")}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
                       {isOut && att?.checkinAt && att?.checkoutAt ? (
-                        <div className="text-sm text-slate-500">
-                          ✅ In {fmtTime(att.checkinAt)}  →  🚪 Out {fmtTime(att.checkoutAt)}
+                        <div className="space-y-0.5">
+                          <div className="text-sm text-emerald-600">✅ In {fmtTime(att.checkinAt)}</div>
+                          <div className="text-sm text-slate-500">🚪 Out {fmtTime(att.checkoutAt)}</div>
                         </div>
                       ) : isIn && att?.checkinAt ? (
-                        <div className="text-sm text-emerald-600 font-medium">
-                          ✅ Checked in at {fmtTime(att.checkinAt)}
-                        </div>
+                        <div className="text-sm text-emerald-600 font-medium">✅ Checked in {fmtTime(att.checkinAt)}</div>
                       ) : status === "ABSENT" ? (
-                        <div className="text-sm text-rose-500 font-medium">❌ Absent today</div>
+                        <div className="text-sm text-rose-500 font-medium">❌ Absent</div>
                       ) : (
-                        <div className="text-sm text-slate-400">⏰ Not checked in yet</div>
+                        <div className="text-sm text-slate-400">⏰ Not checked in</div>
                       )}
                     </div>
-
-                    {/* Allergies */}
-                    {child.allergies && (
-                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-medium text-orange-700">
-                        ⚠️ Allergies: {child.allergies}
-                      </div>
-                    )}
                   </div>
-
-                  {/* Divider */}
-                  <div className="mx-4 border-t border-slate-100" />
-
-                  {/* ════════════ BOTTOM — Today's Report ════════════ */}
-                  <div className="px-4 pt-5">
-                    <div className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">
-                      Today&apos;s Report
+                  {child?.allergies && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-medium text-orange-700">
+                      ⚠️ Allergies: {child.allergies}
                     </div>
+                  )}
+                </CardContent>
+              </Card>
 
-                    {report?.aiNarrative ? (
-                      /* ── Has AI narrative ── */
-                      <div>
-                        <p className="text-base leading-[1.6] text-slate-700">
-                          {report.aiNarrative}
-                        </p>
-
-                        {/* Photos below narrative */}
-                        {hasPhotos && (
-                          <div className="mt-5">
-                            {report.photoUrls!.length === 1 ? (
-                              <button onClick={() => setLightboxUrl(report.photoUrls![0])} className="w-full">
-                                <img src={report.photoUrls![0]} alt="" className="w-full rounded-xl object-cover aspect-[4/3]" />
-                              </button>
-                            ) : (
-                              <div className="flex gap-2 overflow-x-auto snap-x -mx-4 px-4 pb-1">
-                                {report.photoUrls!.map((url, i) => (
-                                  <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start">
-                                    <img src={url} alt="" className="h-48 w-40 rounded-xl object-cover" />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    ) : report ? (
-                      /* ── Has report but no AI narrative — show quick glance ── */
-                      <div>
-                        <div className="flex items-center gap-3 text-sm text-slate-600 flex-wrap">
-                          {report.mood && (
-                            <span className="inline-flex items-center gap-1">
-                              {moodEmoji(report.mood)} <span className="capitalize">{report.mood}</span>
-                            </span>
-                          )}
-                          {napCount > 0 && (
-                            <>
-                              <span className="text-slate-300">·</span>
-                              <span>🌙 {napCount} nap{napCount !== 1 ? "s" : ""}</span>
-                            </>
-                          )}
-                          {meals && (
-                            <>
-                              <span className="text-slate-300">·</span>
-                              <span>🍽️ {meals}</span>
-                            </>
+              {/* ════════ Today's Report ════════ */}
+              <Card className="rounded-2xl border-0 shadow-sm mb-6">
+                <CardHeader>
+                  <CardTitle>Today&apos;s Report</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {report?.aiNarrative ? (
+                    <div>
+                      <p className="text-base leading-relaxed text-slate-700">{report.aiNarrative}</p>
+                      {hasPhotos && (
+                        <div className="mt-4">
+                          {report.photoUrls!.length === 1 ? (
+                            <button onClick={() => setLightboxUrl(report.photoUrls![0])} className="w-full">
+                              <img src={report.photoUrls![0]} alt="" className="w-full rounded-xl object-cover aspect-[16/9]" />
+                            </button>
+                          ) : (
+                            <div className="flex gap-2 overflow-x-auto snap-x pb-1">
+                              {report.photoUrls!.map((url, i) => (
+                                <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start">
+                                  <img src={url} alt="" className="h-44 w-36 rounded-xl object-cover" />
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
-                        {report.notes && (
-                          <p className="mt-3 text-sm text-slate-500 italic">&ldquo;{report.notes}&rdquo;</p>
+                      )}
+                    </div>
+                  ) : report ? (
+                    <div>
+                      <div className="flex items-center gap-3 text-sm text-slate-600 flex-wrap">
+                        {report.mood && (
+                          <span className="inline-flex items-center gap-1">{moodEmoji(report.mood)} <span className="capitalize">{report.mood}</span></span>
                         )}
-
-                        {hasPhotos && (
-                          <div className="mt-4 flex gap-2 overflow-x-auto snap-x -mx-4 px-4 pb-1">
-                            {report.photoUrls!.map((url, i) => (
-                              <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start">
-                                <img src={url} alt="" className="h-48 w-40 rounded-xl object-cover" />
-                              </button>
-                            ))}
-                          </div>
-                        )}
+                        {napCount > 0 && (<><span className="text-slate-300">·</span><span>🌙 {napCount} nap{napCount !== 1 ? "s" : ""}</span></>)}
+                        {meals !== "—" && (<><span className="text-slate-300">·</span><span>🍽️ {meals}</span></>)}
                       </div>
+                      {report.notes && <p className="mt-3 text-sm text-slate-500 italic">&ldquo;{report.notes}&rdquo;</p>}
+                      {hasPhotos && (
+                        <div className="mt-4 flex gap-2 overflow-x-auto snap-x pb-1">
+                          {report.photoUrls!.map((url, i) => (
+                            <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start">
+                              <img src={url} alt="" className="h-44 w-36 rounded-xl object-cover" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="py-4 text-center">
+                      <div className="text-3xl mb-2">☀️</div>
+                      <div className="text-sm font-medium text-slate-600">No report yet — check back later!</div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* ════════ Two-column: Messages + Weekly Menu ════════ */}
+              <div className="grid gap-4 md:grid-cols-2 mb-6">
+                {/* Messages */}
+                <Card className="rounded-2xl border-0 shadow-sm">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Messages</CardTitle>
+                      <Link href="/messages" className="text-xs font-medium text-indigo-500 hover:text-indigo-700">View all →</Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {latestThreads.length === 0 ? (
+                      <div className="text-sm text-slate-400">No messages yet</div>
                     ) : (
-                      /* ── No report yet ── */
-                      <div className="py-6 text-center">
-                        <div className="text-4xl mb-2">☀️</div>
-                        <div className="text-base font-semibold text-slate-700">No report yet today</div>
-                        <div className="text-sm text-slate-400 mt-1">Check back later!</div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ════════════ EXTRAS ════════════ */}
-                  <div className="px-4 mt-6 space-y-3">
-
-                    {/* Announcement */}
-                    {announcements.length > 0 && (
-                      <button
-                        onClick={() => setExpandedAnnouncement(!expandedAnnouncement)}
-                        className="w-full rounded-xl border border-orange-200 bg-orange-50 p-3 text-left"
-                      >
-                        <div className="text-sm font-medium text-slate-800">
-                          📢 {announcements[0].title}
-                        </div>
-                        {!expandedAnnouncement && announcements[0].content && (
-                          <div className="mt-0.5 text-xs text-slate-500 line-clamp-1">{announcements[0].content}</div>
-                        )}
-                        {expandedAnnouncement && announcements.map((a) => (
-                          <div key={a.id} className="mt-2 rounded-lg bg-white p-2.5 text-xs text-slate-600">
-                            <div className="font-medium text-slate-800">{a.title}</div>
-                            {a.content && <div className="mt-1 leading-relaxed">{a.content}</div>}
-                          </div>
-                        ))}
-                      </button>
-                    )}
-
-                    {/* Weekly menu */}
-                    {weekMenus.length > 0 && (
-                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">This Week&apos;s Menu</div>
-                        <div className="space-y-1">
-                          {weekMenus.map((m) => {
-                            const day = new Date(m.date).toLocaleDateString([], { weekday: "short" });
-                            const items = [m.breakfast, m.lunch, m.afternoonSnack].filter(Boolean).join("  ·  ");
-                            return items ? (
-                              <div key={m.date} className="flex gap-2 text-xs">
-                                <span className="w-8 shrink-0 font-medium text-slate-500">{day}</span>
-                                <span className="text-slate-600 truncate">{items}</span>
-                              </div>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Unread messages */}
-                    {unreadThreads.length > 0 && (
-                      <div className="space-y-1.5">
-                        {unreadThreads.map((t) => (
-                          <Link key={t.id} href={`/messages/${t.id}`} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3 hover:bg-slate-50 transition-colors">
-                            <span className="text-base">💬</span>
+                      <div className="space-y-2">
+                        {latestThreads.map((t) => (
+                          <Link key={t.id} href={`/messages/${t.id}`} className="flex items-center gap-3 rounded-xl p-2 hover:bg-slate-50 transition-colors -mx-2">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">
+                              {(t.latestSenderName || t.childName || "?")[0]}
+                            </div>
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm text-slate-800 truncate">
-                                <span className="font-medium">{t.latestSenderName || t.childName || "Centre"}:</span>{" "}
-                                <span className="text-slate-500">&ldquo;{t.latestMessage}&rdquo;</span>
-                              </div>
+                              <div className="text-sm font-medium text-slate-900 truncate">{t.latestSenderName || t.childName || "Centre"}</div>
+                              <div className="text-xs text-slate-500 truncate">{t.latestMessage || "No messages"}</div>
                             </div>
                             {(t.unreadCount ?? 0) > 0 && (
                               <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{t.unreadCount}</span>
                             )}
                           </Link>
                         ))}
-                        <Link href="/messages" className="block text-xs text-indigo-500 font-medium pl-1">View all →</Link>
                       </div>
                     )}
+                  </CardContent>
+                </Card>
 
-                    {/* Unpaid invoices */}
-                    {unpaid.length > 0 && (
-                      <Link href="/parent/billing" className="flex items-center gap-3 rounded-xl border border-orange-200 bg-orange-50 p-3 hover:bg-orange-100 transition-colors">
-                        <span className="text-base">💰</span>
-                        <div className="flex-1 text-sm text-orange-800">
-                          <span className="font-semibold">${unpaid.reduce((s, i) => s + i.balanceAmount, 0).toFixed(2)}</span>
-                          {" "}due {unpaid[0]?.dueDate ? fmtDate(unpaid[0].dueDate) : "soon"}
+                {/* Weekly menu or Announcements */}
+                {weekMenus.length > 0 ? (
+                  <Card className="rounded-2xl border-0 shadow-sm">
+                    <CardHeader><CardTitle>This Week&apos;s Menu</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="space-y-1.5">
+                        {weekMenus.map((m) => {
+                          const day = new Date(m.date).toLocaleDateString([], { weekday: "short" });
+                          const items = [m.breakfast, m.lunch, m.afternoonSnack].filter(Boolean).join("  ·  ");
+                          return items ? (
+                            <div key={m.date} className="flex gap-2 text-sm">
+                              <span className="w-9 shrink-0 font-medium text-slate-500">{day}</span>
+                              <span className="text-slate-700 truncate">{items}</span>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : announcements.length > 0 ? (
+                  <Card className="rounded-2xl border-0 shadow-sm">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle>Announcements</CardTitle>
+                        <Link href="/parent/announcements" className="text-xs font-medium text-indigo-500 hover:text-indigo-700">View all →</Link>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {announcements.map((a) => (
+                          <div key={a.id}>
+                            <div className="text-sm font-medium text-slate-900">{a.title}</div>
+                            {a.content && <div className="mt-0.5 text-xs text-slate-500 line-clamp-2">{a.content}</div>}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : null}
+              </div>
+
+              {/* Multi-child: show additional children */}
+              {children.length > 1 && children.slice(1).map((c) => {
+                const cAtt = attByChild[c.id];
+                const cReport = reportByChild[c.id];
+                const cStatus = (cAtt?.status || "UNKNOWN").toUpperCase();
+                const cName = c.preferredName || c.fullName || "Child";
+
+                return (
+                  <Card key={c.id} className="rounded-2xl border-0 shadow-sm mb-4">
+                    <CardContent className="py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-sm font-bold text-white">
+                          {cName[0].toUpperCase()}
                         </div>
-                        <ChevronRight className="h-4 w-4 text-orange-400" />
-                      </Link>
-                    )}
-                  </div>
-
-                  {/* Bottom spacer for multi-child */}
-                  {children.length > 1 && <div className="mx-4 mt-8 mb-4 border-t border-slate-200" />}
-                </div>
-              );
-            })
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold text-slate-900">{cName}</div>
+                          <div className="text-xs text-slate-500">{childAge(c.dob)}</div>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {cStatus === "CHECKED_IN" || cStatus === "PRESENT" ? "✅ Checked in" :
+                           cStatus === "CHECKED_OUT" ? "🚪 Checked out" :
+                           cStatus === "ABSENT" ? "❌ Absent" : "⏰ Not in"}
+                        </div>
+                      </div>
+                      {cReport?.aiNarrative && (
+                        <p className="mt-3 text-sm text-slate-600 leading-relaxed">{cReport.aiNarrative}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </>
           )}
         </div>
       </PullToRefresh>

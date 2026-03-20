@@ -155,6 +155,7 @@ export const NAV_GROUPS_BY_ROLE: Record<AppRole, NavGroup[]> = {
       items: [
         { href: "/parent", label: "Home", tKey: "nav.parentHome" },
         { href: "/messages", label: "Messages", tKey: "nav.messages" },
+        { href: "/parent/announcements", label: "Announcements", tKey: "nav.announcements" },
         { href: "/parent/billing", label: "Billing", tKey: "nav.billing" },
         { href: "/settings", label: "Settings", tKey: "nav.settings" },
       ],
