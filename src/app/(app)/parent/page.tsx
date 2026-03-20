@@ -122,11 +122,13 @@ function mealsSummary(raw?: string | null): string {
   }
   if (count === 0) return "—";
   const avg = total / count;
-  if (avg >= 2.5) return "Ate well";
-  if (avg >= 1.5) return "Ate most";
-  if (avg >= 0.5) return "Ate some";
-  return "Ate little";
+  if (avg >= 2.5) return "Ate everything 😋";
+  if (avg >= 1.5) return "Ate well 👍";
+  if (avg >= 0.5) return "Light appetite";
+  return "Didn't eat much";
 }
+
+type TodayMenu = { breakfast?: string; morningSnack?: string; lunch?: string; afternoonSnack?: string };
 
 /* ─── page ─── */
 
@@ -140,6 +142,7 @@ export default function ParentHomePage() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [weekMenus, setWeekMenus] = useState<WeekMenu[]>([]);
+  const [todayMenu, setTodayMenu] = useState<TodayMenu | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -148,7 +151,7 @@ export default function ParentHomePage() {
     setLoading(true);
     setError("");
     try {
-      const [childrenRes, attendanceRes, reportsRes, threadsRes, invoicesRes, announcementsRes, weekMenuRes] = await Promise.all([
+      const [childrenRes, attendanceRes, reportsRes, threadsRes, invoicesRes, announcementsRes, weekMenuRes, todayMenuRes] = await Promise.all([
         apiFetch("/children?myChildren=true"),
         apiFetch("/attendance").catch(() => null),
         apiFetch("/daily-reports").catch(() => null),
@@ -156,6 +159,7 @@ export default function ParentHomePage() {
         apiFetch("/billing/invoices").catch(() => null),
         apiFetch("/announcements").catch(() => null),
         apiFetch(`/meal-menus/week?date=${today}`).catch(() => null),
+        apiFetch(`/meal-menus?date=${today}`).catch(() => null),
       ]);
 
       const childrenData = await childrenRes.json();
@@ -185,6 +189,10 @@ export default function ParentHomePage() {
         const d = await weekMenuRes.json();
         if (d?.menus && Array.isArray(d.menus)) setWeekMenus(d.menus);
       }
+      if (todayMenuRes?.ok) {
+        const d = await todayMenuRes.json();
+        if (d && (d.breakfast || d.lunch || d.morningSnack || d.afternoonSnack)) setTodayMenu(d);
+      }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load."));
     } finally {
@@ -211,7 +219,7 @@ export default function ParentHomePage() {
   const napCount = report?.naps != null ? Number(report.naps) : 0;
   const meals = mealsSummary(report?.meals);
   const hasPhotos = (report?.photoUrls || []).length > 0;
-  const reportStatus = report?.status?.toUpperCase() === "SENT" ? "Sent" : report ? "Draft" : "—";
+  const reportStatus = report?.status?.toUpperCase() === "SENT" ? "✅ Sent" : report ? "✏️ Being prepared" : "—";
 
   return (
     <RoleGate allow={["PARENT", "OWNER"]}>
@@ -251,6 +259,41 @@ export default function ParentHomePage() {
             </Card>
           ) : (
             <>
+              {/* ════════ Child Profile Card (TOP) ════════ */}
+              <Card className="rounded-2xl border-0 shadow-sm mb-6">
+                <CardContent className="py-5">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-2xl font-bold text-white">
+                      {displayName[0]?.toUpperCase() || "?"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-2xl font-bold text-slate-900">{displayName}</div>
+                      <div className="text-sm text-slate-500 mt-0.5">
+                        {[age, child?.className].filter(Boolean).join(" · ")}
+                      </div>
+                      <div className="mt-2">
+                        {isOut && att?.checkinAt && att?.checkoutAt ? (
+                          <div className="text-sm text-slate-600">
+                            ✅ Checked in at {fmtTime(att.checkinAt)} → 🚪 Checked out at {fmtTime(att.checkoutAt)}
+                          </div>
+                        ) : isIn && att?.checkinAt ? (
+                          <div className="text-sm text-emerald-600 font-medium">✅ Checked in at {fmtTime(att.checkinAt)}</div>
+                        ) : status === "ABSENT" ? (
+                          <div className="text-sm text-rose-500 font-medium">❌ Absent today</div>
+                        ) : (
+                          <div className="text-sm text-slate-400">⏰ Not checked in yet</div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  {child?.allergies && (
+                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-medium text-orange-700">
+                      ⚠️ Allergies: {child.allergies}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* ════════ Metric Cards Row ════════ */}
               <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-6">
                 <Card className="rounded-2xl border-0 shadow-sm">
@@ -288,42 +331,6 @@ export default function ParentHomePage() {
                 </Card>
               </div>
 
-              {/* ════════ Child Profile Card ════════ */}
-              <Card className="rounded-2xl border-0 shadow-sm mb-6">
-                <CardContent className="py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-xl font-bold text-white">
-                      {displayName[0]?.toUpperCase() || "?"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-lg font-semibold text-slate-900">{displayName}</div>
-                      <div className="text-sm text-slate-500">
-                        {[age, child?.className].filter(Boolean).join(" · ")}
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      {isOut && att?.checkinAt && att?.checkoutAt ? (
-                        <div className="space-y-0.5">
-                          <div className="text-sm text-emerald-600">✅ In {fmtTime(att.checkinAt)}</div>
-                          <div className="text-sm text-slate-500">🚪 Out {fmtTime(att.checkoutAt)}</div>
-                        </div>
-                      ) : isIn && att?.checkinAt ? (
-                        <div className="text-sm text-emerald-600 font-medium">✅ Checked in {fmtTime(att.checkinAt)}</div>
-                      ) : status === "ABSENT" ? (
-                        <div className="text-sm text-rose-500 font-medium">❌ Absent</div>
-                      ) : (
-                        <div className="text-sm text-slate-400">⏰ Not checked in</div>
-                      )}
-                    </div>
-                  </div>
-                  {child?.allergies && (
-                    <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-orange-50 border border-orange-200 px-3 py-1 text-xs font-medium text-orange-700">
-                      ⚠️ Allergies: {child.allergies}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
               {/* ════════ Today's Report ════════ */}
               <Card className="rounded-2xl border-0 shadow-sm mb-6">
                 <CardHeader>
@@ -353,14 +360,8 @@ export default function ParentHomePage() {
                     </div>
                   ) : report ? (
                     <div>
-                      <div className="flex items-center gap-3 text-sm text-slate-600 flex-wrap">
-                        {report.mood && (
-                          <span className="inline-flex items-center gap-1">{moodEmoji(report.mood)} <span className="capitalize">{report.mood}</span></span>
-                        )}
-                        {napCount > 0 && (<><span className="text-slate-300">·</span><span>🌙 {napCount} nap{napCount !== 1 ? "s" : ""}</span></>)}
-                        {meals !== "—" && (<><span className="text-slate-300">·</span><span>🍽️ {meals}</span></>)}
-                      </div>
-                      {report.notes && <p className="mt-3 text-sm text-slate-500 italic">&ldquo;{report.notes}&rdquo;</p>}
+                      {report.notes && <p className="text-sm text-slate-600 italic leading-relaxed">&ldquo;{report.notes}&rdquo;</p>}
+                      {!report.notes && <div className="text-sm text-slate-400">Report received — summary details are in the cards above.</div>}
                       {hasPhotos && (
                         <div className="mt-4 flex gap-2 overflow-x-auto snap-x pb-1">
                           {report.photoUrls!.map((url, i) => (
@@ -454,6 +455,21 @@ export default function ParentHomePage() {
                   </Card>
                 ) : null}
               </div>
+
+              {/* ════════ Today's Menu ════════ */}
+              {todayMenu && (
+                <Card className="rounded-2xl border-0 shadow-sm mb-6">
+                  <CardHeader><CardTitle>Today&apos;s Menu</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm text-slate-700">
+                      {todayMenu.breakfast && <div>🌅 <span className="text-slate-500">Breakfast:</span> {todayMenu.breakfast}</div>}
+                      {todayMenu.morningSnack && <div>🍎 <span className="text-slate-500">AM Snack:</span> {todayMenu.morningSnack}</div>}
+                      {todayMenu.lunch && <div>🍱 <span className="text-slate-500">Lunch:</span> {todayMenu.lunch}</div>}
+                      {todayMenu.afternoonSnack && <div>🍪 <span className="text-slate-500">PM Snack:</span> {todayMenu.afternoonSnack}</div>}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Multi-child: show additional children */}
               {children.length > 1 && children.slice(1).map((c) => {
