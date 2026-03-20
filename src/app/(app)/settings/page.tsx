@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Globe, RefreshCw, Save, Lock } from "lucide-react";
+import { RefreshCw, Save, Lock } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
 import { patchSession, readSession } from "@/lib/session";
 import { getErrorMessage } from "@/lib/error";
-import { getLocale, setLocale, LOCALE_LABELS, type Locale } from "@/lib/i18n";
 
 type MeResponse = {
   id: string;
@@ -64,7 +63,6 @@ export default function SettingsPage() {
 
   const [me, setMe] = useState<MeResponse | null>(null);
   const [tenant, setTenant] = useState<TenantResponse | null>(null);
-  const [locale, setLocaleState] = useState<Locale>("en");
 
   const [displayName, setDisplayName] = useState("");
   const [tenantName, setTenantName] = useState("");
@@ -135,7 +133,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     loadAll();
-    setLocaleState(getLocale());
     // Load notification preferences
     apiFetch("/me/notification-preferences").then(async (res) => {
       if (res.ok) setNotifPrefs(await res.json());
@@ -486,41 +483,6 @@ export default function SettingsPage() {
                   <Lock className="h-4 w-4" />
                   {savingPassword ? "Changing..." : "Change password"}
                 </button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Language preference */}
-          <Card className="rounded-2xl border-0 shadow-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Globe className="h-4 w-4" />
-                Language preference
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-3 text-xs text-slate-500">
-                Set your preferred language for parent-facing content. Reflects Greater Vancouver&apos;s multilingual communities.
-              </div>
-              <div className="grid gap-2 sm:grid-cols-3">
-                {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([key, label]) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setLocale(key);
-                      setLocaleState(key);
-                      setOk(`Language set to ${label}.`);
-                    }}
-                    className={[
-                      "rounded-xl border px-4 py-3 text-left text-sm font-medium transition-colors",
-                      locale === key
-                        ? "border-slate-900 bg-slate-900 text-white"
-                        : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50",
-                    ].join(" ")}
-                  >
-                    {label}
-                  </button>
-                ))}
               </div>
             </CardContent>
           </Card>

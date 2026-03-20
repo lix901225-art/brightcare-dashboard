@@ -8,7 +8,6 @@ import {
   CreditCard,
   Settings,
 } from "lucide-react";
-import { useLocale } from "@/lib/use-locale";
 
 const TABS = [
   { href: "/parent", label: "Home", tKey: "nav.parentHome", icon: Home, exact: true },
@@ -23,8 +22,6 @@ function isActive(pathname: string, href: string, exact: boolean) {
 
 export function ParentMobileNav() {
   const pathname = usePathname();
-  const { t } = useLocale();
-
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur safe-bottom lg:hidden"
@@ -51,7 +48,7 @@ export function ParentMobileNav() {
                 className={["h-5 w-5", active ? "text-slate-900" : "text-slate-400"].join(" ")}
                 strokeWidth={active ? 2.2 : 1.8}
               />
-              <span>{t(tab.tKey)}</span>
+              <span>{tab.label}</span>
             </Link>
           );
         })}
