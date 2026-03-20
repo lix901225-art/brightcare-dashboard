@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Clock, Download, FileText, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Clock, Download, FileText, HelpCircle, ShieldCheck } from "lucide-react";
 import { RoleGate } from "@/components/auth/role-gate";
 import { PageIntro } from "@/components/app/app-shell";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -98,6 +98,7 @@ export default function ParentBillingPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detail, setDetail] = useState<InvoiceDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [expandedTaxYear, setExpandedTaxYear] = useState<string | null>(null);
 
   async function loadAll() {
     setLoading(true);
@@ -476,72 +477,118 @@ export default function ParentBillingPage() {
               </CardContent>
             </Card>
 
-            {/* Tax receipt section */}
+            {/* Annual Tax Receipts section */}
             {(() => {
-              const currentYear = new Date().getFullYear();
-              const paidThisYear = invoices.filter(
-                (inv) =>
-                  inv.status.toUpperCase() === "PAID" &&
-                  inv.issueDate?.slice(0, 4) === String(currentYear)
+              const paidInvoices = invoices.filter(
+                (inv) => inv.status.toUpperCase() === "PAID" && inv.issueDate
               );
-              const yearlyTotal = paidThisYear.reduce((s, inv) => s + Number(inv.totalAmount || 0), 0);
-              const yearlySubsidy = paidThisYear.reduce((s, inv) => s + Number(inv.subsidyAmount || 0), 0);
-              const yearlyPaid = paidThisYear.reduce((s, inv) => s + Number(inv.paidAmount || 0), 0);
+
+              // Group paid invoices by year
+              const byYear: Record<string, InvoiceRow[]> = {};
+              for (const inv of paidInvoices) {
+                const year = inv.issueDate!.slice(0, 4);
+                if (!byYear[year]) byYear[year] = [];
+                byYear[year].push(inv);
+              }
+
+              const years = Object.keys(byYear).sort((a, b) => Number(b) - Number(a));
+
+              // Get centre name from first child summary if available
+              const centreName = summaryChildren.length > 0
+                ? (summaryChildren[0] as any).centreName || "your childcare centre"
+                : "your childcare centre";
 
               return (
                 <Card className="mt-6 rounded-2xl border-0 shadow-sm">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle>Year-end tax summary — {currentYear}</CardTitle>
-                      <div className="flex gap-2">
-                        <Link
-                          href="/billing/tax-receipts"
-                          className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          View receipts
-                        </Link>
-                        <Link
-                          href="/billing/tax-receipts"
-                          className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-sm font-medium text-white hover:bg-slate-800"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                          Download
-                        </Link>
-                      </div>
-                    </div>
+                    <CardTitle>Annual Tax Receipts (CRA Line 21400)</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {paidThisYear.length === 0 ? (
+                    {years.length === 0 ? (
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center text-sm text-slate-500">
-                        No paid invoices for {currentYear} yet.
+                        No paid invoices available for tax receipts.
                       </div>
                     ) : (
-                      <div className="rounded-xl border border-emerald-100 bg-emerald-50/30 p-4">
-                        <div className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
-                          CRA Line 21400 — Child Care Expenses
-                        </div>
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="text-slate-600">Total childcare fees</span>
-                            <span className="font-medium">{fmtCurrency(yearlyTotal)}</span>
-                          </div>
-                          {yearlySubsidy > 0 && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-blue-600">Less: government subsidies</span>
-                              <span className="font-medium text-blue-700">-{fmtCurrency(yearlySubsidy)}</span>
+                      <div className="space-y-3">
+                        {years.map((year) => {
+                          const yearInvoices = byYear[year];
+                          const totalFees = yearInvoices.reduce((s, inv) => s + Number(inv.totalAmount || 0), 0);
+                          const totalSubsidy = yearInvoices.reduce((s, inv) => s + Number(inv.subsidyAmount || 0), 0);
+                          const totalPaid = yearInvoices.reduce((s, inv) => s + Number(inv.paidAmount || 0), 0);
+                          const isExpanded = expandedTaxYear === year;
+
+                          return (
+                            <div key={year} className="rounded-xl border border-emerald-100 bg-emerald-50/30">
+                              <div className="flex items-center justify-between gap-3 p-4">
+                                <div className="flex items-center gap-3 text-sm">
+                                  <span className="font-semibold text-slate-900">{year} Tax Year</span>
+                                  <span className="text-slate-400">·</span>
+                                  <span className="font-bold text-emerald-700">{fmtCurrency(totalPaid)}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <Link
+                                    href="/billing/tax-receipts"
+                                    className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-slate-900 px-3 text-xs font-medium text-white hover:bg-slate-800"
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                    Download PDF
+                                  </Link>
+                                  <button
+                                    onClick={() => setExpandedTaxYear(isExpanded ? null : year)}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
+                                    title="Tax filing help"
+                                  >
+                                    <HelpCircle className="h-4 w-4" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {isExpanded && (
+                                <div className="border-t border-emerald-100 p-4 space-y-4">
+                                  {/* Year breakdown */}
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-center justify-between text-sm">
+                                      <span className="text-slate-600">Total childcare fees</span>
+                                      <span className="font-medium">{fmtCurrency(totalFees)}</span>
+                                    </div>
+                                    {totalSubsidy > 0 && (
+                                      <div className="flex items-center justify-between text-sm">
+                                        <span className="text-blue-600">Less: government subsidies</span>
+                                        <span className="font-medium text-blue-700">-{fmtCurrency(totalSubsidy)}</span>
+                                      </div>
+                                    )}
+                                    <div className="border-t border-emerald-200 pt-1.5 flex items-center justify-between">
+                                      <span className="text-sm font-bold text-slate-900">Eligible amount paid</span>
+                                      <span className="text-lg font-bold text-emerald-700">{fmtCurrency(totalPaid)}</span>
+                                    </div>
+                                    <div className="text-xs text-slate-500">
+                                      Based on <strong>{yearInvoices.length}</strong> paid invoice{yearInvoices.length !== 1 ? "s" : ""} in {year}.
+                                    </div>
+                                  </div>
+
+                                  {/* CRA info panel */}
+                                  <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-3 space-y-2">
+                                    <div className="text-sm text-slate-700">
+                                      This receipt documents childcare expenses paid to <strong>{centreName}</strong> in <strong>{year}</strong>.
+                                      Use this amount on <strong>Line 21400</strong> of your T1 General tax return.
+                                    </div>
+                                    <div className="text-sm text-slate-500">
+                                      此收据用于您的加拿大报税申报。在T1表格第21400行填入儿童照护费用。
+                                    </div>
+                                    <a
+                                      href="https://www.canada.ca/en/revenue-agency/services/tax/individuals/topics/about-your-tax-return/tax-return/completing-a-tax-return/deductions-credits-expenses/line-21400-child-care-expenses.html"
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 underline"
+                                    >
+                                      Learn more at canada.ca/taxes-childcare
+                                    </a>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                          <div className="border-t border-emerald-200 pt-1.5 flex items-center justify-between">
-                            <span className="text-sm font-bold text-slate-900">Eligible amount paid</span>
-                            <span className="text-lg font-bold text-emerald-700">{fmtCurrency(yearlyPaid)}</span>
-                          </div>
-                        </div>
-                        <div className="mt-3 rounded-lg bg-white/60 px-3 py-2 text-xs text-slate-600">
-                          <strong>{paidThisYear.length}</strong> paid invoice{paidThisYear.length !== 1 ? "s" : ""} in {currentYear}.
-                          Report this amount on your CRA tax return under <strong>Line 21400 — Child Care Expenses</strong>.
-                          Keep receipts for at least 6 years.
-                        </div>
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
