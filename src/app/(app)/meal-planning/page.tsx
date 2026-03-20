@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Copy, Save, Utensils } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Megaphone, Save, Utensils } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,6 +45,7 @@ export default function MealPlanningPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+  const [publishing, setPublishing] = useState(false);
 
   const dates = Array.from({ length: 5 }, (_, i) => addDays(weekStart, i));
 
@@ -126,6 +127,46 @@ export default function MealPlanningPage() {
     }
   }
 
+  async function publishToParents() {
+    setPublishing(true);
+    try {
+      const weekEnd = addDays(weekStart, 4);
+      const weekStartLabel =
+        weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" }) +
+        "-" +
+        weekEnd.toLocaleDateString("en-US", { day: "numeric" });
+
+      const content = dates
+        .map((d, i) => {
+          const ds = d.toISOString().slice(0, 10);
+          const menu = menus[ds];
+          if (!menu) return null;
+          const parts = [menu.breakfast, menu.lunch, menu.afternoonSnack].filter(Boolean).join(" / ");
+          return `${DAYS[i]}: ${parts || "(no meals)"}`;
+        })
+        .filter(Boolean)
+        .join("\n");
+
+      const res = await apiFetch("/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "This Week's Menu \u2014 " + weekStartLabel,
+          body: content,
+          type: "MENU_UPDATE",
+          audience: "PARENTS",
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to publish.");
+      setOk("Menu published to parents!");
+      setTimeout(() => setOk(""), 3000);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to publish menu."));
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   const weekLabel = `${weekStart.toLocaleDateString("en-CA", { month: "short", day: "numeric" })} — ${addDays(weekStart, 4).toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
 
   return (
@@ -136,12 +177,22 @@ export default function MealPlanningPage() {
             title="Meal planning"
             description="Weekly menu planning. Parents see today's menu in their portal."
           />
-          <button
-            onClick={copyLastWeek}
-            className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            <Copy className="h-4 w-4" /> Copy last week
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={copyLastWeek}
+              className="inline-flex h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              <Copy className="h-4 w-4" /> Copy last week
+            </button>
+            <button
+              onClick={publishToParents}
+              disabled={publishing}
+              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+            >
+              <Megaphone className="h-3.5 w-3.5" />
+              {publishing ? "Publishing..." : "Notify Parents"}
+            </button>
+          </div>
         </div>
 
         {ok && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{ok}</div>}

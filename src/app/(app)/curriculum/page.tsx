@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BookOpen, ChevronLeft, ChevronRight, Edit2, Plus, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Edit2, Megaphone, Plus, Trash2, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,6 +68,7 @@ export default function CurriculumPage() {
   const [form, setForm] = useState(emptyForm);
   const [activities, setActivities] = useState<Activity[]>([]);
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -135,6 +136,34 @@ export default function CurriculumPage() {
     }
   }
 
+  async function publishToParents() {
+    try {
+      setPublishing(true);
+      setError("");
+      const firstPlan = plans[0];
+      let content = `Theme: ${firstPlan.title}\n\nActivities this week:\n` +
+        (Array.isArray(firstPlan.activities) ? firstPlan.activities.map((a) => `• ${a.name}`).join("\n") : "");
+      if (firstPlan.learningGoals) {
+        content += `\n\nLearning goals: ${firstPlan.learningGoals}`;
+      }
+      await apiFetch("/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "This Week's Theme — " + firstPlan.title,
+          body: content,
+          type: "CURRICULUM_UPDATE",
+          audience: "PARENTS",
+        }),
+      });
+      setOk("Activities published to parents!");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to publish."));
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   async function deletePlan(id: string) {
     if (!confirm("Delete this lesson plan?")) return;
     await apiFetch(`/lesson-plans/${id}`, { method: "DELETE" });
@@ -156,9 +185,15 @@ export default function CurriculumPage() {
       <div>
         <div className="mb-6 flex items-start justify-between gap-4">
           <PageIntro title="Curriculum" description="Weekly lesson plans aligned with the BC Early Learning Framework." />
-          <button onClick={openCreate} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800">
-            <Plus className="h-4 w-4" /> New plan
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={publishToParents} disabled={publishing || plans.length === 0} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 text-sm font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
+              <Megaphone className="h-3.5 w-3.5" />
+              {publishing ? "Publishing..." : "Notify Parents"}
+            </button>
+            <button onClick={openCreate} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800">
+              <Plus className="h-4 w-4" /> New plan
+            </button>
+          </div>
         </div>
 
         {ok && <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">{ok}</div>}

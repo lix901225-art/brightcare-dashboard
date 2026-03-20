@@ -62,7 +62,9 @@ type InvoiceRow = {
 type Announcement = {
   id: string;
   title: string;
+  body?: string | null;
   content?: string | null;
+  type?: string | null;
   createdAt: string;
 };
 
@@ -444,12 +446,19 @@ export default function ParentHomePage() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {announcements.map((a) => (
-                          <div key={a.id}>
-                            <div className="text-sm font-medium text-slate-900">{a.title}</div>
-                            {a.content && <div className="mt-0.5 text-xs text-slate-500 line-clamp-2">{a.content}</div>}
-                          </div>
-                        ))}
+                        {announcements.map((a) => {
+                          const icon = a.type === "MENU_UPDATE" ? "🍽️" : a.type === "CURRICULUM_UPDATE" ? "📚" : a.type === "EMERGENCY" ? "🚨" : a.type === "HOLIDAY" ? "🏖️" : "📢";
+                          const text = a.body || a.content;
+                          return (
+                            <div key={a.id} className="flex items-start gap-2">
+                              <span className="text-sm mt-0.5">{icon}</span>
+                              <div className="min-w-0">
+                                <div className="text-sm font-medium text-slate-900">{a.title}</div>
+                                {text && <div className="mt-0.5 text-xs text-slate-500 line-clamp-2">{text}</div>}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
