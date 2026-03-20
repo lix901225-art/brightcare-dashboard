@@ -99,8 +99,9 @@ export default function DailyReportsPage() {
           childrenData?.message || `Children failed: ${childrenRes.status}`
         );
 
-      const childRows = Array.isArray(childrenData) ? childrenData : [];
-      setReports(Array.isArray(reportsData) ? reportsData : []);
+      const childRows = Array.isArray(childrenData) ? childrenData : (childrenData?.data ?? []);
+      const reportRows = Array.isArray(reportsData) ? reportsData : (reportsData?.data ?? []);
+      setReports(reportRows);
       setChildren(childRows);
 
       if (!childId && childRows.length > 0) {
@@ -110,7 +111,10 @@ export default function DailyReportsPage() {
       // Load templates (non-blocking)
       apiFetch("/daily-reports/templates")
         .then((r) => r.ok ? r.json() : [])
-        .then((data) => setTemplates(Array.isArray(data) ? data : []))
+        .then((data) => {
+          const arr = Array.isArray(data) ? data : (data?.data ?? []);
+          setTemplates(arr);
+        })
         .catch(() => {});
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load daily reports."));
@@ -124,7 +128,7 @@ export default function DailyReportsPage() {
   }, []);
 
   const filteredReports = useMemo(() => {
-    let result = reports;
+    let result = reports || [];
 
     if (filterChild) {
       result = result.filter((r) => r.childId === filterChild);
@@ -147,7 +151,7 @@ export default function DailyReportsPage() {
 
   const stats = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
-    const todayReports = reports.filter(
+    const todayReports = (reports || []).filter(
       (r) => String(r.date).slice(0, 10) === today
     );
     const uniqueChildrenToday = new Set(todayReports.map((r) => r.childId));
@@ -156,7 +160,7 @@ export default function DailyReportsPage() {
       total: reports.length,
       today: todayReports.length,
       childrenCoveredToday: uniqueChildrenToday.size,
-      childrenMissing: Math.max(0, children.length - uniqueChildrenToday.size),
+      childrenMissing: Math.max(0, (children || []).length - uniqueChildrenToday.size),
     };
   }, [reports, children]);
 
@@ -164,11 +168,11 @@ export default function DailyReportsPage() {
     if (!canCreate) return [];
     const today = new Date().toISOString().slice(0, 10);
     const coveredChildIds = new Set(
-      reports
+      (reports || [])
         .filter((r) => String(r.date).slice(0, 10) === today)
         .map((r) => r.childId)
     );
-    return children.filter((c) => !coveredChildIds.has(c.id));
+    return (children || []).filter((c) => !coveredChildIds.has(c.id));
   }, [canCreate, reports, children]);
 
   function resetForm() {
