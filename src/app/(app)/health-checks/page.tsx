@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, ClipboardCheck, Plus, Thermometer, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api-client";
+import { readSession } from "@/lib/session";
 import { getErrorMessage } from "@/lib/error";
 
 type Child = { id: string; fullName?: string | null };
@@ -33,6 +35,16 @@ const SYMPTOMS = [
 ];
 
 export default function HealthChecksPage() {
+  const router = useRouter();
+  const session = readSession();
+
+  // STAFF should use the integrated check-in flow on /attendance
+  useEffect(() => {
+    if (session?.role === "STAFF") {
+      router.replace("/attendance");
+    }
+  }, [session?.role, router]);
+
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [children, setChildren] = useState<Child[]>([]);
   const [checks, setChecks] = useState<HealthCheck[]>([]);

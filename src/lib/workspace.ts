@@ -141,7 +141,6 @@ export const NAV_GROUPS_BY_ROLE: Record<AppRole, NavGroup[]> = {
       items: [
         { href: "/dashboard", label: "Dashboard", tKey: "nav.dashboard" },
         { href: "/attendance", label: "Attendance", tKey: "nav.attendance" },
-        { href: "/health-checks", label: "Health Checks", tKey: "nav.healthChecks" },
         { href: "/daily-reports", label: "Daily Reports", tKey: "nav.dailyReports" },
         { href: "/children", label: "Children", tKey: "nav.children" },
         { href: "/messages", label: "Messages", tKey: "nav.messages" },
