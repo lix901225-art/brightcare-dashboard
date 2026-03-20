@@ -48,6 +48,7 @@ type DailyReport = {
   bathroom?: string | null;
   toileting?: ToiletingEntry[] | null;
   photoUrls?: string[] | null;
+  aiNarrative?: string | null;
 };
 
 type LearningStory = {
@@ -519,6 +520,16 @@ export default function ParentHomePage() {
                               <div className="flex items-center gap-3 pt-3">
                                 <span className="text-3xl">{moodEmoji(report.mood)}</span>
                                 <span className="text-lg font-medium text-slate-800 capitalize">{report.mood}</span>
+                              </div>
+                            )}
+
+                            {/* AI narrative summary */}
+                            {report.aiNarrative && (
+                              <div className="rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100 p-4">
+                                <p className="text-sm text-slate-700 leading-relaxed">
+                                  {report.aiNarrative}
+                                </p>
+                                <div className="mt-2 text-[10px] text-slate-400">AI-generated summary</div>
                               </div>
                             )}
 
