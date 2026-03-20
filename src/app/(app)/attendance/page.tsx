@@ -315,7 +315,16 @@ export default function AttendancePage() {
 
   // Nap tracking
   const [activeNaps, setActiveNaps] = useState<Record<string, { id: string; startAt: string }>>({});
+  const [completedNaps, setCompletedNaps] = useState<Record<string, { id: string; startAt: string; endAt: string; duration: number }[]>>({});
   const [napBusy, setNapBusy] = useState("");
+  const [napTick, setNapTick] = useState(0);
+
+  // Live timer for active naps
+  useEffect(() => {
+    if (Object.keys(activeNaps).length === 0) return;
+    const timer = setInterval(() => setNapTick((t) => t + 1), 30000); // update every 30s
+    return () => clearInterval(timer);
+  }, [activeNaps]);
 
   async function loadAll() {
     try {
@@ -340,18 +349,23 @@ export default function AttendancePage() {
       setRooms(Array.isArray(roomsData) ? roomsData : []);
       setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
 
-      // Load active naps for today
+      // Load nap logs for today
       try {
         const napRes = await apiFetch(`/nap-logs?date=${date}`);
         if (napRes.ok) {
           const napData = await napRes.json();
           const active: Record<string, { id: string; startAt: string }> = {};
+          const completed: Record<string, { id: string; startAt: string; endAt: string; duration: number }[]> = {};
           for (const nap of (Array.isArray(napData) ? napData : [])) {
             if (!nap.endAt) {
               active[nap.childId] = { id: nap.id, startAt: nap.startAt };
+            } else {
+              if (!completed[nap.childId]) completed[nap.childId] = [];
+              completed[nap.childId].push({ id: nap.id, startAt: nap.startAt, endAt: nap.endAt, duration: nap.duration || 0 });
             }
           }
           setActiveNaps(active);
+          setCompletedNaps(completed);
         }
       } catch { /* non-critical */ }
     } catch (e: unknown) {
@@ -392,9 +406,17 @@ export default function AttendancePage() {
       const res = await apiFetch(`/nap-logs/${nap.id}/end`, { method: "PATCH" });
       if (!res.ok) { const d = await res.json(); throw new Error(d?.message || "Failed"); }
       const data = await res.json();
+      // Remove from active
       setActiveNaps((prev) => { const copy = { ...prev }; delete copy[childId]; return copy; });
+      // Add to completed
       const mins = data.duration || 0;
-      setOk(`Nap ended (${Math.floor(mins / 60)}h ${mins % 60}m)`);
+      setCompletedNaps((prev) => ({
+        ...prev,
+        [childId]: [...(prev[childId] || []), { id: nap.id, startAt: nap.startAt, endAt: data.endAt, duration: mins }],
+      }));
+      const h = Math.floor(mins / 60);
+      const m = mins % 60;
+      setOk(`Nap ended (${h > 0 ? `${h}h ` : ""}${m}min)`);
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Failed to end nap."));
     } finally {
@@ -403,6 +425,7 @@ export default function AttendancePage() {
   }
 
   function fmtNapDuration(startAt: string) {
+    void napTick; // force re-render from timer
     const mins = Math.floor((Date.now() - new Date(startAt).getTime()) / 60000);
     if (mins < 60) return `${mins}m`;
     return `${Math.floor(mins / 60)}h ${mins % 60}m`;
@@ -877,24 +900,37 @@ export default function AttendancePage() {
                         mobile
                       />
                     </div>
-                    {/* Quick actions for checked-in children */}
+                    {/* Nap tracking for checked-in children */}
                     {(status === "CHECKED_IN" || status === "PRESENT") && (
-                      <div className="mt-2 flex gap-1.5 border-t border-slate-100 pt-2">
+                      <div className="mt-2 border-t border-slate-100 pt-2 space-y-1.5">
+                        {/* Completed naps */}
+                        {(completedNaps[child.id] || []).map((n) => {
+                          const h = Math.floor(n.duration / 60);
+                          const m = n.duration % 60;
+                          return (
+                            <div key={n.id} className="flex items-center gap-2 text-xs text-slate-500 px-1">
+                              <span>✅</span>
+                              <span>{fmt(n.startAt)} – {fmt(n.endAt)}</span>
+                              <span className="font-medium text-slate-600">({h > 0 ? `${h}h ` : ""}{m}min)</span>
+                            </div>
+                          );
+                        })}
+                        {/* Active nap or Start button */}
                         {activeNaps[child.id] ? (
                           <button
                             disabled={napBusy === child.id}
                             onClick={() => endNap(child.id)}
-                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-rose-300 bg-rose-50 px-2 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50"
                           >
-                            🌙 Nap End ({fmtNapDuration(activeNaps[child.id].startAt)})
+                            🌙 End Nap ({fmtNapDuration(activeNaps[child.id].startAt)})
                           </button>
                         ) : (
                           <button
                             disabled={napBusy === child.id}
                             onClick={() => startNap(child.id)}
-                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+                            className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
                           >
-                            🌙 Nap Start
+                            {(completedNaps[child.id] || []).length > 0 ? "🌙 + Add another nap" : "🌙 Start Nap"}
                           </button>
                         )}
                       </div>
@@ -952,13 +988,13 @@ export default function AttendancePage() {
                                 {(status === "CHECKED_IN" || status === "PRESENT") && (
                                   activeNaps[child.id] ? (
                                     <button disabled={napBusy === child.id} onClick={() => endNap(child.id)}
-                                      className="inline-flex h-9 items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50">
-                                      🌙 End ({fmtNapDuration(activeNaps[child.id].startAt)})
+                                      className="inline-flex h-9 items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 text-xs font-semibold text-rose-700 hover:bg-rose-100 disabled:opacity-50">
+                                      🌙 End Nap ({fmtNapDuration(activeNaps[child.id].startAt)})
                                     </button>
                                   ) : (
                                     <button disabled={napBusy === child.id} onClick={() => startNap(child.id)}
                                       className="inline-flex h-9 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
-                                      🌙 Nap
+                                      {(completedNaps[child.id] || []).length > 0 ? "🌙 + Nap" : "🌙 Nap"}
                                     </button>
                                   )
                                 )}
