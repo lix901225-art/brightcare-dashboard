@@ -132,6 +132,14 @@ function mealsSummary(raw?: string | null): string {
 
 type TodayMenu = { breakfast?: string; morningSnack?: string; lunch?: string; afternoonSnack?: string };
 
+type NapLog = {
+  id: string;
+  childId: string;
+  startAt: string;
+  endAt?: string | null;
+  duration?: number | null; // minutes
+};
+
 /* ─── page ─── */
 
 export default function ParentHomePage() {
@@ -145,6 +153,7 @@ export default function ParentHomePage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [weekMenus, setWeekMenus] = useState<WeekMenu[]>([]);
   const [todayMenu, setTodayMenu] = useState<TodayMenu | null>(null);
+  const [napLogs, setNapLogs] = useState<NapLog[]>([]);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -153,7 +162,7 @@ export default function ParentHomePage() {
     setLoading(true);
     setError("");
     try {
-      const [childrenRes, attendanceRes, reportsRes, threadsRes, invoicesRes, announcementsRes, weekMenuRes, todayMenuRes] = await Promise.all([
+      const [childrenRes, attendanceRes, reportsRes, threadsRes, invoicesRes, announcementsRes, weekMenuRes, todayMenuRes, napLogsRes] = await Promise.all([
         apiFetch("/children?myChildren=true"),
         apiFetch("/attendance").catch(() => null),
         apiFetch("/daily-reports").catch(() => null),
@@ -162,6 +171,7 @@ export default function ParentHomePage() {
         apiFetch("/announcements").catch(() => null),
         apiFetch(`/meal-menus/week?date=${today}`).catch(() => null),
         apiFetch(`/meal-menus?date=${today}`).catch(() => null),
+        apiFetch(`/nap-logs?date=${today}`).catch(() => null),
       ]);
 
       const childrenData = await childrenRes.json();
@@ -195,6 +205,10 @@ export default function ParentHomePage() {
         const d = await todayMenuRes.json();
         if (d && (d.breakfast || d.lunch || d.morningSnack || d.afternoonSnack)) setTodayMenu(d);
       }
+      if (napLogsRes?.ok) {
+        const d = await napLogsRes.json();
+        setNapLogs(Array.isArray(d) ? d : []);
+      }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load."));
     } finally {
@@ -218,7 +232,7 @@ export default function ParentHomePage() {
   const status = (att?.status || "UNKNOWN").toUpperCase();
   const isIn = status === "PRESENT" || status === "CHECKED_IN";
   const isOut = status === "CHECKED_OUT";
-  const napCount = report?.naps != null ? Number(report.naps) : 0;
+  const childNaps = useMemo(() => child ? napLogs.filter((n) => n.childId === child.id && n.endAt) : [], [napLogs, child]);
   const meals = mealsSummary(report?.meals);
   const hasPhotos = (report?.photoUrls || []).length > 0;
   const reportStatus = report?.status?.toUpperCase() === "SENT" ? "✅ Sent" : report ? "✏️ Being prepared" : "—";
@@ -310,9 +324,22 @@ export default function ParentHomePage() {
                   <CardHeader className="pb-2"><CardTitle className="text-sm text-slate-500">Nap</CardTitle></CardHeader>
                   <CardContent>
                     <div className="text-3xl">🌙</div>
-                    <div className="mt-1 text-sm font-medium text-slate-800">
-                      {napCount > 0 ? `${napCount} nap${napCount !== 1 ? "s" : ""}` : "No nap"}
-                    </div>
+                    {childNaps.length > 0 ? (
+                      <div className="mt-1 space-y-0.5">
+                        {childNaps.map((n) => {
+                          const mins = n.duration ?? Math.round((new Date(n.endAt!).getTime() - new Date(n.startAt).getTime()) / 60000);
+                          const h = Math.floor(mins / 60);
+                          const m = mins % 60;
+                          return (
+                            <div key={n.id} className="text-sm font-medium text-slate-800">
+                              {fmtTime(n.startAt)} – {fmtTime(n.endAt)} <span className="text-slate-400 font-normal">({h > 0 ? `${h}h ` : ""}{m}min)</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="mt-1 text-sm font-medium text-slate-800">No nap</div>
+                    )}
                   </CardContent>
                 </Card>
 
