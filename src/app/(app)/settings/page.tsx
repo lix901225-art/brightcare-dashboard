@@ -495,13 +495,10 @@ export default function SettingsPage() {
                 {(isParent ? [
                   { key: "checkinOut", label: "Check-in / check-out alerts" },
                   { key: "reports", label: "New daily report" },
-                  { key: "photos", label: "New photos / videos" },
                   { key: "messages", label: "New messages" },
                   { key: "billing", label: "New invoices & payments" },
                   { key: "announcements", label: "Centre announcements" },
                   { key: "healthFailed", label: "Health check not passed" },
-                  { key: "milestones", label: "Milestone updates" },
-                  { key: "mealMenu", label: "Weekly meal menu" },
                 ] : [
                   { key: "checkinOut", label: "Attendance check-in / check-out" },
                   { key: "messages", label: "New parent messages" },

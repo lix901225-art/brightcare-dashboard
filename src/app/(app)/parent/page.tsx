@@ -180,6 +180,8 @@ export default function ParentHomePage() {
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [todayMenu, setTodayMenu] = useState<TodayMenu | null>(null);
+  const [weekMenus, setWeekMenus] = useState<{ date: string; breakfast?: string; lunch?: string; afternoonSnack?: string }[]>([]);
+  const [lessonPlan, setLessonPlan] = useState<{ title: string; activities?: { name: string }[]; learningGoals?: string } | null>(null);
   const [incidents, setIncidents] = useState<IncidentRow[]>([]);
   const [expandedAnnouncement, setExpandedAnnouncement] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
@@ -190,7 +192,7 @@ export default function ParentHomePage() {
     setLoading(true);
     setError("");
     try {
-      const [childrenRes, attendanceRes, reportsRes, threadsRes, invoicesRes, announcementsRes, menuRes, incidentsRes] = await Promise.all([
+      const [childrenRes, attendanceRes, reportsRes, threadsRes, invoicesRes, announcementsRes, menuRes, incidentsRes, weekMenuRes, lessonRes] = await Promise.all([
         apiFetch("/children?myChildren=true"),
         apiFetch("/attendance").catch(() => null),
         apiFetch("/daily-reports").catch(() => null),
@@ -199,6 +201,8 @@ export default function ParentHomePage() {
         apiFetch("/announcements").catch(() => null),
         apiFetch(`/meal-menus?date=${today}`).catch(() => null),
         apiFetch("/incidents").catch(() => null),
+        apiFetch(`/meal-menus/week?date=${today}`).catch(() => null),
+        apiFetch(`/lesson-plans?weekStart=${today}`).catch(() => null),
       ]);
       const childrenData = await childrenRes.json();
       setChildren(Array.isArray(childrenData) ? childrenData : (childrenData?.data ?? []));
@@ -234,6 +238,16 @@ export default function ParentHomePage() {
         const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
         setIncidents(arr.filter((i: IncidentRow) => new Date(i.occurredAt) >= monthAgo).slice(0, 5));
       }
+      if (weekMenuRes?.ok) {
+        const d = await weekMenuRes.json();
+        const menus = d?.menus || [];
+        if (Array.isArray(menus) && menus.length > 0) setWeekMenus(menus);
+      }
+      if (lessonRes?.ok) {
+        const d = await lessonRes.json();
+        const arr = Array.isArray(d) ? d : (d?.data ?? []);
+        if (arr.length > 0) setLessonPlan(arr[0]);
+      }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load."));
     } finally {
@@ -263,19 +277,27 @@ export default function ParentHomePage() {
           ) : (
             <div className="space-y-3 px-3 pt-3">
 
-              {/* ─── Announcements ─── */}
+              {/* ─── Announcement banner ─── */}
               {announcements.length > 0 && (
-                <FeedCard className="bg-amber-50 border border-amber-200">
+                <FeedCard className="bg-orange-50 border border-orange-200" accent="bg-orange-400">
                   <button onClick={() => setExpandedAnnouncement(!expandedAnnouncement)} className="w-full p-4 text-left">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-amber-800">
-                      <span>📢</span> {announcements[0].title}
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-orange-500 mb-1">
+                      📢 New from your centre
                     </div>
+                    <div className="text-sm font-medium text-slate-800">{announcements[0].title}</div>
+                    {announcements[0].content && !expandedAnnouncement && (
+                      <div className="mt-1 text-xs text-slate-500 line-clamp-1">{announcements[0].content}</div>
+                    )}
+                    {!expandedAnnouncement && (
+                      <div className="mt-1 text-xs text-orange-500 font-medium">Read more →</div>
+                    )}
                     {expandedAnnouncement && (
                       <div className="mt-3 space-y-2">
                         {announcements.map((a) => (
                           <div key={a.id} className="rounded-xl bg-white/80 p-3">
                             <div className="text-sm font-medium text-slate-900">{a.title}</div>
-                            {a.content && <div className="mt-1 text-xs text-slate-600">{a.content}</div>}
+                            {a.content && <div className="mt-1 text-xs text-slate-600 leading-relaxed">{a.content}</div>}
+                            <div className="mt-1 text-[10px] text-slate-400">{new Date(a.createdAt).toLocaleDateString()}</div>
                           </div>
                         ))}
                       </div>
@@ -501,6 +523,46 @@ export default function ParentHomePage() {
                     </div>
                   </FeedCard>
                 </Link>
+              )}
+
+              {/* ─── This Week's Theme (Lesson Plan) ─── */}
+              {lessonPlan && (
+                <FeedCard className="bg-purple-50 border border-purple-100" accent="bg-purple-400">
+                  <div className="p-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-purple-500 mb-2">This Week&apos;s Theme</div>
+                    <div className="text-base font-semibold text-slate-800 mb-2">{lessonPlan.title}</div>
+                    {lessonPlan.activities && Array.isArray(lessonPlan.activities) && lessonPlan.activities.length > 0 && (
+                      <div className="space-y-1">
+                        {lessonPlan.activities.slice(0, 4).map((act: { name: string }, i: number) => (
+                          <div key={i} className="text-sm text-slate-600">• {act.name || String(act)}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </FeedCard>
+              )}
+
+              {/* ─── This Week's Menu ─── */}
+              {weekMenus.length > 0 && (
+                <FeedCard className="bg-green-50 border border-emerald-100" accent="bg-emerald-400">
+                  <div className="p-4">
+                    <div className="text-xs font-bold uppercase tracking-widest text-emerald-600 mb-3">This Week&apos;s Menu</div>
+                    <div className="space-y-1.5">
+                      {weekMenus.map((m) => {
+                        const d = new Date(m.date);
+                        const day = d.toLocaleDateString([], { weekday: "short" });
+                        const items = [m.breakfast, m.lunch, m.afternoonSnack].filter(Boolean).join(" | ");
+                        if (!items) return null;
+                        return (
+                          <div key={m.date} className="flex gap-2 text-sm">
+                            <span className="w-10 shrink-0 font-medium text-emerald-700">{day}</span>
+                            <span className="text-slate-600 truncate">{items}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </FeedCard>
               )}
 
               {/* ─── Incidents ─── */}
