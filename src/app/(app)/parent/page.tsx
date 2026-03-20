@@ -147,6 +147,43 @@ function mealsSummary(raw?: string | null): string {
   return "Ate little";
 }
 
+/** Get gradient background based on activities */
+function activityGradient(activities?: string | null): string {
+  if (!activities) return "from-sky-200 to-sky-300";
+  const a = activities.toLowerCase();
+  if (a.includes("outdoor") || a.includes("nature")) return "from-green-300 to-green-400";
+  if (a.includes("block") || a.includes("building")) return "from-orange-300 to-orange-400";
+  if (a.includes("story") || a.includes("reading")) return "from-purple-300 to-purple-400";
+  if (a.includes("art") || a.includes("craft")) return "from-pink-300 to-pink-400";
+  if (a.includes("music") || a.includes("dance")) return "from-blue-300 to-blue-400";
+  if (a.includes("physical") || a.includes("play")) return "from-lime-300 to-green-300";
+  if (a.includes("science") || a.includes("explore")) return "from-cyan-300 to-teal-400";
+  if (a.includes("garden")) return "from-emerald-300 to-emerald-400";
+  return "from-sky-200 to-sky-300";
+}
+
+/** Get emoji icons for activities (up to 3) */
+function activityEmojis(activities?: string | null): string[] {
+  if (!activities) return ["⭐"];
+  const EMOJI_MAP: Record<string, string> = {
+    block: "🧱", building: "🧱", outdoor: "🌿", nature: "🌿",
+    story: "📚", reading: "📚", art: "🎨", craft: "🎨",
+    music: "🎵", dance: "🎵", puzzle: "🧩", game: "🧩",
+    physical: "🏃", water: "🌊", sand: "🌊", cooking: "🍳",
+    baking: "🍳", science: "🔬", explore: "🔬", social: "🤝",
+    writing: "✏️", drawing: "✏️", pretend: "🎭", garden: "🌱",
+    rest: "😴", quiet: "😴", technology: "🖥️",
+  };
+  const parts = activities.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const emojis: string[] = [];
+  for (const part of parts) {
+    if (emojis.length >= 3) break;
+    const match = Object.entries(EMOJI_MAP).find(([key]) => part.includes(key));
+    if (match && !emojis.includes(match[1])) emojis.push(match[1]);
+  }
+  return emojis.length > 0 ? emojis : ["⭐"];
+}
+
 function severityColor(severity: string) {
   const s = severity?.toUpperCase();
   if (s === "HIGH" || s === "CRITICAL") return "bg-rose-100 text-rose-700 border-rose-200";
@@ -366,7 +403,42 @@ export default function ParentHomePage() {
                         </FeedCard>
                       ) : null}
 
-                      {/* ═══ Card 3 — Quick Glance ═══ */}
+                      {/* ═══ Card 3 — Photos / Activity Placeholder ═══ */}
+                      {report && (
+                        hasPhotos ? (
+                          <FeedCard className="bg-white">
+                            {report.photoUrls!.length === 1 ? (
+                              <button onClick={() => setLightboxUrl(report.photoUrls![0])} className="w-full">
+                                <div className="relative">
+                                  <img src={report.photoUrls![0]} alt="" className="w-full aspect-[4/3] object-cover" />
+                                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent p-4 rounded-b-2xl">
+                                    <div className="text-xs text-white/80">📷 Today&apos;s photo</div>
+                                  </div>
+                                </div>
+                              </button>
+                            ) : (
+                              <div className="flex gap-1.5 overflow-x-auto snap-x p-2">
+                                {report.photoUrls!.map((url, i) => (
+                                  <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start overflow-hidden rounded-xl">
+                                    <img src={url} alt="" className="h-52 w-44 object-cover" />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </FeedCard>
+                        ) : (
+                          <FeedCard>
+                            <div className={["bg-gradient-to-br h-48 flex flex-col items-center justify-center gap-3", activityGradient(report.activities)].join(" ")}>
+                              <div className="text-[60px] leading-none flex items-center gap-2">
+                                {activityEmojis(report.activities).map((e, i) => <span key={i}>{e}</span>)}
+                              </div>
+                              <span className="text-sm text-white/75 font-medium">No photos today</span>
+                            </div>
+                          </FeedCard>
+                        )
+                      )}
+
+                      {/* ═══ Card 4 — Quick Glance ═══ */}
                       {report && (
                         <FeedCard className="bg-white">
                           <div className="px-5 py-3.5">
@@ -398,30 +470,6 @@ export default function ParentHomePage() {
                               )}
                             </div>
                           </div>
-                        </FeedCard>
-                      )}
-
-                      {/* ═══ Card 4 — Photos (only if present) ═══ */}
-                      {hasPhotos && (
-                        <FeedCard className="bg-white">
-                          {report!.photoUrls!.length === 1 ? (
-                            <button onClick={() => setLightboxUrl(report!.photoUrls![0])} className="w-full">
-                              <div className="relative">
-                                <img src={report!.photoUrls![0]} alt="" className="w-full aspect-[4/3] object-cover rounded-2xl" />
-                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/40 to-transparent p-4 rounded-b-2xl">
-                                  <div className="text-xs text-white/80">📷 Today&apos;s photo</div>
-                                </div>
-                              </div>
-                            </button>
-                          ) : (
-                            <div className="flex gap-1.5 overflow-x-auto snap-x p-2">
-                              {report!.photoUrls!.map((url, i) => (
-                                <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start overflow-hidden rounded-xl">
-                                  <img src={url} alt="" className="h-52 w-44 object-cover" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
                         </FeedCard>
                       )}
 
