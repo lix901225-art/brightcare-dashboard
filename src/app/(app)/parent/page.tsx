@@ -261,13 +261,14 @@ export default function ParentHomePage() {
   const reportsByChild = useMemo(() => { const m: Record<string, DailyReport> = {}; for (const r of reports) { if (r.childId) m[r.childId] = r; } return m; }, [reports]);
   const unpaidInvoices = useMemo(() => invoices.filter((inv) => inv.status.toUpperCase() !== "PAID" && inv.status.toUpperCase() !== "VOID" && inv.balanceAmount > 0), [invoices]);
   const unreadThreads = useMemo(() => threads.filter((t) => (t.unreadCount ?? 0) > 0).slice(0, 2), [threads]);
+  const latestThread = useMemo(() => threads[0] || null, [threads]);
   const unreviewed = useMemo(() => incidents.filter((i) => !i.parentReviewedAt), [incidents]);
   const childNameMap = useMemo(() => { const m: Record<string, string> = {}; for (const c of children) m[c.id] = c.preferredName || c.fullName || "Child"; return m; }, [children]);
 
   return (
     <RoleGate allow={["PARENT", "OWNER"]}>
       <PullToRefresh onRefresh={loadAll}>
-        <div className="mx-auto max-w-[480px] pb-8" style={{ backgroundColor: "#f0f4f8", minHeight: "100vh" }}>
+        <div className="mx-auto max-w-[520px] pb-8" style={{ backgroundColor: "#f0f4f8", minHeight: "100vh" }}>
           {error && (
             <div className="mx-3 mb-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
           )}
@@ -332,18 +333,21 @@ export default function ParentHomePage() {
                   return (
                     <div key={child.id} className="space-y-3">
 
-                      {/* ═══ Card 1 — Child Status ═══ */}
+                      {/* ═══ Card 1 — Child Profile + Status ═══ */}
                       <FeedCard className="bg-gradient-to-br from-slate-900 to-blue-800">
                         <div className="p-5 flex items-center gap-4">
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-xl font-bold text-white shadow-lg">
+                          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-400 to-violet-400 text-2xl font-bold text-white shadow-lg">
                             {displayName[0].toUpperCase()}
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-baseline gap-2">
-                              <span className="text-lg font-bold text-white truncate">{displayName}</span>
+                              <span className="text-xl font-bold text-white truncate">{displayName}</span>
                               {age && <span className="text-sm text-blue-200">· {age}</span>}
                             </div>
-                            <div className="mt-1 space-y-0.5">
+                            {child.className && (
+                              <div className="text-xs text-blue-300 mt-0.5">🏫 {child.className}</div>
+                            )}
+                            <div className="mt-1.5 space-y-0.5">
                               {(isCheckedIn || isCheckedOut) && att?.checkinAt && (
                                 <div className="text-sm text-emerald-300 font-medium">✅ Checked in at {fmtTime(att.checkinAt)}</div>
                               )}
@@ -353,9 +357,14 @@ export default function ParentHomePage() {
                               {status === "ABSENT" && <div className="text-sm text-rose-300 font-medium">❌ Absent today</div>}
                               {status === "UNKNOWN" && <div className="text-sm text-slate-400">⏰ Not checked in yet</div>}
                             </div>
-                            {child.className && <div className="text-xs text-blue-300/60 mt-0.5">🏠 {child.className}</div>}
                           </div>
                         </div>
+                        {child.allergies && (
+                          <div className="mx-5 mb-4 flex items-center gap-2 rounded-xl bg-orange-500/20 border border-orange-400/30 px-3 py-2">
+                            <span className="text-sm">⚠️</span>
+                            <span className="text-xs font-medium text-orange-200">Allergies: {child.allergies}</span>
+                          </div>
+                        )}
                       </FeedCard>
 
                       {/* ═══ Card 2 — AI Daily Summary (THE main card) ═══ */}
@@ -399,7 +408,17 @@ export default function ParentHomePage() {
                             )}
                           </div>
                         </FeedCard>
-                      ) : null}
+                      ) : (
+                        /* No report yet */
+                        <FeedCard className="bg-yellow-50">
+                          <div className="py-8 px-5 text-center">
+                            <div className="text-5xl mb-3">☀️</div>
+                            <div className="text-lg font-semibold text-slate-800">No report yet</div>
+                            <div className="text-sm text-slate-400 mt-1">Check back later today!</div>
+                            <div className="text-sm text-slate-400 mt-2">{displayName} is at {child.className || "daycare"} 🌟</div>
+                          </div>
+                        </FeedCard>
+                      )}
 
                       {/* ═══ Card 3 — Photos (only when present) ═══ */}
                       {hasPhotos && (
@@ -479,28 +498,28 @@ export default function ParentHomePage() {
                 })
               )}
 
-              {/* ─── Messages (only if unread) ─── */}
-              {unreadThreads.length > 0 && (
+              {/* ─── Latest message ─── */}
+              {latestThread && (
                 <FeedCard className="bg-white">
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
-                        <MessageCircle className="h-4 w-4" /> Messages
+                  <div className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                        <MessageCircle className="h-3.5 w-3.5" /> Latest Message
                       </div>
                       <Link href="/messages" className="text-xs font-medium text-indigo-500">View all →</Link>
                     </div>
-                    {unreadThreads.map((t) => (
-                      <Link key={t.id} href={`/messages/${t.id}`} className="flex items-center gap-3 rounded-xl px-2 py-2.5 hover:bg-slate-50 transition-colors">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">
-                          {(t.latestSenderName || t.childName || "?")[0]}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-medium text-slate-900 truncate">{t.latestSenderName || t.childName || "Centre"}</div>
-                          <div className="text-xs text-slate-500 truncate">{t.latestMessage || "New message"}</div>
-                        </div>
-                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{t.unreadCount}</span>
-                      </Link>
-                    ))}
+                    <Link href={`/messages/${latestThread.id}`} className="flex items-center gap-3 rounded-xl px-1 py-2 hover:bg-slate-50 transition-colors">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-100 text-xs font-bold text-violet-600">
+                        {(latestThread.latestSenderName || latestThread.childName || "?")[0]}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-slate-900 truncate">{latestThread.latestSenderName || latestThread.childName || "Centre"}</div>
+                        <div className="text-xs text-slate-500 truncate">{latestThread.latestMessage || "No messages"}</div>
+                      </div>
+                      {(latestThread.unreadCount ?? 0) > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white">{latestThread.unreadCount}</span>
+                      )}
+                    </Link>
                   </div>
                 </FeedCard>
               )}
@@ -594,21 +613,6 @@ export default function ParentHomePage() {
                 </FeedCard>
               )}
 
-              {/* No report yet — warm waiting card */}
-              {children.length > 0 && reports.length === 0 && (
-                <FeedCard className="bg-yellow-50">
-                  <div className="p-8 text-center">
-                    <div className="text-5xl mb-3">☀️</div>
-                    <div className="text-lg font-semibold text-slate-800">No report yet</div>
-                    <div className="text-sm text-slate-400 mt-1">Check back later today!</div>
-                    {children.length === 1 && (
-                      <div className="text-sm text-slate-400 mt-2">
-                        {children[0].preferredName || children[0].fullName} is at {children[0].className || "daycare"} 🌟
-                      </div>
-                    )}
-                  </div>
-                </FeedCard>
-              )}
 
             </div>
           )}
