@@ -313,6 +313,10 @@ export default function AttendancePage() {
   const [healthCheckChild, setHealthCheckChild] = useState<Child | null>(null);
   const [healthCheckSaving, setHealthCheckSaving] = useState(false);
 
+  // Nap tracking
+  const [activeNaps, setActiveNaps] = useState<Record<string, { id: string; startAt: string }>>({});
+  const [napBusy, setNapBusy] = useState("");
+
   async function loadAll() {
     try {
       setLoading(true);
@@ -335,6 +339,21 @@ export default function AttendancePage() {
       setChildren(Array.isArray(childrenData) ? childrenData : []);
       setRooms(Array.isArray(roomsData) ? roomsData : []);
       setAttendance(Array.isArray(attendanceData) ? attendanceData : []);
+
+      // Load active naps for today
+      try {
+        const napRes = await apiFetch(`/nap-logs?date=${date}`);
+        if (napRes.ok) {
+          const napData = await napRes.json();
+          const active: Record<string, { id: string; startAt: string }> = {};
+          for (const nap of (Array.isArray(napData) ? napData : [])) {
+            if (!nap.endAt) {
+              active[nap.childId] = { id: nap.id, startAt: nap.startAt };
+            }
+          }
+          setActiveNaps(active);
+        }
+      } catch { /* non-critical */ }
     } catch (e: unknown) {
       setError(getErrorMessage(e, "Unable to load attendance."));
     } finally {
@@ -345,6 +364,49 @@ export default function AttendancePage() {
   useEffect(() => {
     loadAll();
   }, [date]);
+
+  async function startNap(childId: string) {
+    setNapBusy(childId);
+    try {
+      const res = await apiFetch("/nap-logs/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ childId }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d?.message || "Failed"); }
+      const data = await res.json();
+      setActiveNaps((prev) => ({ ...prev, [childId]: { id: data.id, startAt: data.startAt } }));
+      setOk("Nap started");
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to start nap."));
+    } finally {
+      setNapBusy("");
+    }
+  }
+
+  async function endNap(childId: string) {
+    const nap = activeNaps[childId];
+    if (!nap) return;
+    setNapBusy(childId);
+    try {
+      const res = await apiFetch(`/nap-logs/${nap.id}/end`, { method: "PATCH" });
+      if (!res.ok) { const d = await res.json(); throw new Error(d?.message || "Failed"); }
+      const data = await res.json();
+      setActiveNaps((prev) => { const copy = { ...prev }; delete copy[childId]; return copy; });
+      const mins = data.duration || 0;
+      setOk(`Nap ended (${Math.floor(mins / 60)}h ${mins % 60}m)`);
+    } catch (e: unknown) {
+      setError(getErrorMessage(e, "Failed to end nap."));
+    } finally {
+      setNapBusy("");
+    }
+  }
+
+  function fmtNapDuration(startAt: string) {
+    const mins = Math.floor((Date.now() - new Date(startAt).getTime()) / 60000);
+    if (mins < 60) return `${mins}m`;
+    return `${Math.floor(mins / 60)}h ${mins % 60}m`;
+  }
 
   const roomNameById = useMemo(
     () => Object.fromEntries(rooms.map((r) => [r.id, r.name || r.id])),
@@ -815,6 +877,28 @@ export default function AttendancePage() {
                         mobile
                       />
                     </div>
+                    {/* Quick actions for checked-in children */}
+                    {(status === "CHECKED_IN" || status === "PRESENT") && (
+                      <div className="mt-2 flex gap-1.5 border-t border-slate-100 pt-2">
+                        {activeNaps[child.id] ? (
+                          <button
+                            disabled={napBusy === child.id}
+                            onClick={() => endNap(child.id)}
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1.5 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                          >
+                            🌙 Nap End ({fmtNapDuration(activeNaps[child.id].startAt)})
+                          </button>
+                        ) : (
+                          <button
+                            disabled={napBusy === child.id}
+                            onClick={() => startNap(child.id)}
+                            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-2 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+                          >
+                            🌙 Nap Start
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -865,6 +949,19 @@ export default function AttendancePage() {
                                   onMarkPresent={() => mark(child.id, "PRESENT")}
                                   onMarkAbsent={() => mark(child.id, "ABSENT")}
                                 />
+                                {(status === "CHECKED_IN" || status === "PRESENT") && (
+                                  activeNaps[child.id] ? (
+                                    <button disabled={napBusy === child.id} onClick={() => endNap(child.id)}
+                                      className="inline-flex h-9 items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-3 text-xs font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50">
+                                      🌙 End ({fmtNapDuration(activeNaps[child.id].startAt)})
+                                    </button>
+                                  ) : (
+                                    <button disabled={napBusy === child.id} onClick={() => startNap(child.id)}
+                                      className="inline-flex h-9 items-center gap-1 rounded-lg border border-indigo-200 bg-indigo-50 px-3 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50">
+                                      🌙 Nap
+                                    </button>
+                                  )
+                                )}
                               </div>
                             </td>
                           </tr>
