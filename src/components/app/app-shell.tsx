@@ -3,9 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useEffect, useMemo, useState } from "react";
-import { Bell, Building2, Check, ChevronDown, Menu, X } from "lucide-react";
+import { Bell, Building2, Check, ChevronDown, Globe, Menu, X } from "lucide-react";
 import { NAV_BY_ROLE, NAV_GROUPS_BY_ROLE, type AppRole, type NavItem, type NavGroup } from "@/lib/workspace";
 import { useLocale } from "@/lib/use-locale";
+import { LOCALE_LABELS, type Locale } from "@/lib/i18n";
 import { readSession } from "@/lib/session";
 import { useLogout } from "@/lib/use-logout";
 import { apiFetch } from "@/lib/api-client";
@@ -378,6 +379,43 @@ function NotificationBell() {
   );
 }
 
+function LocaleSwitcher({ locale, changeLocale }: { locale: Locale; changeLocale: (l: Locale) => void }) {
+  const [open, setOpen] = useState(false);
+  const shortLabel = locale === "en" ? "EN" : locale === "zh-CN" ? "中文" : locale === "zh-TW" ? "繁中" : locale === "pa" ? "ਪੰ" : "TL";
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="inline-flex h-11 items-center gap-1.5 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 hover:bg-slate-50"
+      >
+        <Globe className="h-4 w-4" />
+        <span className="hidden sm:inline">{shortLabel}</span>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full z-40 mt-2 w-44 rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+            {(Object.entries(LOCALE_LABELS) as [Locale, string][]).map(([code, label]) => (
+              <button
+                key={code}
+                onClick={() => { changeLocale(code); setOpen(false); }}
+                className={[
+                  "flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-slate-50",
+                  locale === code ? "font-semibold text-slate-900" : "text-slate-600",
+                ].join(" ")}
+              >
+                {locale === code && <Check className="h-3 w-3 text-emerald-500" />}
+                <span className={locale !== code ? "pl-5" : ""}>{label}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
@@ -412,7 +450,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navItems = useMemo(() => NAV_BY_ROLE[session.role] || NAV_BY_ROLE.OWNER, [session.role]);
   const navGroups = useMemo(() => NAV_GROUPS_BY_ROLE[session.role] || NAV_GROUPS_BY_ROLE.OWNER, [session.role]);
 
-  const { t } = useLocale();
+  const { t, locale, changeLocale } = useLocale();
   const logout = useLogout();
 
   const tenantTitle = mounted ? session.tenantName || "Workspace" : "Workspace";
@@ -481,6 +519,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
               <div className="flex items-center gap-3">
                 {mounted && <GlobalSearch />}
+                {mounted && <LocaleSwitcher locale={locale as Locale} changeLocale={changeLocale} />}
                 {mounted && <NotificationBell />}
 
                 <div className="hidden text-right sm:block">
