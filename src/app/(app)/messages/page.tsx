@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Send, X } from "lucide-react";
+import { Edit3, Plus, Search, Send, X } from "lucide-react";
 import { PageIntro } from "@/components/app/app-shell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +56,7 @@ export default function MessagesPage() {
 
   const [childId, setChildId] = useState("");
   const [body, setBody] = useState("");
+  const [showUpdatePicker, setShowUpdatePicker] = useState(false);
   const searchParams = useSearchParams();
 
   async function loadAll() {
@@ -226,13 +227,57 @@ export default function MessagesPage() {
         ) : null}
 
         {isParent ? (
-          stats.unread > 0 ? (
-            <div className="mb-6 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
-              <p className="text-sm font-medium text-violet-800">
-                You have {stats.unread} unread {stats.unread === 1 ? "message" : "messages"} from your centre.
-              </p>
+          <>
+            {stats.unread > 0 && (
+              <div className="mb-4 rounded-2xl border border-violet-100 bg-violet-50/50 p-4">
+                <p className="text-sm font-medium text-violet-800">
+                  You have {stats.unread} unread {stats.unread === 1 ? "message" : "messages"} from your centre.
+                </p>
+              </div>
+            )}
+
+            {/* Request info update — quick action */}
+            <div className="mb-6">
+              <button
+                onClick={() => setShowUpdatePicker(!showUpdatePicker)}
+                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <Edit3 className="h-4 w-4" />
+                Request info update
+              </button>
+
+              {showUpdatePicker && (
+                <div className="mt-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                  <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">What would you like to update?</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { label: "Allergies", key: "allergies" },
+                      { label: "Emergency contact", key: "emergency" },
+                      { label: "Medical notes", key: "medical" },
+                      { label: "Pickup authorization", key: "pickup" },
+                      { label: "Meal preferences", key: "meal" },
+                      { label: "Other", key: "other" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => {
+                          const child = children[0];
+                          const childName = child?.fullName || "my child";
+                          setBody(`Hi, I'd like to update ${opt.label.toLowerCase()} for ${childName}.\n\nNew information: `);
+                          if (child) setChildId(child.id);
+                          setShowCompose(true);
+                          setShowUpdatePicker(false);
+                        }}
+                        className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 text-left transition-colors"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          ) : null
+          </>
         ) : (
           <div className="mb-6 grid gap-4 md:grid-cols-3">
             <Card className="rounded-2xl border-0 shadow-sm">
