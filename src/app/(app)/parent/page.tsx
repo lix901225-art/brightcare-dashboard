@@ -44,6 +44,19 @@ type DailyReport = {
   status?: string | null;
 };
 
+/**
+ * Resolve a stored photo URL to something the browser can load. Photos uploaded
+ * from the mobile app are stored api-relative ("/files/<name>?exp&sig"); they must
+ * be routed through the dashboard proxy to reach the api. Absolute or
+ * already-proxied URLs are left unchanged.
+ */
+function photoSrc(u?: string | null): string {
+  if (!u) return "";
+  if (u.startsWith("http") || u.startsWith("/api/proxy")) return u;
+  if (u.startsWith("/files/")) return `/api/proxy${u}`;
+  return u;
+}
+
 type ThreadRow = {
   id: string;
   childName?: string | null;
@@ -373,13 +386,13 @@ export default function ParentHomePage() {
                         <div className="mt-4">
                           {report.photoUrls!.length === 1 ? (
                             <button onClick={() => setLightboxUrl(report.photoUrls![0])} className="w-full">
-                              <img src={report.photoUrls![0]} alt="" className="w-full rounded-xl object-cover aspect-[16/9]" />
+                              <img src={photoSrc(report.photoUrls![0])} alt="" className="w-full rounded-xl object-cover aspect-[16/9]" />
                             </button>
                           ) : (
                             <div className="flex gap-2 overflow-x-auto snap-x pb-1">
                               {report.photoUrls!.map((url, i) => (
                                 <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start">
-                                  <img src={url} alt="" className="h-44 w-36 rounded-xl object-cover" />
+                                  <img src={photoSrc(url)} alt="" className="h-44 w-36 rounded-xl object-cover" />
                                 </button>
                               ))}
                             </div>
@@ -395,7 +408,7 @@ export default function ParentHomePage() {
                         <div className="mt-4 flex gap-2 overflow-x-auto snap-x pb-1">
                           {report.photoUrls!.map((url, i) => (
                             <button key={i} onClick={() => setLightboxUrl(url)} className="shrink-0 snap-start">
-                              <img src={url} alt="" className="h-44 w-36 rounded-xl object-cover" />
+                              <img src={photoSrc(url)} alt="" className="h-44 w-36 rounded-xl object-cover" />
                             </button>
                           ))}
                         </div>
@@ -549,7 +562,7 @@ export default function ParentHomePage() {
           <button onClick={() => setLightboxUrl(null)} className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors">
             <X className="h-6 w-6" />
           </button>
-          <img src={lightboxUrl} alt="" className="max-h-[85vh] max-w-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
+          <img src={photoSrc(lightboxUrl)} alt="" className="max-h-[85vh] max-w-full rounded-2xl object-contain" onClick={(e) => e.stopPropagation()} />
         </div>
       )}
     </RoleGate>

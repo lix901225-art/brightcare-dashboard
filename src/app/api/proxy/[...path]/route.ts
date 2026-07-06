@@ -44,13 +44,22 @@ async function proxy(req: NextRequest) {
       cache: "no-store",
     });
 
-    const text = await upstream.text();
+    const upstreamType = upstream.headers.get("content-type") || "application/json; charset=utf-8";
 
-    return new NextResponse(text, {
+    // Stream binary responses (images, videos, PDFs) as raw bytes — reading them
+    // as text() would UTF-8 re-encode and corrupt the file.
+    const isText =
+      upstreamType.includes("application/json") ||
+      upstreamType.startsWith("text/") ||
+      upstreamType.includes("charset");
+
+    const respBody: BodyInit = isText
+      ? await upstream.text()
+      : Buffer.from(await upstream.arrayBuffer());
+
+    return new NextResponse(respBody, {
       status: upstream.status,
-      headers: {
-        "content-type": upstream.headers.get("content-type") || "application/json; charset=utf-8",
-      },
+      headers: { "content-type": upstreamType },
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Proxy request failed";

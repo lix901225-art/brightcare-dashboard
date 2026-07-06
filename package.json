@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "rm -rf .next/standalone/apps/dashboard/.next/static && cp -R .next/static .next/standalone/apps/dashboard/.next/static && rm -rf .next/standalone/apps/dashboard/public && cp -R public .next/standalone/apps/dashboard/public",
     "start": "next start",
     "lint": "eslint",
     "lint:fix": "eslint --fix",
